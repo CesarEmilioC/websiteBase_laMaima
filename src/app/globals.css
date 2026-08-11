@@ -1,0 +1,238 @@
+@import "tailwindcss";
+
+/* =============================================================================
+   Design tokens — La Maima
+   Lenguaje visual iOS/Apple adaptado a un hotel de naturaleza: superficies
+   claras (blanco + gris Apple), tipografía SF Pro / Inter con tracking
+   apretado, esquinas muy redondeadas y sombras difusas. La identidad se
+   mantiene en el verde bosque, que aquí es el color de acción.
+   ============================================================================= */
+@theme {
+  /* --- Verde bosque: identidad y color primario de acción --- */
+  --color-forest-950: #0a1a11;
+  --color-forest-900: #10261a;
+  --color-forest-800: #193826;
+  --color-forest-700: #204c33;
+  --color-forest-600: #2b6644; /* botones, links, chips */
+  --color-forest-500: #37835a;
+  --color-forest-400: #6ba888;
+  --color-forest-300: #9bc7ae;
+  --color-forest-200: #c6e0d0;
+  --color-forest-100: #e4f1ea;
+  --color-forest-50: #f2f8f5;
+
+  /* --- Superficies claras (gris Apple para secciones alternas) --- */
+  --color-cream: #f5f5f7;
+  --color-cream-200: #ebebf0;
+
+  /* --- Texto (escala de grises iOS) --- */
+  --color-ink: #1d1d1f;
+  --color-ink-soft: #424245;
+  --color-ink-muted: #6e6e73;
+
+  --color-whatsapp: #25d366;
+  --color-whatsapp-dark: #1da851;
+
+  /* --- Tipografía: SF Pro en Apple, Inter en el resto --- */
+  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Display",
+    "SF Pro Text", var(--font-inter), "Segoe UI", Roboto, Helvetica, Arial,
+    sans-serif;
+  /* Alias de compatibilidad: ya no hay serifas en el sitio. */
+  --font-display: var(--font-sans);
+
+  /* --- Radios --- */
+  --radius-card: 1.375rem; /* 22px */
+  --radius-panel: 1.75rem; /* 28px */
+  --radius-tile: 0.875rem; /* 14px — "squircle" de iconos iOS */
+
+  /* --- Sombras suaves y difusas (nada de bordes duros) --- */
+  --shadow-card: 0 1px 2px rgb(16 38 26 / 0.04),
+    0 10px 28px -14px rgb(16 38 26 / 0.22);
+  --shadow-lift: 0 2px 6px rgb(16 38 26 / 0.06),
+    0 24px 48px -20px rgb(16 38 26 / 0.3);
+  --shadow-panel: 0 1px 2px rgb(16 38 26 / 0.04),
+    0 18px 44px -24px rgb(16 38 26 / 0.26);
+  --shadow-float: 0 6px 16px rgb(0 0 0 / 0.14),
+    0 16px 36px -12px rgb(0 0 0 / 0.24);
+  --shadow-pill: 0 1px 2px rgb(16 38 26 / 0.12),
+    0 6px 16px -8px rgb(16 38 26 / 0.4);
+
+  /* Curva de animación de iOS */
+  --ease-ios: cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+/* =============================================================================
+   Base
+   ============================================================================= */
+@layer base {
+  html {
+    scroll-behavior: smooth;
+    /* deja aire bajo el header fijo cuando se navega a un ancla */
+    scroll-padding-top: 6rem;
+    -webkit-text-size-adjust: 100%;
+    /* red de seguridad: ningún elemento debe generar scroll horizontal.
+       `clip` (en vez de `hidden`) no crea un contenedor de scroll propio, así
+       que no interfiere con `position: sticky`/`fixed` de los hijos. */
+    overflow-x: clip;
+  }
+
+  body {
+    background-color: #ffffff;
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    overflow-x: clip;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* El contenido de titulares y párrafos lo edita el cliente desde el panel
+     de administración (Supabase). `text-wrap: balance/pretty` no parte
+     palabras: una sola palabra o URL inusualmente larga pegada sin espacios
+     podría desbordar su contenedor. `overflow-wrap` es la red de seguridad
+     para ese caso; en el uso normal (frases con espacios) no cambia nada. */
+  h1,
+  h2,
+  h3,
+  h4,
+  p {
+    overflow-wrap: break-word;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    font-weight: 600;
+    letter-spacing: -0.022em;
+    text-wrap: balance;
+  }
+
+  h1 {
+    letter-spacing: -0.032em;
+  }
+
+  p {
+    text-wrap: pretty;
+  }
+
+  ::selection {
+    background-color: var(--color-forest-600);
+    color: #ffffff;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-forest-500);
+    outline-offset: 3px;
+    border-radius: 8px;
+  }
+}
+
+@layer utilities {
+  /* Etiqueta corta sobre los titulares. Estilo iOS: sin versalitas ni
+     tracking exagerado, solo peso y color. */
+  .eyebrow {
+    font-size: 0.8125rem;
+    line-height: 1.25;
+    font-weight: 600;
+    letter-spacing: -0.005em;
+  }
+
+  /* Vidrio esmerilado del header y de los chips sobre foto.
+     El prefijo -webkit- va PRIMERO a propósito: Lightning CSS (el compilador
+     de Tailwind v4) colapsa la pareja y conserva la última declaración; si el
+     estándar fuera primero, se publicaría solo la versión prefijada y Firefox
+     se quedaría sin desenfoque. */
+  .glass {
+    background-color: rgb(255 255 255 / 0.72);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    backdrop-filter: blur(20px) saturate(180%);
+  }
+
+  .glass-strong {
+    background-color: rgb(255 255 255 / 0.86);
+    -webkit-backdrop-filter: blur(24px) saturate(180%);
+    backdrop-filter: blur(24px) saturate(180%);
+  }
+
+  .glass-dark {
+    background-color: rgb(10 26 17 / 0.42);
+    -webkit-backdrop-filter: blur(16px) saturate(160%);
+    backdrop-filter: blur(16px) saturate(160%);
+  }
+
+  /* Vidrio OSCURO verde bosque, exclusivo del header fijo. Va aparte de
+     `.glass`/`.glass-dark` (que visten los chips sobre foto de las tarjetas):
+     el header necesita mucha más opacidad para que el logo blanco y los links
+     se lean tanto sobre el hero fotográfico como sobre secciones de fondo
+     blanco. Mismo orden de prefijos que arriba: -webkit- primero. */
+  .glass-header {
+    /* `saturate` va más bajo que en el vidrio claro (180%): sobre un cielo
+       azul, saturar de más teñía la barra de turquesa en vez de verde. */
+    background-color: rgb(20 40 28 / 0.78);
+    -webkit-backdrop-filter: blur(20px) saturate(150%);
+    backdrop-filter: blur(20px) saturate(150%);
+  }
+
+  .glass-header-strong {
+    background-color: rgb(20 40 28 / 0.9);
+    -webkit-backdrop-filter: blur(24px) saturate(150%);
+    backdrop-filter: blur(24px) saturate(150%);
+  }
+
+  /* Fundido oscuro sobre las fotos para garantizar contraste del texto.
+     Más limpio que un velo plano: concentra la densidad abajo (donde va el
+     titular) y deja un toque arriba para que la barra de vidrio se recorte
+     también contra cielos claros. */
+  .photo-scrim {
+    background: linear-gradient(
+      to top,
+      rgb(6 18 11 / 0.86) 0%,
+      rgb(6 18 11 / 0.66) 20%,
+      rgb(6 18 11 / 0.34) 46%,
+      rgb(6 18 11 / 0.12) 72%,
+      rgb(6 18 11 / 0.22) 100%
+    );
+  }
+
+  .photo-scrim-soft {
+    background: linear-gradient(
+      to top,
+      rgb(6 18 11 / 0.7) 0%,
+      rgb(6 18 11 / 0.34) 45%,
+      rgb(6 18 11 / 0.1) 100%
+    );
+  }
+
+  /* Separador de 1px real (no se engorda en pantallas HiDPI) */
+  .hairline {
+    border-color: rgb(0 0 0 / 0.08);
+  }
+
+  /* Texto sobre fotografía. Las fotos del cliente no siempre son oscuras
+     (cielos, muros blancos), así que además del degradado el texto lleva una
+     sombra muy difusa: invisible sobre fondo oscuro, salvavidas sobre uno
+     claro. */
+  .on-photo {
+    text-shadow:
+      0 1px 3px rgb(0 0 0 / 0.35),
+      0 6px 24px rgb(0 0 0 / 0.28);
+  }
+
+  /* Tipografía de titulares grandes al estilo Apple */
+  .tracking-display {
+    letter-spacing: -0.035em;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
