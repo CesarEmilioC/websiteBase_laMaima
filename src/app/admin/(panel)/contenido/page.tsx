@@ -1,7 +1,13 @@
 import type { Metadata } from "next";
 
-import { saveAboutAction, saveContactAction, saveHeroAction } from "./actions";
+import {
+  saveAboutAction,
+  saveContactAction,
+  saveHeroAction,
+  saveSeoAction,
+} from "./actions";
 import { ActionForm } from "@/components/admin/action-form";
+import { ImageField } from "@/components/admin/image-field";
 import {
   Card,
   CardBody,
@@ -54,6 +60,7 @@ export default async function SiteContentPage() {
   const hero = content.home_hero ?? {};
   const about = content.home_about ?? {};
   const contact = content.contact ?? {};
+  const seo = content.seo ?? {};
   const stats = statsOf(about);
 
   return (
@@ -130,15 +137,10 @@ export default async function SiteContentPage() {
 
                 <Field
                   label="Imagen de fondo"
-                  htmlFor="hero_image"
-                  hint="Dirección completa de la foto (https://…). Puedes copiarla de la galería de cualquier alojamiento."
+                  hint="Sube una foto desde tu computador o pega la dirección de una que ya esté publicada."
+                  className="sm:col-span-2"
                 >
-                  <Input
-                    id="hero_image"
-                    name="image"
-                    maxLength={500}
-                    defaultValue={text(hero, "image")}
-                  />
+                  <ImageField name="image" initialUrl={text(hero, "image")} />
                 </Field>
 
                 <Field
@@ -202,15 +204,10 @@ export default async function SiteContentPage() {
 
                 <Field
                   label="Imagen"
-                  htmlFor="about_image"
-                  hint="Dirección completa de la foto (https://…)."
+                  hint="Sube una foto desde tu computador o pega la dirección de una que ya esté publicada."
+                  className="sm:col-span-2"
                 >
-                  <Input
-                    id="about_image"
-                    name="image"
-                    maxLength={500}
-                    defaultValue={text(about, "image")}
-                  />
+                  <ImageField name="image" initialUrl={text(about, "image")} />
                 </Field>
 
                 <Field label="Descripción de la imagen" htmlFor="about_image_alt">
@@ -381,6 +378,39 @@ export default async function SiteContentPage() {
                     maxLength={300}
                     defaultValue={text(contact, "note")}
                     className="min-h-0"
+                  />
+                </Field>
+              </div>
+            </ActionForm>
+          </CardBody>
+        </Card>
+
+        <Card>
+          <CardHeader
+            title="Imagen para redes sociales"
+            description="La foto que se muestra al compartir el sitio en WhatsApp, Facebook o X, y en los resultados de búsqueda de Google."
+          />
+          <CardBody>
+            <ActionForm action={saveSeoAction} submitLabel="Guardar imagen">
+              <div className="grid gap-4 sm:grid-cols-2">
+                <Field
+                  label="Imagen"
+                  hint="Sube una foto desde tu computador o pega la dirección de una que ya esté publicada. Ideal en formato horizontal."
+                  className="sm:col-span-2"
+                >
+                  <ImageField name="image" initialUrl={text(seo, "image")} />
+                </Field>
+
+                <Field
+                  label="Descripción de la imagen"
+                  htmlFor="seo_image_alt"
+                  hint="Para accesibilidad y buscadores."
+                >
+                  <Input
+                    id="seo_image_alt"
+                    name="image_alt"
+                    maxLength={300}
+                    defaultValue={text(seo, "image_alt")}
                   />
                 </Field>
               </div>

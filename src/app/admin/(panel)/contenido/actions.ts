@@ -97,6 +97,19 @@ export async function saveAboutAction(
   });
 }
 
+export async function saveSeoAction(
+  _state: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  return runAction(async () => {
+    await upsertContent("seo", {
+      image: optionalText(formData, "image", 500) ?? "",
+      image_alt: optionalText(formData, "image_alt", 300) ?? "",
+    });
+    return okState("Imagen para redes sociales actualizada.");
+  });
+}
+
 export async function saveContactAction(
   _state: ActionState,
   formData: FormData,
