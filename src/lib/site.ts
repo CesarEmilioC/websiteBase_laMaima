@@ -61,9 +61,43 @@ export const NAV_LINKS = [
   { href: "/#contacto", label: "Contacto" },
 ] as const;
 
+/* ---------------------------------------------------------------------------
+ * Imágenes
+ * ------------------------------------------------------------------------- */
+
+/**
+ * TODAS las fotos del sitio viven en el bucket público "gallery" de Supabase
+ * Storage, no en `/public`. Así el cliente puede reemplazar cualquiera de
+ * ellas desde el panel de administración (o desde el propio Storage) sin
+ * tocar el código ni volver a desplegar, y el panel nunca muestra rutas
+ * locales que él no puede cambiar.
+ *
+ * En `/public` solo queda el logotipo, que es identidad de marca y no
+ * contenido editable.
+ */
+const SUPABASE_URL =
+  process.env.NEXT_PUBLIC_SUPABASE_URL ??
+  "https://mauolzwhergekdvigmaf.supabase.co";
+
+export const MEDIA_BASE = `${SUPABASE_URL}/storage/v1/object/public/gallery`;
+
+/** Dirección pública de una foto del bucket: `media("sitio/hero.jpg")`. */
+export function media(path: string): string {
+  return `${MEDIA_BASE}/${path}`;
+}
+
+/**
+ * Convierte a dirección absoluta lo que los metadatos y el JSON-LD necesitan
+ * servir con dominio completo. Las fotos del bucket ya son absolutas; las
+ * rutas propias del sitio (`/algo`) se prefijan con el dominio canónico.
+ */
+export function absoluteUrl(url: string): string {
+  return /^https?:\/\//i.test(url) ? url : `${SITE.url}${url}`;
+}
+
 /** Imagen por defecto para OpenGraph / Twitter Cards. */
 export const OG_IMAGE = {
-  url: "/images/mirador-1.jpg",
+  url: media("sitio/hero.jpg"),
   width: 3000,
   height: 2000,
   alt: "Cabaña de La Maima frente al bosque nativo en las montañas de Dapa",

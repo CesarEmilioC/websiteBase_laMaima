@@ -4,7 +4,11 @@ import { AccommodationCard } from "@/components/accommodation-card";
 import { PageHero } from "@/components/page-hero";
 import { WhatsAppButton } from "@/components/whatsapp-button";
 import { getAccommodations } from "@/lib/content";
+import { media } from "@/lib/site";
 import { GENERAL_MESSAGE } from "@/lib/whatsapp";
+
+/** Foto de la banda de encabezado (bucket "gallery" de Supabase Storage). */
+const HERO_IMAGE = media("alojamientos/casa-maima/1.jpg");
 
 export const revalidate = 3600;
 
@@ -18,7 +22,7 @@ export const metadata: Metadata = {
     description:
       "Seis casas y cabañas independientes entre el bosque de Dapa, todas con cocineta y baño privado.",
     url: "/alojamientos",
-    images: [{ url: "/images/casa-maima-1.jpg" }],
+    images: [{ url: HERO_IMAGE }],
   },
 };
 
@@ -31,7 +35,7 @@ export default async function AccommodationsPage() {
         eyebrow="Casas y cabañas"
         title="Dormir dentro de la reserva"
         description="Seis alojamientos independientes repartidos por la ladera. Cada uno con su entrada, su terraza y su vista. Todos con cocineta equipada y baño privado."
-        image="/images/casa-maima-1.jpg"
+        image={HERO_IMAGE}
         imageAlt="Casa Maima vista desde el jardín, con base en piedra y grandes ventanales"
         breadcrumbs={[
           { href: "/", label: "Inicio" },

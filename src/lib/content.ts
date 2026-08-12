@@ -10,7 +10,7 @@
  */
 import { cache } from "react";
 import { createPublicClient } from "./supabase/public";
-import { SITE } from "./site";
+import { media, SITE } from "./site";
 
 /* ---------------------------------------------------------------------------
  * Tipos
@@ -114,7 +114,7 @@ const FALLBACK_HERO: HomeHero = {
     "Seis casas y cabañas en medio de 30 años de bosque rehabilitado, a menos de una hora de Cali.",
   cta_label: "Ver alojamientos",
   cta_href: "/alojamientos",
-  image: "/images/mirador-1.jpg",
+  image: media("sitio/hero.jpg"),
   image_alt:
     "Cabaña de La Maima frente a la ladera de bosque nativo en las montañas de Dapa",
 };
@@ -126,7 +126,7 @@ const FALLBACK_ABOUT: HomeAbout = {
     "La Maima nació como un proyecto familiar de rehabilitación en las montañas de Dapa. Tres décadas después, la reserva combina bosque primario, secundario y terciario en la misma ladera.",
     "Sobre ese bosque construimos seis casas y cabañas independientes, cada una con cocineta y baño privado.",
   ],
-  image: "/images/vista-valle.jpg",
+  image: media("sitio/sobre-la-reserva.jpg"),
   image_alt: "Jardines de La Maima con vista abierta al Valle del Cauca",
   stats: [
     { value: "30", label: "años de rehabilitación" },
@@ -353,5 +353,5 @@ export function coverImage(
   gallery: GalleryImage[],
   fallbackAlt: string,
 ): GalleryImage {
-  return gallery[0] ?? { url: "/images/bosque-1.png", alt: fallbackAlt };
+  return gallery[0] ?? { url: media("sitio/bosque.jpg"), alt: fallbackAlt };
 }

@@ -4,6 +4,7 @@ import Link from "next/link";
 
 import { ArrowRightIcon } from "@/components/icons";
 import { WhatsAppFloat } from "@/components/whatsapp-float";
+import { media } from "@/lib/site";
 
 export const metadata: Metadata = {
   title: "Página no encontrada",
@@ -15,7 +16,7 @@ export default function NotFound() {
     <>
       <main className="on-photo relative isolate flex min-h-screen flex-col items-center justify-center overflow-hidden px-4 py-24 text-center sm:px-6">
         <Image
-          src="/images/bosque-1.png"
+          src={media("sitio/bosque.jpg")}
           alt=""
           aria-hidden="true"
           fill

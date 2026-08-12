@@ -46,13 +46,16 @@ export function PageHero({
       <div className="on-photo mx-auto w-full max-w-7xl px-4 pb-14 sm:px-6 sm:pb-16 lg:px-10 lg:pb-20">
         {breadcrumbs && breadcrumbs.length > 0 && (
           <nav aria-label="Ruta de navegación" className="mb-5">
-            <ol className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-[0.8125rem] text-white/80">
+            {/* La miga de pan es lo más alto de la banda: ahí el degradado casi
+                no llega y puede caer sobre cielo o nubes. Va más opaca que el
+                resto del texto secundario a propósito. */}
+            <ol className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-[0.8125rem] text-white/90">
               {breadcrumbs.map((crumb, index) => {
                 const last = index === breadcrumbs.length - 1;
                 return (
                   <li key={crumb.href} className="flex items-center gap-1.5">
                     {index > 0 && (
-                      <span aria-hidden="true" className="text-white/45">
+                      <span aria-hidden="true" className="text-white/60">
                         ›
                       </span>
                     )}
@@ -86,7 +89,7 @@ export function PageHero({
         </h1>
 
         {description && (
-          <p className="mt-5 max-w-2xl text-[1.0625rem] leading-relaxed text-white/85 sm:text-lg">
+          <p className="mt-5 max-w-2xl text-[1.0625rem] leading-relaxed text-white/90 sm:text-lg">
             {description}
           </p>
         )}

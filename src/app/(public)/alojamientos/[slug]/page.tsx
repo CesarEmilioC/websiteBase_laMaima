@@ -13,7 +13,7 @@ import {
   getContactInfo,
 } from "@/lib/content";
 import { formatCOP, formatGuests } from "@/lib/format";
-import { SITE } from "@/lib/site";
+import { absoluteUrl, SITE } from "@/lib/site";
 import { accommodationMessage } from "@/lib/whatsapp";
 
 export const revalidate = 3600;
@@ -75,7 +75,7 @@ export default async function AccommodationDetailPage({ params }: Props) {
     name: accommodation.name,
     description: accommodation.short_description ?? accommodation.description,
     url: `${SITE.url}/alojamientos/${accommodation.slug}`,
-    image: `${SITE.url}${cover.url}`,
+    image: absoluteUrl(cover.url),
     occupancy: {
       "@type": "QuantitativeValue",
       maxValue: accommodation.capacity,

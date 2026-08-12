@@ -1,16 +1,31 @@
 import type { NextConfig } from "next";
 
+/**
+ * Host del proyecto de Supabase. Todas las fotos editables del sitio se sirven
+ * desde el bucket público "gallery" de su Storage, así que su dominio tiene que
+ * estar en la lista blanca del optimizador de imágenes de Next.
+ */
+const supabaseHostname = new URL(
+  process.env.NEXT_PUBLIC_SUPABASE_URL ??
+    "https://mauolzwhergekdvigmaf.supabase.co",
+).hostname;
+
 const nextConfig: NextConfig = {
   images: {
     formats: ["image/avif", "image/webp"],
     remotePatterns: [
-      // Fotos del sitio Wix actual. Hoy las servimos desde /public/images
-      // (descargadas), pero se deja habilitado por si alguna galería apunta
-      // temporalmente al CDN de Wix mientras llegan las fotos definitivas.
-      { protocol: "https", hostname: "static.wixstatic.com" },
-      // Supabase Storage: destino final de las imágenes que suba el cliente
-      // desde el panel de administración.
-      { protocol: "https", hostname: "mauolzwhergekdvigmaf.supabase.co" },
+      // Supabase Storage: origen de TODAS las fotos del sitio (galerías de
+      // alojamientos y experiencias, portada y banderas de sección). El cliente
+      // las reemplaza desde el panel sin tocar el código.
+      {
+        protocol: "https",
+        hostname: supabaseHostname,
+        pathname: "/storage/v1/object/public/**",
+      },
+      // Cloudinary: previsto en el roadmap para cuando el cliente quiera servir
+      // las fotos desde un CDN propio. El editor de galería ya admite pegar
+      // direcciones externas, así que se deja habilitado de antemano.
+      { protocol: "https", hostname: "res.cloudinary.com" },
     ],
   },
 };

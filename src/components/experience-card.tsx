@@ -38,9 +38,17 @@ export function ExperienceCard({
           className="object-cover transition-transform duration-[600ms] ease-ios group-hover:scale-[1.03]"
         />
         {experience.price_note && (
-          <span className="glass absolute left-3.5 top-3.5 rounded-full px-3 py-1.5 text-[0.8125rem] font-semibold text-ink">
-            {experience.price_note}
-          </span>
+          <>
+            {/* Fundido corto en el borde superior: separa el chip de precio de
+                las fotos con cielo claro sin apagar el resto de la imagen. */}
+            <div
+              aria-hidden="true"
+              className="photo-scrim-chip pointer-events-none absolute inset-x-0 top-0 h-1/2"
+            />
+            <span className="glass absolute left-3.5 top-3.5 rounded-full px-3 py-1.5 text-[0.8125rem] font-semibold text-ink ring-1 ring-inset ring-white/40">
+              {experience.price_note}
+            </span>
+          </>
         )}
       </div>
 

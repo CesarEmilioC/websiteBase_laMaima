@@ -76,7 +76,7 @@ create table if not exists public.accommodations (
 
   -- ["Cocineta equipada", "Baño privado", ...]
   amenities           jsonb not null default '[]'::jsonb,
-  -- [{ "url": "/images/casa-maima-1.jpg", "alt": "..." }, ...]
+  -- [{ "url": "https://mauolzwhergekdvigmaf.supabase.co/storage/v1/object/public/gallery/alojamientos/casa-maima/1.jpg", "alt": "..." }, ...]
   gallery             jsonb not null default '[]'::jsonb,
 
   -- si es false no se muestra en el sitio público (borrador / fuera de servicio)
