@@ -131,7 +131,7 @@ export default async function SiteContentPage() {
                 <Field
                   label="Imagen de fondo"
                   htmlFor="hero_image"
-                  hint="Ruta del sitio (/images/…) o dirección completa https://…"
+                  hint="Dirección completa de la foto (https://…). Puedes copiarla de la galería de cualquier alojamiento."
                 >
                   <Input
                     id="hero_image"
@@ -200,7 +200,11 @@ export default async function SiteContentPage() {
                   />
                 </Field>
 
-                <Field label="Imagen" htmlFor="about_image">
+                <Field
+                  label="Imagen"
+                  htmlFor="about_image"
+                  hint="Dirección completa de la foto (https://…)."
+                >
                   <Input
                     id="about_image"
                     name="image"

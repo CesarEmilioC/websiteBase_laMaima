@@ -33,7 +33,13 @@ export function AccommodationCard({ accommodation, priority = false }: Props) {
           sizes="(min-width: 1280px) 380px, (min-width: 768px) 45vw, 100vw"
           className="object-cover transition-transform duration-[600ms] ease-ios group-hover:scale-[1.03]"
         />
-        <span className="glass absolute left-3.5 top-3.5 inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[0.8125rem] font-semibold text-ink">
+        {/* Fundido corto en el borde superior: separa el chip de capacidad de
+            las fotos con cielo claro sin apagar el resto de la imagen. */}
+        <div
+          aria-hidden="true"
+          className="photo-scrim-chip pointer-events-none absolute inset-x-0 top-0 h-1/2"
+        />
+        <span className="glass absolute left-3.5 top-3.5 inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[0.8125rem] font-semibold text-ink ring-1 ring-inset ring-white/40">
           <UsersIcon className="h-3.5 w-3.5" />
           {formatGuests(accommodation.capacity)}
         </span>

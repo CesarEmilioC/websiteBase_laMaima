@@ -4,7 +4,11 @@ import { ExperienceCard } from "@/components/experience-card";
 import { PageHero } from "@/components/page-hero";
 import { WhatsAppButton } from "@/components/whatsapp-button";
 import { getExperiences } from "@/lib/content";
+import { media } from "@/lib/site";
 import { GENERAL_MESSAGE } from "@/lib/whatsapp";
+
+/** Foto de la banda de encabezado (bucket "gallery" de Supabase Storage). */
+const HERO_IMAGE = media("sitio/senderos.jpg");
 
 export const revalidate = 3600;
 
@@ -18,7 +22,7 @@ export const metadata: Metadata = {
     description:
       "Senderos, piscina de río, fogata y avistamiento de aves dentro de la reserva natural de La Maima.",
     url: "/experiencias",
-    images: [{ url: "/images/senderos-1.png" }],
+    images: [{ url: HERO_IMAGE }],
   },
 };
 
@@ -31,7 +35,7 @@ export default async function ExperiencesPage() {
         eyebrow="Qué hacer en la reserva"
         title="Experiencias entre el bosque y el agua"
         description="La Maima no es solo dónde dormir. Treinta años de rehabilitación dejaron senderos, una quebrada con pozos naturales y un bosque al que volvieron las aves."
-        image="/images/senderos-1.png"
+        image={HERO_IMAGE}
         imageAlt="Senderos y jardines de La Maima con vista al Valle del Cauca"
         breadcrumbs={[
           { href: "/", label: "Inicio" },

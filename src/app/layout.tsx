@@ -3,7 +3,7 @@ import { Inter } from "next/font/google";
 
 import "./globals.css";
 import { getContactInfo } from "@/lib/content";
-import { OG_IMAGE, SITE } from "@/lib/site";
+import { absoluteUrl, OG_IMAGE, SITE } from "@/lib/site";
 
 /**
  * Tipografía única para todo el sitio (titulares y cuerpo).
@@ -92,7 +92,7 @@ export default async function RootLayout({
     slogan: SITE.tagline,
     url: SITE.url,
     telephone: contact.phoneDisplay,
-    image: [`${SITE.url}${OG_IMAGE.url}`],
+    image: [absoluteUrl(OG_IMAGE.url)],
     logo: `${SITE.url}/logo-lamaima.png`,
     priceRange: "$$",
     currenciesAccepted: "COP",

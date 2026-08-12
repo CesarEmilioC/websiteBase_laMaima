@@ -179,27 +179,80 @@
     backdrop-filter: blur(24px) saturate(150%);
   }
 
-  /* Fundido oscuro sobre las fotos para garantizar contraste del texto.
-     Más limpio que un velo plano: concentra la densidad abajo (donde va el
-     titular) y deja un toque arriba para que la barra de vidrio se recorte
-     también contra cielos claros. */
+  /* ---------------------------------------------------------------------
+     Fundidos (scrims) sobre fotografía
+     ---------------------------------------------------------------------
+     El cliente pidió "una película negra traslúcida" sobre las fotos para que
+     se lean los textos. Un velo PLANO cumpliría, pero apaga la foto entera:
+     las de La Maima son luminosas (cielo azul, muros blancos, pasto al sol) y
+     es justo esa luz lo que vende el lugar.
+
+     La versión refinada, que es como lo resuelve iOS en las portadas de
+     Fotos/Música, es un DEGRADADO: densidad alta solo donde de verdad hay
+     texto y fundido total a transparente donde no lo hay. La foto se conserva
+     intacta en las tres cuartas partes superiores y el titular se lee incluso
+     sobre un muro blanco.
+
+     Los degradados llevan MUCHAS paradas a propósito. Un `linear-gradient`
+     de dos o tres paradas interpola el alfa en línea recta y el ojo detecta
+     el cambio de pendiente como una banda horizontal sucia sobre los cielos.
+     Estas paradas dibujan a mano una curva suave (tipo "smootherstep"), que
+     es lo que hace que el fundido resulte imperceptible.
+     --------------------------------------------------------------------- */
+
+  /* Portada de la home y bandas de encabezado de las páginas internas: el
+     texto va abajo, así que el negro entra desde abajo. La segunda capa es un
+     velo muy leve en el borde superior, para que la barra de vidrio del header
+     tenga contra qué recortarse sobre un cielo claro. */
   .photo-scrim {
-    background: linear-gradient(
-      to top,
-      rgb(6 18 11 / 0.86) 0%,
-      rgb(6 18 11 / 0.66) 20%,
-      rgb(6 18 11 / 0.34) 46%,
-      rgb(6 18 11 / 0.12) 72%,
-      rgb(6 18 11 / 0.22) 100%
-    );
+    background:
+      linear-gradient(
+        to top,
+        rgb(6 18 11 / 0.82) 0%,
+        rgb(6 18 11 / 0.79) 7%,
+        rgb(6 18 11 / 0.73) 15%,
+        rgb(6 18 11 / 0.655) 23%,
+        rgb(6 18 11 / 0.565) 31%,
+        rgb(6 18 11 / 0.47) 39%,
+        rgb(6 18 11 / 0.375) 47%,
+        rgb(6 18 11 / 0.285) 55%,
+        rgb(6 18 11 / 0.2) 63%,
+        rgb(6 18 11 / 0.128) 71%,
+        rgb(6 18 11 / 0.07) 79%,
+        rgb(6 18 11 / 0.03) 87%,
+        rgb(6 18 11 / 0.008) 94%,
+        transparent 100%
+      ),
+      linear-gradient(
+        to bottom,
+        rgb(6 18 11 / 0.3) 0%,
+        rgb(6 18 11 / 0.22) 4%,
+        rgb(6 18 11 / 0.14) 8%,
+        rgb(6 18 11 / 0.075) 12%,
+        rgb(6 18 11 / 0.03) 17%,
+        rgb(6 18 11 / 0.008) 22%,
+        transparent 28%
+      );
   }
 
-  .photo-scrim-soft {
+  /* Tarjetas con un chip encima de la foto (capacidad, precio). El chip es de
+     vidrio CLARO con texto oscuro, así que lo que lo borra no es un fondo
+     claro sino la falta de separación: sobre un cielo blanco el chip y la foto
+     tienen la misma luminosidad y el chip desaparece. Este fundido superior,
+     muy corto y muy suave, le devuelve el borde sin ensuciar la foto (a media
+     altura ya no queda nada). */
+  .photo-scrim-chip {
     background: linear-gradient(
-      to top,
-      rgb(6 18 11 / 0.7) 0%,
-      rgb(6 18 11 / 0.34) 45%,
-      rgb(6 18 11 / 0.1) 100%
+      to bottom,
+      rgb(6 18 11 / 0.28) 0%,
+      rgb(6 18 11 / 0.235) 10%,
+      rgb(6 18 11 / 0.18) 20%,
+      rgb(6 18 11 / 0.125) 30%,
+      rgb(6 18 11 / 0.078) 40%,
+      rgb(6 18 11 / 0.042) 50%,
+      rgb(6 18 11 / 0.018) 60%,
+      rgb(6 18 11 / 0.004) 70%,
+      transparent 78%
     );
   }
 
@@ -208,14 +261,17 @@
     border-color: rgb(0 0 0 / 0.08);
   }
 
-  /* Texto sobre fotografía. Las fotos del cliente no siempre son oscuras
-     (cielos, muros blancos), así que además del degradado el texto lleva una
-     sombra muy difusa: invisible sobre fondo oscuro, salvavidas sobre uno
-     claro. */
+  /* Texto sobre fotografía. El degradado hace el trabajo grueso, pero la parte
+     ALTA del titular cae donde el fundido ya es leve, y ahí una nube o un muro
+     blanco todavía pueden comerse una letra. La sombra es la red de seguridad
+     local: tres capas, de una muy ceñida (define el borde de cada letra contra
+     lo que tenga detrás) a una muy abierta (separa el bloque entero del fondo).
+     Sobre fondo oscuro no se ve; sobre uno claro sostiene el texto. */
   .on-photo {
     text-shadow:
-      0 1px 3px rgb(0 0 0 / 0.35),
-      0 6px 24px rgb(0 0 0 / 0.28);
+      0 1px 2px rgb(0 0 0 / 0.42),
+      0 2px 10px rgb(0 0 0 / 0.32),
+      0 8px 30px rgb(0 0 0 / 0.26);
   }
 
   /* Tipografía de titulares grandes al estilo Apple */

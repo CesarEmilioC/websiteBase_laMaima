@@ -66,7 +66,10 @@ export default async function HomePage() {
             {hero.title}
           </h1>
 
-          <p className="mt-6 max-w-xl text-[1.0625rem] leading-relaxed text-white/85 sm:text-xl">
+          {/* /90 y no /85: el subtítulo es el texto más fino del hero y cae
+              justo sobre el muro blanco de la cabaña, donde el degradado ya es
+              suave. */}
+          <p className="mt-6 max-w-xl text-[1.0625rem] leading-relaxed text-white/90 sm:text-xl">
             {hero.subtitle}
           </p>
 

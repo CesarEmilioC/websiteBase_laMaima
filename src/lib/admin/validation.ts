@@ -168,7 +168,12 @@ export function stringList(form: FormData, field: string): string[] {
     .slice(0, 40);
 }
 
-/** URL de imagen: http(s) o ruta absoluta del propio sitio (/images/...). */
+/**
+ * URL de imagen. Lo normal es una dirección https:// del bucket "gallery" de
+ * Supabase Storage (o de un CDN externo como Cloudinary). Se siguen aceptando
+ * rutas absolutas del propio sitio (`/algo.jpg`) por si alguna vez se sirve
+ * una imagen desde `/public`.
+ */
 export function isAllowedImageUrl(value: string): boolean {
   if (value.startsWith("/")) return !value.startsWith("//");
   try {
