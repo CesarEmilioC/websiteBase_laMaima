@@ -2,8 +2,8 @@ import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 
 import "./globals.css";
-import { getContactInfo } from "@/lib/content";
-import { absoluteUrl, OG_IMAGE, SITE } from "@/lib/site";
+import { getContactInfo, getOgImage } from "@/lib/content";
+import { absoluteUrl, SITE } from "@/lib/site";
 
 /**
  * Tipografía única para todo el sitio (titulares y cuerpo).
@@ -18,49 +18,58 @@ const inter = Inter({
   display: "swap",
 });
 
-export const metadata: Metadata = {
-  metadataBase: new URL(SITE.url),
-  title: {
-    default: `${SITE.name} — Hotel campestre y reserva natural en Dapa, Yumbo`,
-    template: `%s · ${SITE.name}`,
-  },
-  description: SITE.description,
-  applicationName: SITE.name,
-  keywords: [
-    "hotel campestre Dapa",
-    "cabañas Dapa",
-    "reserva natural Yumbo",
-    "alojamiento Valle del Cauca",
-    "hotel cerca de Cali",
-    "La Maima",
-    "ecohotel Colombia",
-  ],
-  authors: [{ name: SITE.legalName }],
-  creator: SITE.legalName,
-  publisher: SITE.legalName,
-  alternates: { canonical: "/" },
-  openGraph: {
-    type: "website",
-    locale: "es_CO",
-    url: SITE.url,
-    siteName: SITE.name,
-    title: `${SITE.name} — ${SITE.tagline}`,
+/**
+ * `generateMetadata` (y no un `metadata` estático) porque la imagen de
+ * OpenGraph/Twitter se edita en `/admin/contenido` (`site_content.seo`, ver
+ * `getOgImage()` en `@/lib/content`) y necesita leerse en cada request.
+ */
+export async function generateMetadata(): Promise<Metadata> {
+  const ogImage = await getOgImage();
+
+  return {
+    metadataBase: new URL(SITE.url),
+    title: {
+      default: `${SITE.name} — Hotel campestre y reserva natural en Dapa, Yumbo`,
+      template: `%s · ${SITE.name}`,
+    },
     description: SITE.description,
-    images: [{ ...OG_IMAGE }],
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: `${SITE.name} — ${SITE.tagline}`,
-    description: SITE.description,
-    images: [OG_IMAGE.url],
-  },
-  robots: {
-    index: true,
-    follow: true,
-    googleBot: { index: true, follow: true, "max-image-preview": "large" },
-  },
-  formatDetection: { telephone: true, address: true, email: true },
-};
+    applicationName: SITE.name,
+    keywords: [
+      "hotel campestre Dapa",
+      "cabañas Dapa",
+      "reserva natural Yumbo",
+      "alojamiento Valle del Cauca",
+      "hotel cerca de Cali",
+      "La Maima",
+      "ecohotel Colombia",
+    ],
+    authors: [{ name: SITE.legalName }],
+    creator: SITE.legalName,
+    publisher: SITE.legalName,
+    alternates: { canonical: "/" },
+    openGraph: {
+      type: "website",
+      locale: "es_CO",
+      url: SITE.url,
+      siteName: SITE.name,
+      title: `${SITE.name} — ${SITE.tagline}`,
+      description: SITE.description,
+      images: [{ ...ogImage }],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: `${SITE.name} — ${SITE.tagline}`,
+      description: SITE.description,
+      images: [ogImage.url],
+    },
+    robots: {
+      index: true,
+      follow: true,
+      googleBot: { index: true, follow: true, "max-image-preview": "large" },
+    },
+    formatDetection: { telephone: true, address: true, email: true },
+  };
+}
 
 export const viewport: Viewport = {
   /* El header es una barra translúcida clara: la barra del navegador móvil
@@ -73,7 +82,7 @@ export const viewport: Viewport = {
 export default async function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
-  const contact = await getContactInfo();
+  const [contact, ogImage] = await Promise.all([getContactInfo(), getOgImage()]);
 
   /**
    * Datos estructurados (schema.org) del hotel. Google los usa para el panel
@@ -92,7 +101,7 @@ export default async function RootLayout({
     slogan: SITE.tagline,
     url: SITE.url,
     telephone: contact.phoneDisplay,
-    image: [absoluteUrl(OG_IMAGE.url)],
+    image: [absoluteUrl(ogImage.url)],
     logo: `${SITE.url}/logo-lamaima.png`,
     priceRange: "$$",
     currenciesAccepted: "COP",

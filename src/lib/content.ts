@@ -10,7 +10,7 @@
  */
 import { cache } from "react";
 import { createPublicClient } from "./supabase/public";
-import { media, SITE } from "./site";
+import { media, OG_IMAGE, SITE } from "./site";
 
 /* ---------------------------------------------------------------------------
  * Tipos
@@ -98,6 +98,21 @@ export type ContactInfo = {
     /** El iframe embebido no se edita desde el panel: siempre viene de SITE. */
     embedUrl: string;
   };
+};
+
+/**
+ * Imagen por defecto para OpenGraph/Twitter Card y el `image` del JSON-LD.
+ *
+ * Se edita en `/admin/contenido` (fila `site_content.seo`), con fallback a
+ * `OG_IMAGE` de `src/lib/site.ts`. El ancho y el alto quedan fijos: son solo
+ * una pista de tamaño para los lectores de OpenGraph y no vale la pena
+ * pedirle esos números al administrador.
+ */
+export type OgImage = {
+  url: string;
+  width: number;
+  height: number;
+  alt: string;
 };
 
 /* ---------------------------------------------------------------------------
@@ -345,6 +360,17 @@ export const getContactInfo = cache(async (): Promise<ContactInfo> => {
       url: mapsUrl,
       embedUrl: SITE.maps.embedUrl,
     },
+  };
+});
+
+export const getOgImage = cache(async (): Promise<OgImage> => {
+  const value = await getSiteContent("seo");
+  if (!value) return OG_IMAGE;
+  return {
+    url: textOr(value, "image", OG_IMAGE.url),
+    alt: textOr(value, "image_alt", OG_IMAGE.alt),
+    width: OG_IMAGE.width,
+    height: OG_IMAGE.height,
   };
 });
 
