@@ -1,0 +1,500 @@
+"use client";
+
+/**
+ * Motor de reservas público — fase sin pasarela de pagos.
+ *
+ * Hace TODO menos cobrar: consulta la disponibilidad real, deja elegir el
+ * rango de fechas y el número de huéspedes, calcula el total estimado y
+ * termina en una solicitud por WhatsApp con todos los datos ya escritos.
+ *
+ * Dos decisiones que conviene no perder de vista:
+ *
+ *   - NO escribe nada en la base de datos. La reserva la registra el equipo
+ *     desde el panel al confirmar, así que no quedan filas huérfanas de gente
+ *     que solo estaba mirando. Cuando entre Wompi, el único cambio es que este
+ *     último paso cree la reserva y abra el checkout.
+ *   - La disponibilidad se pide al montar (no en el HTML estático de la
+ *     página): las páginas de alojamiento se sirven prerenderizadas y un
+ *     calendario de hace una hora invitaría a pedir fechas ya vendidas.
+ */
+import { useCallback, useEffect, useState } from "react";
+
+import { AvailabilityCalendar } from "@/components/booking/availability-calendar";
+import {
+  AlertIcon,
+  CalendarIcon,
+  MinusIcon,
+  PlusIcon,
+  UsersIcon,
+  WhatsAppIcon,
+} from "@/components/icons";
+import {
+  lastCheckOutFor,
+  rangeIsFree,
+  type AvailabilityResponse,
+  type CalendarContext,
+} from "@/lib/availability";
+import {
+  addMonths,
+  compareMonths,
+  formatDateEs,
+  monthOf,
+  nightsBetween,
+  addDays,
+  type YearMonth,
+} from "@/lib/dates";
+import { formatCOP, formatGuests } from "@/lib/format";
+import { bookingRequestMessage, whatsappUrl } from "@/lib/whatsapp";
+
+type Props = {
+  slug: string;
+  name: string;
+  capacity: number;
+  pricePerNight: number;
+  priceNote: string | null;
+  /** Número de WhatsApp (solo dígitos) que edita el panel. */
+  whatsapp: string;
+  phoneDisplay: string;
+  phoneHref: string;
+};
+
+type Status = "loading" | "ready" | "error";
+
+export function BookingWidget({
+  slug,
+  name,
+  capacity,
+  pricePerNight,
+  priceNote,
+  whatsapp,
+  phoneDisplay,
+  phoneHref,
+}: Props) {
+  const [status, setStatus] = useState<Status>("loading");
+  const [availability, setAvailability] = useState<AvailabilityResponse | null>(
+    null,
+  );
+  const [cursor, setCursor] = useState<YearMonth | null>(null);
+
+  const [checkIn, setCheckIn] = useState<string | null>(null);
+  const [checkOut, setCheckOut] = useState<string | null>(null);
+  const [guests, setGuests] = useState(() => Math.min(2, capacity));
+  const [notice, setNotice] = useState<string | null>(null);
+
+  const load = useCallback(async () => {
+    setStatus("loading");
+    try {
+      const response = await fetch(`/api/availability/${slug}`, {
+        cache: "no-store",
+      });
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+      const data = (await response.json()) as AvailabilityResponse;
+      if (!Array.isArray(data.occupied) || !data.from || !data.to) {
+        throw new Error("Respuesta inesperada");
+      }
+
+      setAvailability(data);
+      // El "hoy" que manda el servidor está en hora de Colombia: es el que
+      // vale, no el reloj (ni el huso) del dispositivo de quien navega.
+      setCursor(monthOf(data.from));
+      // Un calendario nuevo puede dejar sin sentido lo ya elegido.
+      setCheckIn(null);
+      setCheckOut(null);
+      setNotice(null);
+      setStatus("ready");
+    } catch (error) {
+      console.error("[reservas] disponibilidad:", error);
+      setStatus("error");
+    }
+  }, [slug]);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  /* --- Selección de fechas ------------------------------------------------ */
+
+  function handleSelect(iso: string) {
+    if (!availability) return;
+
+    // Sin entrada, con el rango ya cerrado, o tocando una fecha anterior:
+    // se empieza de nuevo desde esa fecha.
+    if (!checkIn || checkOut || iso <= checkIn) {
+      setCheckIn(iso);
+      setCheckOut(null);
+      setNotice(null);
+      return;
+    }
+
+    // Rango que cruza noches ocupadas: no se acepta como salida. Se explica el
+    // porqué (con la salida más tardía posible) y la fecha tocada pasa a ser la
+    // nueva entrada, para que nadie se quede atascado repitiendo el mismo toque.
+    if (!rangeIsFree(checkIn, iso, availability.occupied)) {
+      const limit = lastCheckOutFor(checkIn, availability.occupied, availability.to);
+      setNotice(
+        `Entre el ${formatDateEs(checkIn)} y el ${formatDateEs(iso)} hay noches ` +
+          `ya reservadas: con entrada el ${formatDateEs(checkIn)}, la salida más ` +
+          `tardía era el ${formatDateEs(limit)}. Empezamos de nuevo con entrada ` +
+          `el ${formatDateEs(iso)}.`,
+      );
+      setCheckIn(iso);
+      setCheckOut(null);
+      return;
+    }
+
+    setCheckOut(iso);
+    setNotice(null);
+  }
+
+  function clearDates() {
+    setCheckIn(null);
+    setCheckOut(null);
+    setNotice(null);
+  }
+
+  function changeGuests(delta: number) {
+    setGuests((current) => {
+      const next = current + delta;
+      if (next > capacity) {
+        setNotice(`${name} admite máximo ${formatGuests(capacity)}.`);
+        return current;
+      }
+      if (next < 1) return current;
+      setNotice(null);
+      return next;
+    });
+  }
+
+  /* --- Cálculo ------------------------------------------------------------ */
+
+  const nights = checkIn && checkOut ? nightsBetween(checkIn, checkOut) : 0;
+  const total = nights * pricePerNight;
+  const canRequest = Boolean(checkIn && checkOut && nights > 0);
+
+  const whatsappHref = canRequest
+    ? whatsappUrl(
+        bookingRequestMessage({
+          accommodation: name,
+          checkIn: checkIn as string,
+          checkOut: checkOut as string,
+          nights,
+          guests,
+          totalCop: total,
+        }),
+        whatsapp,
+      )
+    : undefined;
+
+  /* --- Estados de carga --------------------------------------------------- */
+
+  if (status === "error") {
+    return (
+      <Shell>
+        <div className="flex flex-col items-center gap-4 px-2 py-10 text-center">
+          <span className="flex h-12 w-12 items-center justify-center rounded-full bg-cream text-ink-muted">
+            <AlertIcon className="h-6 w-6" />
+          </span>
+          <div>
+            <p className="text-[1.0625rem] font-semibold text-ink">
+              No pudimos cargar la disponibilidad, intenta de nuevo
+            </p>
+            <p className="mt-1.5 text-[0.9375rem] text-ink-muted">
+              Si el problema sigue, escríbenos por WhatsApp al {phoneDisplay} y
+              confirmamos las fechas contigo.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => void load()}
+            className="rounded-full bg-forest-600 px-6 py-3 text-[0.9375rem] font-semibold text-white shadow-pill transition-[background-color,transform] duration-200 ease-ios hover:bg-forest-700 active:scale-[0.98]"
+          >
+            Reintentar
+          </button>
+        </div>
+      </Shell>
+    );
+  }
+
+  if (status === "loading" || !availability || !cursor) {
+    return (
+      <Shell>
+        <div className="animate-pulse px-1 py-2" aria-live="polite">
+          <p className="sr-only">Cargando disponibilidad…</p>
+          <div className="h-5 w-40 rounded-full bg-cream-200" />
+          <div className="mt-6 grid grid-cols-7 gap-2">
+            {Array.from({ length: 35 }).map((_, index) => (
+              <div key={index} className="aspect-square rounded-full bg-cream" />
+            ))}
+          </div>
+          <div className="mt-7 h-12 w-full rounded-full bg-cream-200" />
+        </div>
+      </Shell>
+    );
+  }
+
+  const context: CalendarContext = {
+    today: availability.from,
+    limit: availability.to,
+    occupied: availability.occupied,
+    checkIn,
+    checkOut,
+  };
+
+  const firstMonth = monthOf(availability.from);
+  // Se deja de avanzar cuando el segundo panel llegaría al final del horizonte
+  // publicado (doce meses), para no mostrar un mes entero deshabilitado.
+  const lastMonth = addMonths(monthOf(addDays(availability.to, -1)), -1);
+
+  const hint = !checkIn
+    ? "Toca una fecha para la entrada."
+    : !checkOut
+      ? "Ahora toca la fecha de salida."
+      : "Fechas listas. Revisa el resumen y envía la solicitud.";
+
+  return (
+    <Shell>
+      <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_21.5rem] lg:gap-10">
+        {/* Calendario ------------------------------------------------------ */}
+        <div>
+          <AvailabilityCalendar
+            cursor={cursor}
+            context={context}
+            onSelect={handleSelect}
+            onPrev={() => setCursor(addMonths(cursor, -1))}
+            onNext={() => setCursor(addMonths(cursor, 1))}
+            canGoPrev={compareMonths(cursor, firstMonth) > 0}
+            canGoNext={compareMonths(cursor, lastMonth) < 0}
+          />
+
+          <div className="mt-5 flex flex-wrap items-center justify-between gap-3">
+            <p className="text-[0.875rem] text-ink-muted">{hint}</p>
+            {checkIn && (
+              <button
+                type="button"
+                onClick={clearDates}
+                className="rounded-full bg-cream px-4 py-2 text-[0.8125rem] font-semibold text-ink-soft transition-[background-color,transform] duration-200 ease-ios hover:bg-cream-200 active:scale-[0.97]"
+              >
+                Borrar fechas
+              </button>
+            )}
+          </div>
+
+          {notice && (
+            <p
+              role="status"
+              className="mt-4 flex items-start gap-2.5 rounded-card bg-amber-50 px-4 py-3 text-[0.875rem] leading-relaxed text-amber-900 ring-1 ring-inset ring-amber-500/20"
+            >
+              <AlertIcon className="mt-0.5 h-4 w-4 shrink-0" />
+              {notice}
+            </p>
+          )}
+        </div>
+
+        {/* Resumen --------------------------------------------------------- */}
+        <div className="lg:border-l lg:border-black/[0.07] lg:pl-10">
+          <p className="text-[0.8125rem] font-semibold text-ink-muted">
+            Tu solicitud
+          </p>
+          <p className="mt-1 text-[1.125rem] font-semibold tracking-[-0.02em] text-ink">
+            {name}
+          </p>
+
+          <dl className="mt-4 overflow-hidden rounded-card bg-cream text-[0.9375rem]">
+            <SummaryRow
+              label="Entrada"
+              value={checkIn ? formatDateEs(checkIn) : "Sin elegir"}
+              muted={!checkIn}
+              icon={<CalendarIcon className="h-4 w-4" />}
+            />
+            <SummaryRow
+              label="Salida"
+              value={checkOut ? formatDateEs(checkOut) : "Sin elegir"}
+              muted={!checkOut}
+              icon={<CalendarIcon className="h-4 w-4" />}
+              divider
+            />
+            <SummaryRow
+              label="Noches"
+              value={nights > 0 ? String(nights) : "—"}
+              muted={nights === 0}
+              divider
+            />
+          </dl>
+
+          {/* Huéspedes: pasos de ±1 en vez de un <select>, mucho más cómodo
+              con el pulgar y sin abrir la rueda nativa de iOS. */}
+          <div className="mt-4 flex items-center justify-between gap-3 rounded-card bg-cream px-4 py-3">
+            <div>
+              <p className="flex items-center gap-2 text-[0.9375rem] font-semibold text-ink">
+                <UsersIcon className="h-4 w-4 text-ink-muted" />
+                Huéspedes
+              </p>
+              <p className="mt-0.5 text-[0.8125rem] text-ink-muted">
+                Máximo {formatGuests(capacity)}
+              </p>
+            </div>
+            <div className="flex items-center gap-1">
+              <StepperButton
+                onClick={() => changeGuests(-1)}
+                disabled={guests <= 1}
+                label="Quitar un huésped"
+              >
+                <MinusIcon className="h-4 w-4" />
+              </StepperButton>
+              <span
+                aria-live="polite"
+                className="w-8 text-center text-[1.0625rem] font-semibold tabular-nums text-ink"
+              >
+                {guests}
+              </span>
+              <StepperButton
+                onClick={() => changeGuests(1)}
+                disabled={guests >= capacity}
+                label="Añadir un huésped"
+              >
+                <PlusIcon className="h-4 w-4" />
+              </StepperButton>
+            </div>
+          </div>
+
+          {/* Precio ---------------------------------------------------------- */}
+          <div className="mt-5 border-t border-black/[0.07] pt-4 text-[0.9375rem]">
+            {/* Sin fechas se muestra la tarifa, no una multiplicación por cero:
+                un "× 0 noches = $0" parece un error de la página. */}
+            <div className="flex items-baseline justify-between gap-4">
+              <span className="text-ink-muted">
+                {nights > 0
+                  ? `${formatCOP(pricePerNight)} × ${nights} ${nights === 1 ? "noche" : "noches"}`
+                  : "Tarifa por noche"}
+              </span>
+              <span className="tabular-nums text-ink-soft">
+                {nights > 0 ? formatCOP(total) : formatCOP(pricePerNight)}
+              </span>
+            </div>
+            <div className="mt-3 flex items-baseline justify-between gap-4 border-t border-black/[0.07] pt-3">
+              <span className="font-semibold text-ink">Total estimado</span>
+              <span className="text-[1.375rem] font-semibold tracking-[-0.03em] tabular-nums text-forest-700">
+                {nights > 0 ? formatCOP(total) : "—"}
+              </span>
+            </div>
+            {priceNote && (
+              <p className="mt-2.5 inline-flex items-center gap-1.5 rounded-full bg-forest-600/10 px-3 py-1 text-[0.75rem] font-semibold text-forest-700">
+                {priceNote}
+              </p>
+            )}
+          </div>
+
+          {/* Llamada a la acción --------------------------------------------- */}
+          {canRequest && whatsappHref ? (
+            <a
+              href={whatsappHref}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-5 flex w-full items-center justify-center gap-2 rounded-full bg-whatsapp px-4 py-4 text-center text-[0.9375rem] font-semibold tracking-[-0.01em] text-white shadow-pill transition-[background-color,transform] duration-200 ease-ios hover:bg-whatsapp-dark active:scale-[0.98]"
+            >
+              <WhatsAppIcon className="h-5 w-5 shrink-0" />
+              Solicitar reserva por WhatsApp
+            </a>
+          ) : (
+            <button
+              type="button"
+              disabled
+              className="mt-5 flex w-full cursor-not-allowed items-center justify-center gap-2 rounded-full bg-cream-200 px-4 py-4 text-[0.9375rem] font-semibold tracking-[-0.01em] text-ink-muted"
+            >
+              <WhatsAppIcon className="h-5 w-5 shrink-0" />
+              Solicitar reserva por WhatsApp
+            </button>
+          )}
+
+          <p className="mt-3 text-center text-[0.8125rem] leading-relaxed text-ink-muted">
+            {canRequest
+              ? "Te confirmamos disponibilidad y forma de pago por WhatsApp."
+              : "Elige las fechas para enviar tu solicitud."}
+          </p>
+          <p className="mt-2 text-center text-[0.8125rem] font-medium text-forest-700">
+            Muy pronto podrás pagar en línea aquí mismo.
+          </p>
+          <p className="mt-3 text-center text-[0.8125rem] text-ink-muted">
+            ¿Prefieres hablar?{" "}
+            <a
+              href={phoneHref}
+              className="font-semibold text-forest-700 underline-offset-4 transition-colors duration-200 hover:underline"
+            >
+              {phoneDisplay}
+            </a>
+          </p>
+        </div>
+      </div>
+    </Shell>
+  );
+}
+
+/* ---------------------------------------------------------------------------
+ * Piezas internas
+ * ------------------------------------------------------------------------- */
+
+/** Tarjeta blanca del widget: la misma caja en todos los estados. */
+function Shell({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="rounded-panel bg-white p-5 shadow-panel ring-1 ring-black/[0.05] sm:p-7">
+      {children}
+    </div>
+  );
+}
+
+function SummaryRow({
+  label,
+  value,
+  muted,
+  icon,
+  divider,
+}: {
+  label: string;
+  value: string;
+  muted: boolean;
+  icon?: React.ReactNode;
+  divider?: boolean;
+}) {
+  return (
+    <div
+      className={`flex items-center justify-between gap-4 px-4 py-3 ${
+        divider ? "border-t border-black/[0.07]" : ""
+      }`}
+    >
+      <dt className="flex items-center gap-2 text-ink-muted">
+        {icon}
+        {label}
+      </dt>
+      <dd
+        className={`font-semibold ${muted ? "text-ink-muted/70" : "text-ink"}`}
+      >
+        {value}
+      </dd>
+    </div>
+  );
+}
+
+function StepperButton({
+  onClick,
+  disabled,
+  label,
+  children,
+}: {
+  onClick: () => void;
+  disabled: boolean;
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      aria-label={label}
+      className="flex h-10 w-10 items-center justify-center rounded-full bg-white text-ink shadow-card transition-[background-color,color,transform] duration-200 ease-ios hover:bg-forest-50 active:scale-[0.94] disabled:cursor-not-allowed disabled:bg-white/60 disabled:text-ink-muted/35 disabled:shadow-none disabled:active:scale-100"
+    >
+      {children}
+    </button>
+  );
+}

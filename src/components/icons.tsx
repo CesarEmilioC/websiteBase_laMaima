@@ -186,6 +186,96 @@ export function ChevronRightIcon({ className }: IconProps) {
   );
 }
 
+export function ChevronLeftIcon({ className }: IconProps) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      focusable="false"
+      className={className}
+    >
+      <path d="m15 5-7 7 7 7" />
+    </svg>
+  );
+}
+
+export function CalendarIcon({ className }: IconProps) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.6"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      focusable="false"
+      className={className}
+    >
+      <rect x="3.25" y="5" width="17.5" height="15.5" rx="3.5" />
+      <path d="M3.25 9.75h17.5M8 3.5v3M16 3.5v3" />
+    </svg>
+  );
+}
+
+export function MinusIcon({ className }: IconProps) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.2"
+      strokeLinecap="round"
+      aria-hidden="true"
+      focusable="false"
+      className={className}
+    >
+      <path d="M6 12h12" />
+    </svg>
+  );
+}
+
+export function PlusIcon({ className }: IconProps) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.2"
+      strokeLinecap="round"
+      aria-hidden="true"
+      focusable="false"
+      className={className}
+    >
+      <path d="M12 6v12M6 12h12" />
+    </svg>
+  );
+}
+
+export function AlertIcon({ className }: IconProps) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.7"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      focusable="false"
+      className={className}
+    >
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 7.5v5.25M12 16.5h.01" />
+    </svg>
+  );
+}
+
 export function MenuIcon({ className }: IconProps) {
   return (
     <svg
