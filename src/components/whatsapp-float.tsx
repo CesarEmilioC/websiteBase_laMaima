@@ -1,4 +1,4 @@
-import { WhatsAppIcon } from "./icons";
+import { WhatsAppFloatButton } from "./whatsapp-float-button";
 import { getContactInfo } from "@/lib/content";
 import { GENERAL_MESSAGE, whatsappUrl } from "@/lib/whatsapp";
 
@@ -14,22 +14,22 @@ import { GENERAL_MESSAGE, whatsappUrl } from "@/lib/whatsapp";
  *   general del sitio; el #25D366 queda reservado para los botones
  *   contextuales de cada alojamiento y experiencia.
  * - Accesible: es un enlace real con aria-label y área táctil de 56px.
+ * - Se aparta solo cuando el visitante llega al motor de reservas (ver
+ *   `whatsapp-float-button.tsx`).
  *
- * Server component asíncrono: lee el número de WhatsApp editado desde el
- * panel (`getContactInfo()`, cacheada) en vez del fallback hardcodeado.
+ * Este archivo es un server component asíncrono y su único trabajo es leer el
+ * número de WhatsApp que edita el panel (`getContactInfo()`, cacheada) y
+ * armar el enlace. La pastilla y su comportamiento viven en el componente de
+ * cliente: así el número sigue resolviéndose en el servidor —sin enviar la
+ * consulta ni el fallback al navegador— y solo viaja al cliente la URL ya
+ * construida.
  */
 export async function WhatsAppFloat() {
   const contact = await getContactInfo();
 
   return (
-    <a
+    <WhatsAppFloatButton
       href={whatsappUrl(GENERAL_MESSAGE, contact.whatsapp)}
-      target="_blank"
-      rel="noopener noreferrer"
-      aria-label="Escríbenos por WhatsApp"
-      className="fixed bottom-5 right-4 z-30 flex h-14 w-14 items-center justify-center rounded-full bg-forest-600 text-white shadow-float transition-[background-color,transform] duration-200 ease-ios hover:scale-[1.04] hover:bg-forest-700 focus-visible:outline-offset-4 active:scale-95 sm:bottom-6 sm:right-6 sm:h-[3.75rem] sm:w-[3.75rem] lg:hidden"
-    >
-      <WhatsAppIcon className="h-7 w-7" />
-    </a>
+    />
   );
 }

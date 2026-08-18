@@ -3,7 +3,7 @@ import Link from "next/link";
 
 import { FacebookIcon, InstagramIcon, MapPinIcon, PhoneIcon } from "./icons";
 import { getContactInfo } from "@/lib/content";
-import { NAV_LINKS, SITE } from "@/lib/site";
+import { LEGAL_LINKS, NAV_LINKS, SITE } from "@/lib/site";
 
 export async function SiteFooter() {
   const year = new Date().getFullYear();
@@ -101,11 +101,36 @@ export async function SiteFooter() {
           </div>
         </div>
 
-        <div className="mt-14 flex flex-col gap-2 border-t border-white/10 pt-7 text-[0.8125rem] text-cream/55 sm:flex-row sm:items-center sm:justify-between">
-          <p>
-            © {year} {SITE.legalName}. Todos los derechos reservados.
-          </p>
-          <p>Reservas y consultas por WhatsApp {contact.phoneDisplay}</p>
+        <div className="mt-14 border-t border-white/10 pt-7">
+          {/* Fila legal. Va en el pie y no en la navegación principal: son
+              documentos de consulta, no destinos de la visita. Además es donde
+              los busca quien evalúa el comercio (pasarela de pagos incluida). */}
+          <nav aria-label="Información legal">
+            <ul className="flex flex-wrap items-center gap-x-4 gap-y-2 text-[0.8125rem]">
+              {LEGAL_LINKS.map((link, index) => (
+                <li key={link.href} className="flex items-center gap-4">
+                  {index > 0 && (
+                    <span aria-hidden="true" className="text-cream/25">
+                      ·
+                    </span>
+                  )}
+                  <Link
+                    href={link.href}
+                    className="text-cream/70 transition-colors duration-200 hover:text-white"
+                  >
+                    {link.short}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </nav>
+
+          <div className="mt-5 flex flex-col gap-2 text-[0.8125rem] text-cream/55 sm:flex-row sm:items-center sm:justify-between">
+            <p>
+              © {year} {SITE.legalName}. Todos los derechos reservados.
+            </p>
+            <p>Reservas y consultas por WhatsApp {contact.phoneDisplay}</p>
+          </div>
         </div>
       </div>
     </footer>
