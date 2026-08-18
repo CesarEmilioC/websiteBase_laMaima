@@ -61,6 +61,37 @@ export const NAV_LINKS = [
   { href: "/#contacto", label: "Contacto" },
 ] as const;
 
+/**
+ * Documentos legales del sitio.
+ *
+ * No son opcionales: Wompi (y cualquier pasarela colombiana) exige que el
+ * comercio publique política de tratamiento de datos, términos de la
+ * transacción y política de cancelación/reembolso antes de aprobar la cuenta.
+ * Además dan confianza al huésped y aportan páginas indexables al SEO.
+ *
+ * `label` es el título completo (encabezado de la página y `title` del
+ * metadata); `short` es la versión corta de la fila del pie.
+ */
+export const LEGAL_LINKS = [
+  {
+    href: "/legal/privacidad",
+    label: "Política de privacidad y tratamiento de datos",
+    short: "Privacidad",
+  },
+  {
+    href: "/legal/terminos",
+    label: "Términos y condiciones de reserva",
+    short: "Términos",
+  },
+  {
+    href: "/legal/cancelacion",
+    label: "Política de cancelación y reembolsos",
+    short: "Cancelaciones",
+  },
+] as const;
+
+export type LegalLink = (typeof LEGAL_LINKS)[number];
+
 /* ---------------------------------------------------------------------------
  * Imágenes
  * ------------------------------------------------------------------------- */

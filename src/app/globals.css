@@ -278,6 +278,105 @@
   .tracking-display {
     letter-spacing: -0.035em;
   }
+
+  /* ---------------------------------------------------------------------
+     Lectura larga (documentos legales)
+     ---------------------------------------------------------------------
+     El proyecto no usa el plugin @tailwindcss/typography: para tres páginas
+     de texto no compensa una dependencia entera. Estas reglas hacen lo justo
+     —interlineado cómodo, ritmo vertical, listas y tablas legibles— y viven
+     en `utilities` para ganarle al preflight de Tailwind, que resetea las
+     viñetas y la numeración de <ul>/<ol>.
+
+     Se usa `:where()` en los selectores descendientes para dejarlos con
+     especificidad 0: así cualquier clase de Tailwind puesta en el propio
+     elemento (por ejemplo `text-ink` en un <p> concreto) sigue mandando.
+     --------------------------------------------------------------------- */
+  .legal-prose {
+    font-size: 1rem;
+    line-height: 1.75;
+    color: var(--color-ink-soft);
+  }
+
+  .legal-prose :where(p, ul, ol, table, h3) {
+    margin-top: 1.05rem;
+  }
+
+  .legal-prose :where(p, ul, ol, table, h3):first-child {
+    margin-top: 0;
+  }
+
+  .legal-prose :where(strong) {
+    font-weight: 600;
+    color: var(--color-ink);
+  }
+
+  .legal-prose :where(a) {
+    color: var(--color-forest-700);
+    font-weight: 500;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    text-decoration-thickness: 1px;
+  }
+
+  .legal-prose :where(a):hover {
+    color: var(--color-forest-600);
+  }
+
+  .legal-prose :where(ul) {
+    list-style: disc;
+    padding-left: 1.35rem;
+  }
+
+  .legal-prose :where(ol) {
+    list-style: decimal;
+    padding-left: 1.45rem;
+  }
+
+  .legal-prose :where(li + li) {
+    margin-top: 0.45rem;
+  }
+
+  .legal-prose :where(li)::marker {
+    color: var(--color-forest-500);
+  }
+
+  .legal-prose :where(h3) {
+    font-size: 1.0625rem;
+    font-weight: 600;
+    color: var(--color-ink);
+    margin-top: 1.75rem;
+  }
+
+  .legal-prose :where(dl) {
+    margin-top: 1.05rem;
+  }
+
+  .legal-prose :where(dt) {
+    font-weight: 600;
+    color: var(--color-ink);
+  }
+
+  .legal-prose :where(dd) {
+    margin-top: 0.2rem;
+    margin-bottom: 0.9rem;
+  }
+
+  /* Variante para las cajas ámbar de "dato pendiente": mismo ritmo, otra
+     paleta. Los ámbar van como literales (no como `var(--color-amber-*)`)
+     porque Tailwind v4 solo publica en `:root` los tokens que detecta en las
+     clases del código; una variable citada únicamente aquí quedaría vacía. */
+  .legal-prose-amber {
+    color: #4a2410;
+  }
+
+  .legal-prose-amber :where(strong) {
+    color: #451a03;
+  }
+
+  .legal-prose-amber :where(li)::marker {
+    color: #d97706;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

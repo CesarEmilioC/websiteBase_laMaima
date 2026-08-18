@@ -1,7 +1,7 @@
 import type { MetadataRoute } from "next";
 
 import { getAccommodations } from "@/lib/content";
-import { SITE } from "@/lib/site";
+import { LEGAL_LINKS, SITE } from "@/lib/site";
 
 export const revalidate = 3600;
 
@@ -34,5 +34,15 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     }),
   );
 
-  return [...staticRoutes, ...accommodationRoutes];
+  // Los documentos legales cambian muy de vez en cuando y no compiten por
+  // posicionamiento, pero deben ser rastreables: la pasarela de pagos exige
+  // que estén publicados y accesibles desde el sitio.
+  const legalRoutes: MetadataRoute.Sitemap = LEGAL_LINKS.map((link) => ({
+    url: `${SITE.url}${link.href}`,
+    lastModified: now,
+    changeFrequency: "yearly",
+    priority: 0.3,
+  }));
+
+  return [...staticRoutes, ...accommodationRoutes, ...legalRoutes];
 }
