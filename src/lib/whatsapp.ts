@@ -1,3 +1,5 @@
+import { formatLongDateEs } from "./dates";
+import { formatCOP } from "./format";
 import { SITE } from "./site";
 
 /**
@@ -27,4 +29,43 @@ export function accommodationMessage(name: string): string {
 /** Mensaje contextual desde una experiencia. */
 export function experienceMessage(name: string): string {
   return `Hola! Me interesa la experiencia ${name} en La Maima. ¿Me puedes dar más información?`;
+}
+
+export type BookingRequest = {
+  accommodation: string;
+  /** Fechas ISO "YYYY-MM-DD" (las mismas que usa el calendario). */
+  checkIn: string;
+  checkOut: string;
+  nights: number;
+  guests: number;
+  /** Total estimado en COP: noches × tarifa. */
+  totalCop: number;
+};
+
+/**
+ * Solicitud de reserva del motor público.
+ *
+ * Mientras no esté la pasarela, este mensaje ES la reserva: tiene que llegar
+ * con todo lo que el equipo necesita para confirmar y cobrar sin una sola
+ * pregunta de vuelta (alojamiento, fechas, noches, huéspedes y total
+ * estimado). Las fechas van en formato largo — "12 de septiembre de 2026" —
+ * porque un "12/09" se lee distinto según el país de quien escribe.
+ */
+export function bookingRequestMessage({
+  accommodation,
+  checkIn,
+  checkOut,
+  nights,
+  guests,
+  totalCop,
+}: BookingRequest): string {
+  const nightsLabel = `${nights} ${nights === 1 ? "noche" : "noches"}`;
+  const guestsLabel = `${guests} ${guests === 1 ? "huésped" : "huéspedes"}`;
+
+  return (
+    `Hola! Quiero reservar ${accommodation} del ${formatLongDateEs(checkIn)} ` +
+    `al ${formatLongDateEs(checkOut)} (${nightsLabel}, ${guestsLabel}). ` +
+    `Total estimado: ${formatCOP(totalCop)} COP. ` +
+    `¿Me confirman disponibilidad y pago?`
+  );
 }

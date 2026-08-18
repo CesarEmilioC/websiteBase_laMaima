@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { AccommodationCard } from "@/components/accommodation-card";
+import { BookingWidget } from "@/components/booking/booking-widget";
 import { Gallery } from "@/components/gallery";
 import { ArrowRightIcon, CheckIcon, UsersIcon } from "@/components/icons";
 import { WhatsAppButton } from "@/components/whatsapp-button";
@@ -270,40 +271,42 @@ export default async function AccommodationDetailPage({ params }: Props) {
         </div>
       </section>
 
-      {/* Bloque de reserva -------------------------------------------------- */}
+      {/* Motor de reservas --------------------------------------------------- */}
+      {/* La disponibilidad la carga el widget en el navegador: la página es
+          estática (SSG + ISR de una hora) y el calendario tiene que ser fresco. */}
       <section
         id="reservar"
         className="bg-forest-950 py-16 sm:py-20 lg:py-24"
         aria-labelledby="reservar-title"
       >
-        <div className="mx-auto max-w-3xl px-4 text-center sm:px-6">
-          <p className="eyebrow text-forest-400">Reservas</p>
-          <h2
-            id="reservar-title"
-            className="mt-3 text-[2rem] leading-[1.1] tracking-[-0.03em] text-white sm:text-[2.5rem]"
-          >
-            Reserva por WhatsApp mientras habilitamos el pago en línea
-          </h2>
-          <p className="mx-auto mt-5 max-w-xl text-[1.0625rem] leading-relaxed text-cream/70">
-            Estamos terminando el calendario de disponibilidad en tiempo real y
-            el pago con tarjeta, PSE y Nequi. Por ahora confirmamos fechas,
-            tarifa exacta y forma de pago directamente por WhatsApp: te
-            respondemos el mismo día.
-          </p>
-
-          <div className="mt-9 flex flex-col items-center justify-center gap-3 sm:flex-row">
-            <WhatsAppButton
-              message={message}
-              label={`Reservar ${accommodation.name}`}
-              ariaLabel={`Reservar ${accommodation.name} por WhatsApp`}
-              size="lg"
-            />
-            <a
-              href={contact.phoneHref}
-              className="inline-flex items-center justify-center rounded-full bg-white/12 px-7 py-4 text-[1.0625rem] font-semibold tracking-[-0.01em] text-white ring-1 ring-inset ring-white/20 backdrop-blur-md transition-[background-color,transform] duration-200 ease-ios hover:bg-white/22 active:scale-[0.98]"
+        <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-10">
+          <div className="text-center">
+            <p className="eyebrow text-forest-400">Reservas</p>
+            <h2
+              id="reservar-title"
+              className="mt-3 text-[2rem] leading-[1.1] tracking-[-0.03em] text-white sm:text-[2.5rem]"
             >
-              Llamar al {contact.phoneDisplay}
-            </a>
+              Elige tus fechas en {accommodation.name}
+            </h2>
+            <p className="mx-auto mt-5 max-w-2xl text-[1.0625rem] leading-relaxed text-cream/70">
+              El calendario muestra la disponibilidad real, incluidas las
+              reservas que llegan por Airbnb y Booking. Arma tu estadía y
+              envíanos la solicitud: confirmamos fechas y forma de pago el mismo
+              día.
+            </p>
+          </div>
+
+          <div className="mt-10">
+            <BookingWidget
+              slug={accommodation.slug}
+              name={accommodation.name}
+              capacity={accommodation.capacity}
+              pricePerNight={accommodation.price_per_night_cop}
+              priceNote={accommodation.price_note}
+              whatsapp={contact.whatsapp}
+              phoneDisplay={contact.phoneDisplay}
+              phoneHref={contact.phoneHref}
+            />
           </div>
         </div>
       </section>
