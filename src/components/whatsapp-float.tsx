@@ -3,13 +3,14 @@ import { getContactInfo } from "@/lib/content";
 import { GENERAL_MESSAGE, whatsappUrl } from "@/lib/whatsapp";
 
 /**
- * Botón flotante de WhatsApp, presente en TODAS las páginas del sitio, pero
- * SOLO por debajo de `lg` (1024px).
+ * Botón flotante de WhatsApp, presente en TODAS las páginas del sitio y en
+ * TODOS los tamaños de pantalla, incluido escritorio (`lg` en adelante).
  *
  * - Fijo abajo a la derecha, por encima del contenido.
- * - Desde `lg` desaparece: ahí el CTA "Reservar" del header cumple ese papel
- *   y tener los dos duplicaba la misma acción. El header usa el mismo
- *   breakpoint a la inversa, así que siempre hay exactamente un CTA visible.
+ * - Petición explícita del cliente final: quiere el flotante también en
+ *   escritorio, aunque ahí ya exista el CTA "Reservar" del header
+ *   (`SiteHeader`). Los dos coexisten a propósito — no es una duplicación a
+ *   evitar, es la disponibilidad que pidió el cliente.
  * - Va en el verde de marca (no en el verde de WhatsApp) porque es un CTA
  *   general del sitio; el #25D366 queda reservado para los botones
  *   contextuales de cada alojamiento y experiencia.

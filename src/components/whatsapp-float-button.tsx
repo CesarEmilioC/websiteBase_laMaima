@@ -9,10 +9,15 @@ import { WhatsAppIcon } from "./icons";
  * Parte cliente del botón flotante de WhatsApp: la pastilla en sí y la única
  * pizca de comportamiento que necesita.
  *
+ * Visible en TODOS los tamaños de pantalla (incluido escritorio): petición
+ * explícita del cliente final. Coexiste a propósito con el CTA "Reservar"
+ * del header en escritorio (`SiteHeader`) — el cliente prefiere tener las dos
+ * vías siempre disponibles antes que ahorrarse la aparente duplicación.
+ *
  * EL PROBLEMA
- * En móvil el flotante vive fijo abajo a la derecha, y en las páginas de
- * alojamiento la sección `#reservar` termina en esa misma esquina con el
- * botón "Solicitar reserva por WhatsApp" del widget. Los dos se pisaban: el
+ * El flotante vive fijo abajo a la derecha, y en las páginas de alojamiento
+ * la sección `#reservar` termina en esa misma esquina con el botón
+ * "Solicitar reserva por WhatsApp" del widget. Los dos se pisaban: el
  * flotante tapaba una esquina del panel y ofrecía, encima, la misma acción
  * que el botón que estaba tapando.
  *
@@ -72,7 +77,7 @@ export function WhatsAppFloatButton({ href }: Props) {
       aria-label="Escríbenos por WhatsApp"
       aria-hidden={overBooking}
       tabIndex={overBooking ? -1 : undefined}
-      className={`fixed bottom-5 right-4 z-30 flex h-14 w-14 items-center justify-center rounded-full bg-forest-600 text-white shadow-float transition-[background-color,opacity,transform] duration-300 ease-ios hover:bg-forest-700 focus-visible:outline-offset-4 sm:bottom-6 sm:right-6 sm:h-[3.75rem] sm:w-[3.75rem] lg:hidden ${
+      className={`fixed bottom-5 right-4 z-30 flex h-14 w-14 items-center justify-center rounded-full bg-forest-600 text-white shadow-float transition-[background-color,opacity,transform] duration-300 ease-ios hover:bg-forest-700 focus-visible:outline-offset-4 sm:bottom-6 sm:right-6 sm:h-[3.75rem] sm:w-[3.75rem] ${
         overBooking
           ? "pointer-events-none scale-90 opacity-0"
           : "scale-100 opacity-100 hover:scale-[1.04] active:scale-95"

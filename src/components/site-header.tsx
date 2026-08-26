@@ -26,10 +26,11 @@ type Props = {
  * pastilla blanca con texto verde. Al hacer scroll el vidrio gana opacidad y
  * el filete inferior claro se hace más visible.
  *
- * Breakpoint único en `lg` (1024px): por debajo se muestran el hamburguesa y
- * el botón flotante de WhatsApp; por encima, la navegación completa y el CTA
- * "Reservar" del nav (y el flotante desaparece). Así nunca hay dos CTA a la
- * vez ni ninguno.
+ * Breakpoint único en `lg` (1024px): por debajo se muestra el hamburguesa;
+ * por encima, la navegación completa y el CTA "Reservar" del nav. El botón
+ * flotante de WhatsApp (`WhatsAppFloat`) es aparte y vive en todos los
+ * tamaños de pantalla —incluido cuando este CTA de escritorio también está
+ * visible—, por pedido explícito del cliente final.
  *
  * En móvil el menú se despliega a pantalla completa con una lista agrupada
  * estilo iOS: filas de 60px, separadores hairline y CTA fijo abajo. El panel

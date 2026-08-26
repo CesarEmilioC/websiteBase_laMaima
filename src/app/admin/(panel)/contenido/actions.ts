@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 
 import { requireAdmin } from "@/lib/admin/auth";
 import { revalidatePublicSite } from "@/lib/admin/revalidate";
+import { cleanupRemovedGalleryImages } from "@/lib/admin/storage-cleanup";
 import { okState, type ActionState } from "@/lib/admin/types";
 import { optionalText, requiredText, runAction } from "@/lib/admin/validation";
 
@@ -41,6 +42,15 @@ async function upsertContent(
     .upsert({ key, value: { ...base, ...patch } }, { onConflict: "key" });
 
   if (error) throw new Error(error.message);
+
+  // Higiene de Storage: si este patch reemplaza el campo `image` por otra
+  // dirección, la anterior queda potencialmente huérfana (los formularios de
+  // contenido guardan un solo campo de imagen, no una galería).
+  const previousImage = typeof base.image === "string" ? base.image : "";
+  const nextImage = typeof patch.image === "string" ? patch.image : undefined;
+  if (previousImage && nextImage !== undefined && nextImage !== previousImage) {
+    await cleanupRemovedGalleryImages(supabase, [previousImage]);
+  }
 
   revalidatePath(PATH);
   revalidatePublicSite();

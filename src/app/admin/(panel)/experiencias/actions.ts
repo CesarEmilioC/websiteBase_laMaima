@@ -6,6 +6,11 @@ import { redirect } from "next/navigation";
 import { requireAdmin } from "@/lib/admin/auth";
 import { revalidatePublicSite } from "@/lib/admin/revalidate";
 import { isValidSlug, slugify } from "@/lib/admin/slug";
+import {
+  cleanupRemovedGalleryImages,
+  galleryUrls,
+  removedGalleryUrls,
+} from "@/lib/admin/storage-cleanup";
 import { okState, type ActionState } from "@/lib/admin/types";
 import {
   ValidationError,
@@ -71,12 +76,23 @@ export async function saveExperienceAction(
     };
 
     if (id) {
+      // Se lee la galería anterior ANTES de sobrescribirla: es la única forma
+      // de saber qué imágenes salieron y son candidatas a borrarse del Storage.
+      const { data: existing } = await supabase
+        .from("experiences")
+        .select("gallery")
+        .eq("id", id)
+        .maybeSingle();
+
       const { error } = await supabase
         .from("experiences")
         .update(payload)
         .eq("id", id);
 
       if (error) throw translate(error);
+
+      const removed = removedGalleryUrls(existing?.gallery, payload.gallery);
+      await cleanupRemovedGalleryImages(supabase, removed);
 
       refreshAdmin();
       revalidatePublicSite();
@@ -159,11 +175,21 @@ export async function deleteExperienceAction(formData: FormData) {
   const { supabase } = await requireAdmin();
   const id = String(formData.get("id") ?? "").trim();
 
+  // Se guarda la galería ANTES de borrar la fila: al eliminar la experiencia
+  // completa, todas sus fotos son candidatas a limpiarse del Storage.
+  const { data: existing } = await supabase
+    .from("experiences")
+    .select("gallery")
+    .eq("id", id)
+    .maybeSingle();
+
   const { error } = await supabase.from("experiences").delete().eq("id", id);
 
   if (error) {
     redirect(`${LIST_PATH}?error=${encodeURIComponent(error.message)}`);
   }
+
+  await cleanupRemovedGalleryImages(supabase, galleryUrls(existing?.gallery));
 
   refreshAdmin();
   revalidatePublicSite();
