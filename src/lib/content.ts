@@ -10,6 +10,15 @@
  */
 import { cache } from "react";
 import { createPublicClient } from "./supabase/public";
+import { addDays, todayInBogota } from "./dates";
+import type {
+  Holiday,
+  MinStayRule,
+  RateConfig,
+  RatePlan,
+  RateTier,
+  TierDayType,
+} from "./pricing";
 import { media, OG_IMAGE, SITE } from "./site";
 
 /* ---------------------------------------------------------------------------
@@ -28,11 +37,25 @@ export type Accommodation = {
   short_description: string | null;
   description: string | null;
   capacity: number;
+  /**
+   * Tarifa "Desde" de respaldo. La real se calcula con `lowestRate(tiers, …)`:
+   * la columna solo manda cuando el alojamiento aún no tiene tabla publicada.
+   */
   price_per_night_cop: number;
   price_note: string | null;
   amenities: string[];
   gallery: GalleryImage[];
   sort_order: number;
+
+  /* --- Modelo de tarifas por ocupación (documento oficial del cliente) --- */
+  /** Tabla de precios por número de huéspedes. Vacía = tarifa por confirmar. */
+  tiers: RateTier[];
+  extra_person_price_cop: number | null;
+  extra_person_price_weekday_cop: number | null;
+  breakfast_included: boolean;
+  breakfast_price_cop: number | null;
+  weekday_discount_pct: number | null;
+  rate_note: string | null;
 };
 
 export type Experience = {
@@ -221,18 +244,54 @@ function normalizeSocialHandle(
  * ------------------------------------------------------------------------- */
 
 const ACCOMMODATION_COLUMNS =
-  "id, slug, name, short_description, description, capacity, price_per_night_cop, price_note, amenities, gallery, sort_order";
+  "id, slug, name, short_description, description, capacity, price_per_night_cop, price_note, amenities, gallery, sort_order, extra_person_price_cop, extra_person_price_weekday_cop, breakfast_included, breakfast_price_cop, weekday_discount_pct, rate_note";
 
 const EXPERIENCE_COLUMNS =
   "id, slug, name, short_description, description, duration, capacity, price_cop, price_note, gallery, sort_order";
 
+/**
+ * Tramos de precio por ocupación, agrupados por alojamiento.
+ *
+ * Son datos de catálogo (públicos, sin RLS restrictiva) y caben de sobra en
+ * una sola consulta: el sitio entero tiene menos de treinta tramos.
+ */
+const getRateTiersByAccommodation = cache(
+  async (): Promise<Map<string, RateTier[]>> => {
+    const supabase = createPublicClient();
+    const { data, error } = await supabase
+      .from("rate_tiers")
+      .select("accommodation_id, guests, price_cop, day_type")
+      .order("guests", { ascending: true });
+
+    const grouped = new Map<string, RateTier[]>();
+    if (error) {
+      console.error("[content] getRateTiers:", error.message);
+      return grouped;
+    }
+
+    for (const row of data ?? []) {
+      const list = grouped.get(row.accommodation_id) ?? [];
+      list.push({
+        guests: row.guests,
+        price_cop: row.price_cop,
+        day_type: row.day_type as TierDayType,
+      });
+      grouped.set(row.accommodation_id, list);
+    }
+    return grouped;
+  },
+);
+
 export const getAccommodations = cache(async (): Promise<Accommodation[]> => {
   const supabase = createPublicClient();
-  const { data, error } = await supabase
-    .from("accommodations")
-    .select(ACCOMMODATION_COLUMNS)
-    .eq("visible", true)
-    .order("sort_order", { ascending: true });
+  const [{ data, error }, tiersByAccommodation] = await Promise.all([
+    supabase
+      .from("accommodations")
+      .select(ACCOMMODATION_COLUMNS)
+      .eq("visible", true)
+      .order("sort_order", { ascending: true }),
+    getRateTiersByAccommodation(),
+  ]);
 
   if (error) {
     console.error("[content] getAccommodations:", error.message);
@@ -243,8 +302,139 @@ export const getAccommodations = cache(async (): Promise<Accommodation[]> => {
     ...row,
     amenities: toStringList(row.amenities),
     gallery: toGallery(row.gallery),
+    tiers: tiersByAccommodation.get(row.id) ?? [],
   }));
 });
+
+/**
+ * Festivos de Colombia desde hoy en adelante.
+ *
+ * Se recortan al futuro porque el motor solo los usa para tipificar noches
+ * reservables y para detectar puentes; los pasados solo engordarían la carga
+ * útil que viaja al navegador. Se dejan tres días de margen hacia atrás para
+ * que el puente que empieza este mismo fin de semana no se pierda.
+ */
+export const getHolidays = cache(async (): Promise<Holiday[]> => {
+  const supabase = createPublicClient();
+  const { data, error } = await supabase
+    .from("holidays")
+    .select("holiday_date, is_bridge")
+    .gte("holiday_date", addDays(todayInBogota(), -3))
+    .order("holiday_date", { ascending: true });
+
+  if (error) {
+    console.error("[content] getHolidays:", error.message);
+    return [];
+  }
+
+  return (data ?? []).map((row) => ({
+    date: row.holiday_date as string,
+    is_bridge: Boolean(row.is_bridge),
+  }));
+});
+
+const getMinStayRulesByAccommodation = cache(
+  async (): Promise<Map<string, MinStayRule[]>> => {
+    const supabase = createPublicClient();
+    const { data, error } = await supabase
+      .from("min_stay_rules")
+      .select("accommodation_id, label, rule_type, date_from, date_to, min_nights")
+      .order("sort", { ascending: true });
+
+    const grouped = new Map<string, MinStayRule[]>();
+    if (error) {
+      console.error("[content] getMinStayRules:", error.message);
+      return grouped;
+    }
+
+    for (const row of data ?? []) {
+      const list = grouped.get(row.accommodation_id) ?? [];
+      list.push({
+        label: row.label,
+        rule_type: row.rule_type as MinStayRule["rule_type"],
+        date_from: row.date_from,
+        date_to: row.date_to,
+        min_nights: row.min_nights,
+      });
+      grouped.set(row.accommodation_id, list);
+    }
+    return grouped;
+  },
+);
+
+/**
+ * Paquetes vigentes (`rate_plans`). Hoy la tabla está vacía a propósito: es la
+ * base para los que el cliente cree más adelante ("San Valentín" y compañía).
+ * Los de `accommodation_id` nulo valen para todos los alojamientos.
+ */
+const getRatePlans = cache(
+  async (): Promise<{ accommodationId: string | null; plan: RatePlan }[]> => {
+    const supabase = createPublicClient();
+    const { data, error } = await supabase
+      .from("rate_plans")
+      .select(
+        "accommodation_id, name, description, date_from, date_to, price_per_night_cop, guests_included",
+      )
+      .eq("active", true)
+      .gte("date_to", addDays(todayInBogota(), -1))
+      .order("sort", { ascending: true });
+
+    if (error) {
+      console.error("[content] getRatePlans:", error.message);
+      return [];
+    }
+
+    return (data ?? []).map((row) => ({
+      accommodationId: row.accommodation_id,
+      plan: {
+        name: row.name,
+        description: row.description,
+        date_from: row.date_from as string,
+        date_to: row.date_to as string,
+        price_per_night_cop: row.price_per_night_cop,
+        guests_included: row.guests_included,
+      },
+    }));
+  },
+);
+
+/**
+ * Todo lo que el widget de reservas necesita para cotizar un alojamiento.
+ *
+ * Viaja con la página prerenderizada (son precios de catálogo, públicos), así
+ * que el navegador puede recalcular el total mientras el huésped mueve fechas
+ * y huéspedes sin pedirle nada al servidor.
+ */
+export const getRateConfig = cache(
+  async (accommodation: Accommodation): Promise<RateConfig> => {
+    const [holidays, rulesByAccommodation, plans] = await Promise.all([
+      getHolidays(),
+      getMinStayRulesByAccommodation(),
+      getRatePlans(),
+    ]);
+
+    return {
+      capacity: accommodation.capacity,
+      basePriceCop: accommodation.price_per_night_cop,
+      tiers: accommodation.tiers,
+      extraPersonPriceCop: accommodation.extra_person_price_cop,
+      extraPersonPriceWeekdayCop: accommodation.extra_person_price_weekday_cop,
+      breakfastIncluded: accommodation.breakfast_included,
+      breakfastPriceCop: accommodation.breakfast_price_cop,
+      weekdayDiscountPct: accommodation.weekday_discount_pct,
+      rateNote: accommodation.rate_note,
+      minStayRules: rulesByAccommodation.get(accommodation.id) ?? [],
+      ratePlans: plans
+        .filter(
+          (entry) =>
+            entry.accommodationId === null ||
+            entry.accommodationId === accommodation.id,
+        )
+        .map((entry) => entry.plan),
+      holidays,
+    };
+  },
+);
 
 export const getAccommodationBySlug = cache(
   async (slug: string): Promise<Accommodation | null> => {

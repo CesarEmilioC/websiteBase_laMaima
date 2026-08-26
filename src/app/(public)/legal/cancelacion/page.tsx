@@ -18,7 +18,7 @@ const DOC = LEGAL_LINKS[2];
 export const metadata: Metadata = {
   title: "Política de cancelación y reembolsos",
   description:
-    "Cómo cancelar o modificar una reserva en La Maima — Hotel Campestre: canal de solicitud, plazos, reembolsos, cambios de fecha, no presentación y casos de fuerza mayor.",
+    "Cómo cancelar o reprogramar una reserva en La Maima — Hotel Campestre: anticipo del 10 %, cambio de fechas hasta 24 horas antes con el anticipo como crédito, no presentación y casos de fuerza mayor.",
   alternates: { canonical: DOC.href },
   openGraph: {
     title: "Cancelaciones y reembolsos · La Maima",
@@ -82,71 +82,61 @@ export default async function CancellationPage() {
       ),
     },
     {
-      id: "plazos",
-      title: "3. Plazos y porcentajes de reembolso",
+      id: "anticipo",
+      title: "3. Anticipo: cómo se asegura la reserva",
       body: (
         <>
           <p>
-            El reembolso depende de la antelación con que se cancele respecto de
-            la fecha de entrada. La estructura es la siguiente:
+            Para reservar se requiere un{" "}
+            <strong>anticipo del 10 % del valor total</strong> de la estadía. La
+            reserva queda en firme —y las fechas bloqueadas— únicamente cuando
+            ese anticipo se registra y La Maima envía la confirmación escrita.
+            El saldo restante se paga según lo acordado en esa confirmación.
           </p>
-          <PendingBlock title="Pendiente de definir con La Maima: plazos y porcentajes exactos">
-            <ul>
-              <li>
-                <strong>Cancelación con más de [X] días de antelación:</strong>{" "}
-                reembolso del [__] % del valor pagado.
-              </li>
-              <li>
-                <strong>Cancelación entre [X] y [Y] días de antelación:</strong>{" "}
-                reembolso del [__] % del valor pagado.
-              </li>
-              <li>
-                <strong>Cancelación con menos de [Y] días de antelación:</strong>{" "}
-                reembolso del [__] % del valor pagado.
-              </li>
-              <li>
-                <strong>Temporada alta y puentes festivos:</strong> definir si
-                aplican plazos o porcentajes distintos.
-              </li>
-              <li>
-                Definir si el anticipo es reembolsable o si se convierte en un
-                crédito para una estadía posterior.
-              </li>
-            </ul>
-          </PendingBlock>
           <p>
-            Mientras estos plazos no estén publicados, cada cancelación se
-            atiende de forma individual y las condiciones aplicables se
-            confirman por escrito al momento de reservar. En ningún caso se
-            aplicará al huésped una condición más gravosa que la comunicada
-            cuando confirmó su reserva.
+            El anticipo no es un cargo aparte: se descuenta del valor total de
+            la estadía.
+          </p>
+          <p>
+            Si el huésped decide no viajar, el anticipo{" "}
+            <strong>no se devuelve en dinero</strong>, pero puede conservarse
+            como crédito para unas fechas nuevas siempre que la reprogramación
+            se solicite dentro del plazo del punto 4.
           </p>
         </>
       ),
     },
     {
       id: "cambios",
-      title: "4. Cambio de fechas",
+      title: "4. Reprogramación (cambio de fechas)",
       body: (
         <>
           <p>
-            El cambio de fechas está sujeto a la disponibilidad del alojamiento
-            y se solicita por los mismos canales indicados en el punto 2. Si la
-            tarifa de las nuevas fechas es superior, el huésped paga la
-            diferencia; si es inferior, la diferencia no se reembolsa, salvo que
-            La Maima indique lo contrario.
+            La fecha de una reserva se puede cambiar{" "}
+            <strong>hasta 24 horas antes de la llegada</strong> —es decir, con
+            un día de anticipación como mínimo—, coordinándolo directamente con
+            los propietarios por los canales del punto 2.
           </p>
-          <PendingBlock title="Pendiente de definir con La Maima">
-            <ul>
-              <li>
-                Antelación mínima para solicitar un cambio de fechas sin costo.
-              </li>
-              <li>Número de cambios permitidos por reserva.</li>
-              <li>
-                Plazo máximo para usar las nuevas fechas cuando el cambio se
-                gestiona como crédito.
-              </li>
-            </ul>
+          <p>
+            En ese caso, <strong>el anticipo queda como crédito</strong> para
+            las nuevas fechas, sujeto a la disponibilidad del alojamiento y a la
+            tarifa vigente en esas fechas. Si la tarifa de las nuevas fechas es
+            superior, el huésped paga la diferencia; si es inferior, la
+            diferencia no se reembolsa en dinero.
+          </p>
+          <p>
+            Una solicitud de cambio presentada{" "}
+            <strong>el mismo día de la llegada</strong> ya no se tramita como
+            reprogramación: se cuenta como no presentación (punto 5).
+          </p>
+          <PendingBlock title="Pendiente de definir con La Maima: vigencia del crédito">
+            <p>
+              Falta fijar cuánto tiempo se puede usar el crédito del anticipo
+              antes de que caduque (por ejemplo, 3 o 6 meses desde la fecha
+              original de la reserva). Mientras no se publique un plazo, el
+              crédito se acuerda caso por caso con los propietarios al momento
+              de reprogramar.
+            </p>
           </PendingBlock>
         </>
       ),
@@ -158,9 +148,14 @@ export default async function CancellationPage() {
         <>
           <p>
             Se entiende por <strong>no presentación (no-show)</strong> el hecho
-            de no llegar en la fecha de entrada sin haber avisado previamente.
-            En ese caso, la reserva se considera consumida y no da lugar a
-            reembolso.
+            de no llegar en la fecha de entrada sin haber avisado previamente, y
+            también la cancelación o el cambio solicitados{" "}
+            <strong>el mismo día de la llegada</strong>.
+          </p>
+          <p>
+            En caso de no presentación{" "}
+            <strong>no hay devolución ni crédito del anticipo</strong>: la
+            reserva se considera consumida.
           </p>
           <p>
             La <strong>salida anticipada</strong> por decisión del huésped no
@@ -210,15 +205,14 @@ export default async function CancellationPage() {
             voluntad de las partes —cierres de vía, deslizamientos, eventos
             climáticos extremos, emergencias sanitarias o decisiones de
             autoridad—, La Maima buscará una solución razonable con el huésped
-            en lugar de aplicar los porcentajes ordinarios de cancelación.
+            en lugar de aplicar las condiciones ordinarias de cancelación.
           </p>
-          <PendingBlock title="Pendiente de definir con La Maima">
-            <p>
-              Alternativa que se ofrecerá en estos casos: reprogramación sin
-              costo, crédito por el valor pagado con una vigencia determinada, o
-              reembolso. Conviene fijar una sola regla y publicarla.
-            </p>
-          </PendingBlock>
+          <p>
+            En la práctica, la alternativa que se ofrece es la{" "}
+            <strong>reprogramación sin costo</strong> para unas fechas nuevas,
+            conservando lo pagado, aunque la solicitud llegue con menos de 24
+            horas de antelación.
+          </p>
         </>
       ),
     },
@@ -257,14 +251,13 @@ export default async function CancellationPage() {
               Los reembolsos se hacen a nombre de la persona que realizó el
               pago.
             </li>
+            <li>
+              Cuando lo que corresponde es un{" "}
+              <strong>crédito</strong> y no un reembolso (reprogramación, punto
+              4), no hay movimiento de dinero: el valor queda registrado a
+              nombre de quien reservó y se aplica a las nuevas fechas.
+            </li>
           </ul>
-          <PendingBlock title="Pendiente de definir con La Maima">
-            <p>
-              Si los costos de la pasarela de pagos se descuentan del valor a
-              reembolsar, debe indicarse expresamente aquí y en el momento de la
-              reserva.
-            </p>
-          </PendingBlock>
         </>
       ),
     },
@@ -287,7 +280,7 @@ export default async function CancellationPage() {
     <LegalDocument
       title="Política de cancelación y reembolsos"
       current={DOC.href}
-      intro="Qué ocurre si necesitas cancelar o mover tu reserva: por dónde solicitarlo, en qué plazos, cómo se calcula el reembolso y qué pasa en casos de fuerza mayor."
+      intro="Qué ocurre si necesitas cancelar o mover tu reserva: cómo funciona el anticipo del 10 %, hasta cuándo puedes cambiar las fechas conservándolo como crédito, y qué pasa si no llegas o si algo se sale de las manos de todos."
       updated={LEGAL_UPDATED}
       sections={sections}
       footnote={

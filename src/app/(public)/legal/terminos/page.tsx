@@ -4,7 +4,6 @@ import Link from "next/link";
 import {
   LegalDocument,
   Pending,
-  PendingBlock,
   type LegalSection,
 } from "@/components/legal/legal-document";
 import { getContactInfo } from "@/lib/content";
@@ -18,7 +17,7 @@ const DOC = LEGAL_LINKS[1];
 export const metadata: Metadata = {
   title: "Términos y condiciones de reserva",
   description:
-    "Condiciones de reserva y hospedaje en La Maima — Hotel Campestre: proceso de reserva y pago, tarifas en pesos colombianos, capacidad máxima, horarios, normas de la reserva natural y responsabilidad.",
+    "Condiciones de reserva y hospedaje en La Maima — Hotel Campestre: tarifas por ocupación con descuento entre semana, anticipo del 10 %, estancias mínimas, check-in 3:00 p. m. y check-out 1:00 p. m., mascotas, eventos y normas de la reserva natural.",
   alternates: { canonical: DOC.href },
   openGraph: {
     title: "Términos y condiciones · La Maima",
@@ -130,15 +129,45 @@ export default async function TermsPage() {
           <ul>
             <li>
               Todas las tarifas se expresan en{" "}
-              <strong>pesos colombianos (COP)</strong> y corresponden al valor
-              por noche del alojamiento completo, salvo que se indique otra
-              cosa.
+              <strong>pesos colombianos (COP)</strong>, por noche y por el
+              alojamiento completo, e incluyen los impuestos que resulten
+              aplicables al servicio de hospedaje.
             </li>
             <li>
-              Las tarifas publicadas pueden variar según la temporada, el número
-              de noches y la ocupación. La tarifa aplicable es la vigente y
-              confirmada por escrito al momento de cerrar la reserva; una vez
-              confirmada, no cambia.
+              <strong>La tarifa depende del número de huéspedes.</strong> Cada
+              alojamiento publica en su ficha una tabla de precios por
+              ocupación; el valor de la estadía se calcula con el tramo que
+              corresponda al grupo. Por encima del tramo más alto se cobra un{" "}
+              <strong>valor por huésped adicional</strong>, también publicado en
+              la ficha.
+            </li>
+            <li>
+              <strong>Descuento entre semana.</strong> Las noches de lunes a
+              jueves que no sean festivas tienen un{" "}
+              <strong>25 % de descuento</strong> sobre la tarifa publicada,
+              salvo entre el 14 de diciembre y el 15 de enero. Tres Casitas no
+              aplica ese descuento porque publica una tarifa propia de lunes a
+              jueves, más baja que la de fin de semana. Una estadía que mezcle
+              noches de distinto tipo se cobra noche a noche, y el desglose se
+              muestra antes de enviar la solicitud.
+            </li>
+            <li>
+              <strong>Desayuno.</strong> Está incluido en la tarifa de los
+              alojamientos que así lo indican en su ficha. En Casa Maima se
+              cobra aparte, a <strong>$25.000 por persona</strong>.
+            </li>
+            <li>
+              <strong>Estancia mínima.</strong> En puentes festivos, en Semana
+              Santa y entre el 23 de diciembre y el 7 de enero se exige un
+              número mínimo de noches, distinto según el alojamiento y publicado
+              en su ficha. El calendario de reservas lo verifica antes de
+              permitir la solicitud.
+            </li>
+            <li>
+              <strong>Anticipo.</strong> Para reservar se requiere un anticipo
+              del <strong>10 % del valor total</strong>, que se descuenta de la
+              estadía. Las condiciones de ese anticipo se detallan en la{" "}
+              <Link href="/legal/cancelacion">política de cancelación</Link>.
             </li>
             <li>
               Los pagos en línea se procesan a través de una{" "}
@@ -147,30 +176,13 @@ export default async function TermsPage() {
               almacena los datos de la tarjeta.
             </li>
             <li>
-              El comprobante de la transacción lo genera la pasarela; la factura
+              La tarifa aplicable es la vigente y confirmada por escrito al
+              momento de cerrar la reserva; una vez confirmada, no cambia. El
+              comprobante de la transacción lo genera la pasarela; la factura
               electrónica, cuando se solicite, la emite La Maima conforme a la
               normativa tributaria vigente.
             </li>
           </ul>
-          <PendingBlock title="Pendiente de definir con La Maima">
-            <ul>
-              <li>
-                Qué incluye la tarifa (por ejemplo: alojamiento, servicios,
-                acceso a senderos) y qué se cobra aparte.
-              </li>
-              <li>
-                Si se exige anticipo o el pago total por anticipado, y su
-                porcentaje.
-              </li>
-              <li>
-                Valor por huésped adicional, si el alojamiento lo permite.
-              </li>
-              <li>
-                Tratamiento del impuesto al consumo y de la exención de IVA para
-                servicios de alojamiento, según corresponda.
-              </li>
-            </ul>
-          </PendingBlock>
         </>
       ),
     },
@@ -206,19 +218,21 @@ export default async function TermsPage() {
         <>
           <ul>
             <li>
-              <strong>Check-in (entrada):</strong>{" "}
-              <Pending>hora de check-in</Pending>
+              <strong>Check-in (entrada):</strong> a partir de las{" "}
+              <strong>3:00 p. m.</strong> Es posible entrar antes si el
+              alojamiento ya está disponible; se coordina con anticipación.
             </li>
             <li>
-              <strong>Check-out (salida):</strong>{" "}
-              <Pending>hora de check-out</Pending>
+              <strong>Check-out (salida):</strong> a la{" "}
+              <strong>1:00 p. m.</strong> Si no hay una reserva siguiente en el
+              mismo alojamiento hay flexibilidad para salir más tarde,
+              coordinada directamente con el huésped.
             </li>
           </ul>
           <p>
             Las llegadas fuera del horario establecido deben coordinarse con
             anticipación: el acceso a la reserva es por vía de montaña y no
-            siempre hay personal disponible a cualquier hora. La salida tardía
-            está sujeta a disponibilidad y puede generar un cobro adicional.
+            siempre hay personal disponible a cualquier hora.
           </p>
           <p>
             Al llegar, todos los huéspedes deben presentar su documento de
@@ -241,8 +255,12 @@ export default async function TermsPage() {
           </p>
           <ul>
             <li>
-              Se respeta el descanso: nada de música a alto volumen ni ruido que
-              se escuche desde los otros alojamientos.
+              <strong>Es un lugar de descanso, no para fiestas excesivas.</strong>{" "}
+              Se respeta el descanso de los demás: nada de música a alto volumen
+              ni ruido que se escuche desde los otros alojamientos.
+            </li>
+            <li>
+              <strong>No se permite fumar.</strong>
             </li>
             <li>
               No se enciende fuego fuera de las zonas habilitadas para ello.
@@ -252,28 +270,50 @@ export default async function TermsPage() {
               sale de los senderos señalizados.
             </li>
             <li>
-              Los residuos se separan y se depositan en los puntos dispuestos
-              para ello.
+              No se deja basura en el sendero ni en ninguna otra parte del
+              hotel: los residuos se separan y se depositan en los puntos
+              dispuestos para ello.
             </li>
             <li>
-              Está prohibido fumar dentro de los alojamientos y en las zonas de
-              bosque.
+              Cualquier accidente o daño —un vaso roto, por ejemplo— se reporta
+              al equipo. <strong>El alojamiento se devuelve como se entrega.</strong>
             </li>
             <li>
               El uso de la piscina natural de río, los senderos y las zonas
               comunes es bajo la responsabilidad de cada huésped.
             </li>
           </ul>
-          <PendingBlock title="Pendiente de definir con La Maima">
-            <ul>
-              <li>Política de mascotas (si se admiten y bajo qué condiciones).</li>
-              <li>Horario de silencio y política de eventos o celebraciones.</li>
-              <li>
-                Depósito o garantía por daños, si el establecimiento decide
-                exigirlo.
-              </li>
-            </ul>
-          </PendingBlock>
+
+          <h3>Mascotas: La Maima es pet friendly</h3>
+          <p>
+            Las mascotas son bienvenidas <strong>sin costo adicional</strong>,
+            con estas condiciones:
+          </p>
+          <ul>
+            <li>
+              El dueño es responsable de su mascota y debe estar pendiente de
+              ella en todo momento.
+            </li>
+            <li>Vacunas y desparasitación al día.</li>
+            <li>No se usan las toallas del hotel para los animales.</li>
+            <li>
+              Los daños o la suciedad excesiva que cause la mascota se reparan o
+              se cubren.
+            </li>
+          </ul>
+          <p>
+            Al llegar se entrega una guía con las diez reglas de convivencia de
+            la reserva.
+          </p>
+
+          <h3>Eventos y celebraciones</h3>
+          <p>
+            Sí se realizan eventos —matrimonios, cenas, almuerzos empresariales,
+            cumpleaños— con <strong>cotización a medida</strong>. Cualquier
+            celebración debe acordarse previamente con La Maima: no está cubierta
+            por la tarifa de alojamiento.
+          </p>
+
           <p>
             El listado completo y actualizado de las normas de la casa se
             entrega junto con la confirmación de la reserva y está disponible en
@@ -284,8 +324,29 @@ export default async function TermsPage() {
       ),
     },
     {
+      id: "gastronomia",
+      title: "8. Gastronomía",
+      body: (
+        <>
+          <ul>
+            <li>
+              <strong>Desayuno:</strong> se sirve entre las{" "}
+              <strong>8:00 y las 9:30 de la mañana</strong>, todos los días. En
+              los alojamientos cuya tarifa lo incluye, también se sirve entre
+              semana; en los demás se cobra aparte (ver el punto 4).
+            </li>
+            <li>
+              <strong>Almuerzos:</strong> disponibles los fines de semana y,
+              entre semana, para grupos de más de seis personas. Se coordinan
+              con anticipación.
+            </li>
+          </ul>
+        </>
+      ),
+    },
+    {
       id: "cancelaciones",
-      title: "8. Cancelaciones, modificaciones y no presentación",
+      title: "9. Cancelaciones, modificaciones y no presentación",
       body: (
         <p>
           Las condiciones de cancelación, cambio de fechas, no presentación
@@ -299,7 +360,7 @@ export default async function TermsPage() {
     },
     {
       id: "responsabilidad",
-      title: "9. Responsabilidad",
+      title: "10. Responsabilidad",
       body: (
         <>
           <p>
@@ -345,7 +406,7 @@ export default async function TermsPage() {
     },
     {
       id: "consumidor",
-      title: "10. Derechos del consumidor",
+      title: "11. Derechos del consumidor",
       body: (
         <>
           <p>
@@ -380,7 +441,7 @@ export default async function TermsPage() {
     },
     {
       id: "sitio",
-      title: "11. Uso del sitio web y propiedad intelectual",
+      title: "12. Uso del sitio web y propiedad intelectual",
       body: (
         <>
           <p>
@@ -402,7 +463,7 @@ export default async function TermsPage() {
     },
     {
       id: "datos",
-      title: "12. Protección de datos personales",
+      title: "13. Protección de datos personales",
       body: (
         <p>
           El tratamiento de los datos personales suministrados durante la
@@ -416,7 +477,7 @@ export default async function TermsPage() {
     },
     {
       id: "ley",
-      title: "13. Ley aplicable, modificaciones y jurisdicción",
+      title: "14. Ley aplicable, modificaciones y jurisdicción",
       body: (
         <>
           <p>
@@ -440,7 +501,7 @@ export default async function TermsPage() {
     <LegalDocument
       title="Términos y condiciones de reserva"
       current={DOC.href}
-      intro="Condiciones que rigen la reserva y la estadía en La Maima: cómo se reserva y se paga, qué capacidad admite cada alojamiento, horarios, normas de la reserva natural y responsabilidades de cada parte."
+      intro="Condiciones que rigen la reserva y la estadía en La Maima: cómo se calcula la tarifa según el número de huéspedes, el anticipo, las estancias mínimas por temporada, los horarios de entrada y salida, las mascotas y las normas de la reserva natural."
       updated={LEGAL_UPDATED}
       sections={sections}
       footnote={

@@ -12,7 +12,7 @@
  * Es una constante y no `new Date()` a propósito: la fecha debe cambiar
  * cuando cambia el TEXTO, no cada vez que se despliega el sitio.
  */
-export const LEGAL_UPDATED = "18 de agosto de 2026";
+export const LEGAL_UPDATED = "26 de agosto de 2026";
 
 /**
  * Autoridad de control en materia de protección de datos en Colombia.

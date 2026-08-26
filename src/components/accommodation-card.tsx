@@ -4,6 +4,7 @@ import Link from "next/link";
 import { ChevronRightIcon, UsersIcon } from "./icons";
 import { coverImage, type Accommodation } from "@/lib/content";
 import { formatCOP, formatGuests } from "@/lib/format";
+import { lowestRate } from "@/lib/pricing";
 
 type Props = {
   accommodation: Accommodation;
@@ -21,6 +22,11 @@ export function AccommodationCard({ accommodation, priority = false }: Props) {
     accommodation.gallery,
     `${accommodation.name} en La Maima`,
   );
+
+  // "Desde" = el tramo más barato de la tabla real de precios. Se calcula aquí
+  // en vez de leer la columna para que no pueda quedarse atrás si el cliente
+  // edita un precio desde el panel.
+  const from = lowestRate(accommodation.tiers, accommodation.price_per_night_cop);
 
   return (
     <article className="group relative flex flex-col overflow-hidden rounded-card bg-white shadow-card transition-[box-shadow,transform] duration-300 ease-ios hover:-translate-y-0.5 hover:shadow-lift">
@@ -66,7 +72,7 @@ export function AccommodationCard({ accommodation, priority = false }: Props) {
           <div>
             <p className="text-[0.8125rem] font-medium text-ink-muted">Desde</p>
             <p className="mt-0.5 text-[1.5rem] font-semibold leading-none tracking-[-0.03em] text-forest-700">
-              {formatCOP(accommodation.price_per_night_cop)}
+              {formatCOP(from.amountCop)}
               <span className="ml-1.5 text-[0.8125rem] font-medium tracking-normal text-ink-muted">
                 / noche
               </span>

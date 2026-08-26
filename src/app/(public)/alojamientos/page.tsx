@@ -47,10 +47,14 @@ export default async function AccommodationsPage() {
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-10">
           {accommodations.length > 0 ? (
             <>
+              {/* La tarifa depende de cuántos vengan y de qué noches sean:
+                  decirlo aquí evita la decepción de entrar a una ficha y ver
+                  un número distinto al del "Desde" de la tarjeta. */}
               <p className="max-w-2xl text-[1.0625rem] leading-relaxed text-ink-muted">
-                Las tarifas que ves son de referencia y están pendientes de
-                confirmación. Escríbenos por WhatsApp y te confirmamos el valor
-                exacto según las fechas y el número de personas.
+                Cada alojamiento tiene su propia tarifa según el número de
+                huéspedes, y las noches de lunes a jueves cuestan menos. Entra a
+                la ficha para ver la tabla completa y calcular tu estadía con
+                fechas reales.
               </p>
 
               <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:mt-12 lg:grid-cols-3 lg:gap-7">

@@ -4,10 +4,11 @@
  * Motor de reservas público — fase sin pasarela de pagos.
  *
  * Hace TODO menos cobrar: consulta la disponibilidad real, deja elegir el
- * rango de fechas y el número de huéspedes, calcula el total estimado y
- * termina en una solicitud por WhatsApp con todos los datos ya escritos.
+ * rango de fechas y el número de huéspedes, cotiza la estadía con las tarifas
+ * oficiales y termina en una solicitud por WhatsApp con todos los datos ya
+ * escritos.
  *
- * Dos decisiones que conviene no perder de vista:
+ * Tres decisiones que conviene no perder de vista:
  *
  *   - NO escribe nada en la base de datos. La reserva la registra el equipo
  *     desde el panel al confirmar, así que no quedan filas huérfanas de gente
@@ -16,8 +17,12 @@
  *   - La disponibilidad se pide al montar (no en el HTML estático de la
  *     página): las páginas de alojamiento se sirven prerenderizadas y un
  *     calendario de hace una hora invitaría a pedir fechas ya vendidas.
+ *   - Las TARIFAS, en cambio, sí viajan con la página: son catálogo público y
+ *     cambian poco. Así el total se recalcula al instante cada vez que el
+ *     huésped mueve una fecha o suma una persona, sin ida y vuelta al
+ *     servidor. Toda la aritmética vive en `@/lib/pricing`.
  */
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { AvailabilityCalendar } from "@/components/booking/availability-calendar";
 import {
@@ -44,13 +49,21 @@ import {
   type YearMonth,
 } from "@/lib/dates";
 import { formatCOP, formatGuests } from "@/lib/format";
+import {
+  breakfastLabel,
+  lowestRate,
+  quote,
+  type Quote,
+  type RateConfig,
+} from "@/lib/pricing";
 import { bookingRequestMessage, whatsappUrl } from "@/lib/whatsapp";
 
 type Props = {
   slug: string;
   name: string;
   capacity: number;
-  pricePerNight: number;
+  /** Tabla de precios, temporadas y festivos: llega con la página estática. */
+  rates: RateConfig;
   priceNote: string | null;
   /** Número de WhatsApp (solo dígitos) que edita el panel. */
   whatsapp: string;
@@ -64,7 +77,7 @@ export function BookingWidget({
   slug,
   name,
   capacity,
-  pricePerNight,
+  rates,
   priceNote,
   whatsapp,
   phoneDisplay,
@@ -169,22 +182,46 @@ export function BookingWidget({
   /* --- Cálculo ------------------------------------------------------------ */
 
   const nights = checkIn && checkOut ? nightsBetween(checkIn, checkOut) : 0;
-  const total = nights * pricePerNight;
-  const canRequest = Boolean(checkIn && checkOut && nights > 0);
 
-  const whatsappHref = canRequest
-    ? whatsappUrl(
-        bookingRequestMessage({
-          accommodation: name,
-          checkIn: checkIn as string,
-          checkOut: checkOut as string,
-          nights,
-          guests,
-          totalCop: total,
-        }),
-        whatsapp,
-      )
-    : undefined;
+  // La cotización se rehace cada vez que cambian fechas o huéspedes. Es
+  // aritmética pura sobre unas decenas de noches: no hace falta más que el
+  // memo para no recalcularla en re-renders ajenos (el hover del calendario).
+  const estimate: Quote | null = useMemo(
+    () =>
+      checkIn && checkOut && nights > 0
+        ? quote(rates, checkIn, checkOut, guests)
+        : null,
+    [rates, checkIn, checkOut, guests, nights],
+  );
+
+  const from = lowestRate(rates.tiers, rates.basePriceCop);
+  const breakfast = breakfastLabel(rates);
+
+  // Una estadía por debajo de la estancia mínima no se puede pedir: mejor
+  // decirlo aquí que dejar que el equipo tenga que rechazarla por WhatsApp.
+  const blockedByMinStay = Boolean(estimate?.minStay);
+  const canRequest = Boolean(estimate) && !blockedByMinStay;
+
+  const whatsappHref =
+    estimate && canRequest
+      ? whatsappUrl(
+          bookingRequestMessage({
+            accommodation: name,
+            checkIn: checkIn as string,
+            checkOut: checkOut as string,
+            nights,
+            guests,
+            totalCop: estimate.totalCop,
+            detail: [
+              ...estimate.lines.map((line) => line.label),
+              estimate.breakfast?.label,
+            ]
+              .filter(Boolean)
+              .join(" · "),
+          }),
+          whatsapp,
+        )
+      : undefined;
 
   /* --- Estados de carga --------------------------------------------------- */
 
@@ -330,8 +367,11 @@ export function BookingWidget({
                 <UsersIcon className="h-4 w-4 text-ink-muted" />
                 Huéspedes
               </p>
+              {/* La tarifa depende de cuántos sean, así que el contador no es
+                  un detalle administrativo: mover este número cambia el total. */}
               <p className="mt-0.5 text-[0.8125rem] text-ink-muted">
-                Máximo {formatGuests(capacity)}
+                Máximo {formatGuests(capacity)} · la tarifa cambia con la
+                ocupación
               </p>
             </div>
             <div className="flex items-center gap-1">
@@ -359,31 +399,117 @@ export function BookingWidget({
           </div>
 
           {/* Precio ---------------------------------------------------------- */}
+          {/* El precio depende de la ocupación Y del tipo de cada noche, así que
+              el desglose no es decorativo: es la única forma de que el huésped
+              entienda por qué dos noches del mismo alojamiento valen distinto. */}
           <div className="mt-5 border-t border-black/[0.07] pt-4 text-[0.9375rem]">
-            {/* Sin fechas se muestra la tarifa, no una multiplicación por cero:
-                un "× 0 noches = $0" parece un error de la página. */}
-            <div className="flex items-baseline justify-between gap-4">
-              <span className="text-ink-muted">
-                {nights > 0
-                  ? `${formatCOP(pricePerNight)} × ${nights} ${nights === 1 ? "noche" : "noches"}`
-                  : "Tarifa por noche"}
-              </span>
-              <span className="tabular-nums text-ink-soft">
-                {nights > 0 ? formatCOP(total) : formatCOP(pricePerNight)}
-              </span>
-            </div>
-            <div className="mt-3 flex items-baseline justify-between gap-4 border-t border-black/[0.07] pt-3">
-              <span className="font-semibold text-ink">Total estimado</span>
-              <span className="text-[1.375rem] font-semibold tracking-[-0.03em] tabular-nums text-forest-700">
-                {nights > 0 ? formatCOP(total) : "—"}
-              </span>
-            </div>
-            {priceNote && (
-              <p className="mt-2.5 inline-flex items-center gap-1.5 rounded-full bg-forest-600/10 px-3 py-1 text-[0.75rem] font-semibold text-forest-700">
+            {estimate ? (
+              <>
+                {estimate.planNames.length > 0 && (
+                  <p className="mb-3 inline-flex items-center gap-1.5 rounded-full bg-forest-600/10 px-3 py-1 text-[0.75rem] font-semibold text-forest-700">
+                    {estimate.planNames.join(" · ")}
+                  </p>
+                )}
+
+                <ul className="space-y-2.5">
+                  {estimate.lines.map((line) => (
+                    <li key={`${line.unitCop}-${line.dayType}-${line.discountPct}-${line.planName ?? ""}`}>
+                      <div className="flex items-baseline justify-between gap-4">
+                        <span className="text-ink-muted">{line.label}</span>
+                        <span className="shrink-0 tabular-nums text-ink-soft">
+                          {formatCOP(line.subtotalCop)}
+                        </span>
+                      </div>
+                      {line.detail && (
+                        <p className="mt-0.5 text-[0.8125rem] leading-snug text-ink-muted/80">
+                          {line.detail}
+                        </p>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+
+                <div className="mt-3 flex items-baseline justify-between gap-4 border-t border-black/[0.07] pt-3">
+                  <span className="font-semibold text-ink">Total estimado</span>
+                  <span className="text-[1.375rem] font-semibold tracking-[-0.03em] tabular-nums text-forest-700">
+                    {formatCOP(estimate.totalCop)}
+                  </span>
+                </div>
+
+                {estimate.nights > 1 && (
+                  <p className="mt-1 text-right text-[0.8125rem] text-ink-muted">
+                    {formatCOP(estimate.averageNightCop)} por noche en promedio
+                  </p>
+                )}
+              </>
+            ) : (
+              /* Sin fechas se muestra la tarifa más baja, no una multiplicación
+                 por cero: un "× 0 noches = $0" parece un error de la página. */
+              <>
+                <div className="flex items-baseline justify-between gap-4">
+                  <span className="text-ink-muted">
+                    Desde
+                    {from.guests
+                      ? ` · ${formatGuests(from.guests)}`
+                      : ""}
+                  </span>
+                  <span className="tabular-nums text-ink-soft">
+                    {formatCOP(from.amountCop)}
+                  </span>
+                </div>
+                <div className="mt-3 flex items-baseline justify-between gap-4 border-t border-black/[0.07] pt-3">
+                  <span className="font-semibold text-ink">Total estimado</span>
+                  <span className="text-[1.375rem] font-semibold tracking-[-0.03em] tabular-nums text-forest-700">
+                    —
+                  </span>
+                </div>
+              </>
+            )}
+
+            {/* Desayuno: incluido o con su valor por persona, nunca en silencio. */}
+            {breakfast && (
+              <p className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-forest-600/10 px-3 py-1 text-[0.75rem] font-semibold text-forest-700">
+                {breakfast}
+              </p>
+            )}
+
+            {estimate?.breakfast?.optionalTotalCop ? (
+              <p className="mt-2 text-[0.8125rem] leading-relaxed text-ink-muted">
+                El desayuno de {formatGuests(guests)} durante {estimate.nights}{" "}
+                {estimate.nights === 1 ? "noche" : "noches"} sumaría{" "}
+                {formatCOP(estimate.breakfast.optionalTotalCop)}. No está
+                incluido en el total.
+              </p>
+            ) : null}
+
+            {priceNote && !estimate && (
+              <p className="mt-2.5 text-[0.8125rem] leading-relaxed text-ink-muted">
                 {priceNote}
               </p>
             )}
+
+            {rates.rateNote && (
+              <p className="mt-3 text-[0.8125rem] leading-relaxed text-ink-muted">
+                {rates.rateNote}
+              </p>
+            )}
           </div>
+
+          {/* Estancia mínima: bloquea la solicitud y explica por qué. -------- */}
+          {estimate?.minStay && (
+            <p
+              role="status"
+              className="mt-4 flex items-start gap-2.5 rounded-card bg-amber-50 px-4 py-3 text-[0.875rem] leading-relaxed text-amber-900 ring-1 ring-inset ring-amber-500/20"
+            >
+              <AlertIcon className="mt-0.5 h-4 w-4 shrink-0" />
+              <span>
+                {estimate.minStay.message} Elegiste {estimate.nights}{" "}
+                {estimate.nights === 1 ? "noche" : "noches"}: añade{" "}
+                {estimate.minStay.requiredNights - estimate.nights} más para
+                poder reservar.
+              </span>
+            </p>
+          )}
 
           {/* Llamada a la acción --------------------------------------------- */}
           {canRequest && whatsappHref ? (
@@ -410,7 +536,9 @@ export function BookingWidget({
           <p className="mt-3 text-center text-[0.8125rem] leading-relaxed text-ink-muted">
             {canRequest
               ? "Te confirmamos disponibilidad y forma de pago por WhatsApp."
-              : "Elige las fechas para enviar tu solicitud."}
+              : blockedByMinStay
+                ? "Ajusta las fechas para cumplir la estancia mínima."
+                : "Elige las fechas para enviar tu solicitud."}
           </p>
           <p className="mt-2 text-center text-[0.8125rem] font-medium text-forest-700">
             Muy pronto podrás pagar en línea aquí mismo.

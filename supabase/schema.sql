@@ -67,12 +67,44 @@ create table if not exists public.accommodations (
   -- texto largo para la página de detalle
   description         text,
 
+  -- Ocupación máxima, incluidos los huéspedes adicionales que se admiten:
+  -- el Mirador es "hasta 4 (+1 en sofá cama)", así que su capacity es 5.
   capacity            integer not null check (capacity > 0),
 
-  -- precio por noche en COP (sin decimales)
+  -- Tarifa "Desde" de los listados. La tarifa REAL se calcula por ocupación
+  -- con `rate_tiers` (ver más abajo); esta columna se mantiene sincronizada
+  -- con el tramo más bajo y es el respaldo de los alojamientos que todavía no
+  -- tienen tabla publicada.
   price_per_night_cop integer not null check (price_per_night_cop >= 0),
-  -- aclaración visible junto al precio, ej. "Tarifa por confirmar"
+  -- aclaración corta junto al precio, ej. "1 persona · desayuno incluido"
   price_note          text,
+
+  /* --- Modelo de tarifas real (migración `occupancy_rate_model`) ---------
+     Fuente: documento oficial de tarifas de La Maima. */
+
+  -- Valor por huésped por encima del tramo más alto de rate_tiers.
+  -- Null = no se admiten adicionales (Casa Maima).
+  extra_person_price_cop         integer
+    check (extra_person_price_cop is null or extra_person_price_cop >= 0),
+  -- Solo lo usa Tres Casitas, que tiene adicional propio de lunes a jueves.
+  extra_person_price_weekday_cop integer
+    check (extra_person_price_weekday_cop is null
+           or extra_person_price_weekday_cop >= 0),
+
+  breakfast_included             boolean not null default false,
+  -- Valor por persona cuando el desayuno se cobra aparte. Null = el documento
+  -- del cliente no lo define (no se inventa un precio).
+  breakfast_price_cop            integer
+    check (breakfast_price_cop is null or breakfast_price_cop >= 0),
+
+  -- Descuento sobre la tarifa base en noches de lunes a jueves NO festivas
+  -- (25 en casi todas). Null en Tres Casitas, que ya publica tabla propia.
+  weekday_discount_pct           integer
+    check (weekday_discount_pct is null
+           or (weekday_discount_pct > 0 and weekday_discount_pct < 100)),
+
+  -- Aclaración larga de la tarifa, redactada por el cliente.
+  rate_note                      text,
 
   -- ["Cocineta equipada", "Baño privado", ...]
   amenities           jsonb not null default '[]'::jsonb,
@@ -95,6 +127,155 @@ create trigger set_updated_at_accommodations
 
 create index if not exists idx_accommodations_visible
   on public.accommodations (visible, sort_order);
+
+
+-- =============================================================================
+-- 1b. rate_tiers — precio por número de huéspedes
+-- =============================================================================
+-- El precio de La Maima NO es "una tarifa por noche": cada cabaña publica una
+-- tabla por ocupación. Se cobra el tramo más bajo cuyo `guests` alcance para
+-- el grupo (Casa Maima tiene 8 y 10: nueve personas pagan el de 10), y por
+-- encima del tramo más alto entra `extra_person_price_cop`.
+create table if not exists public.rate_tiers (
+  id               uuid primary key default gen_random_uuid(),
+  accommodation_id uuid not null references public.accommodations (id)
+                     on delete cascade,
+
+  guests           integer not null check (guests > 0),
+  price_cop        integer not null check (price_cop >= 0),
+
+  -- 'any'     : una sola tabla, válida todos los días (el caso normal)
+  -- 'weekend' : tabla de fin de semana / festivos   \  solo Tres Casitas, la
+  -- 'weekday' : tabla propia de lunes a jueves      /  única con dos tablas
+  day_type         text not null default 'any'
+                     check (day_type in ('any', 'weekend', 'weekday')),
+
+  sort             integer not null default 0,
+
+  created_at       timestamptz not null default now(),
+  updated_at       timestamptz not null default now(),
+
+  constraint rate_tiers_unique unique (accommodation_id, day_type, guests)
+);
+
+drop trigger if exists set_updated_at_rate_tiers on public.rate_tiers;
+create trigger set_updated_at_rate_tiers
+  before update on public.rate_tiers
+  for each row execute function public.set_updated_at();
+
+create index if not exists idx_rate_tiers_accommodation
+  on public.rate_tiers (accommodation_id, day_type, guests);
+
+
+-- =============================================================================
+-- 1c. min_stay_rules — estancia mínima por temporada y por cabaña
+-- =============================================================================
+create table if not exists public.min_stay_rules (
+  id               uuid primary key default gen_random_uuid(),
+  accommodation_id uuid not null references public.accommodations (id)
+                     on delete cascade,
+
+  -- Texto que ve el huésped: "Puentes festivos", "Semana Santa 2027"…
+  label            text not null,
+
+  -- 'holiday_bridge': cualquier fin de semana largo (festivo en lunes). Se
+  --                   calcula con `holidays`, así que no lleva fechas.
+  -- 'date_range'    : temporada con fechas explícitas y editables.
+  rule_type        text not null
+                     check (rule_type in ('holiday_bridge', 'date_range')),
+
+  -- Noches cubiertas, AMBOS extremos inclusive.
+  date_from        date,
+  date_to          date,
+
+  min_nights       integer not null check (min_nights > 0),
+  sort             integer not null default 0,
+
+  created_at       timestamptz not null default now(),
+  updated_at       timestamptz not null default now(),
+
+  constraint min_stay_rules_dates check (
+    (rule_type = 'date_range'
+      and date_from is not null and date_to is not null and date_to >= date_from)
+    or (rule_type = 'holiday_bridge')
+  )
+);
+
+drop trigger if exists set_updated_at_min_stay_rules on public.min_stay_rules;
+create trigger set_updated_at_min_stay_rules
+  before update on public.min_stay_rules
+  for each row execute function public.set_updated_at();
+
+create index if not exists idx_min_stay_rules_accommodation
+  on public.min_stay_rules (accommodation_id, sort);
+
+
+-- =============================================================================
+-- 1d. holidays — festivos de Colombia (Ley 51 de 1983, "Ley Emiliani")
+-- =============================================================================
+-- Sembrada con 2026 y 2027 completos (los festivos trasladables ya corridos al
+-- lunes siguiente). Se amplía con un INSERT cuando haga falta otro año; el CRUD
+-- desde el panel queda para una fase posterior.
+create table if not exists public.holidays (
+  holiday_date date primary key,
+  name         text not null,
+
+  -- Un festivo en LUNES arma "puente". Es columna GENERADA para que no pueda
+  -- quedar desincronizada con la fecha si alguien edita la fila a mano.
+  is_bridge    boolean generated always as
+                 (extract(isodow from holiday_date) = 1) stored,
+
+  created_at   timestamptz not null default now()
+);
+
+create index if not exists idx_holidays_bridge
+  on public.holidays (is_bridge, holiday_date);
+
+
+-- =============================================================================
+-- 1e. rate_plans — paquetes y tarifas especiales
+-- =============================================================================
+-- Fundación para lo que el cliente cree más adelante ("San Valentín", puentes
+-- con cena, etc.). Se deja VACÍA a propósito: hoy no existe ninguno.
+-- Cuando un plan activo cubre una noche y trae precio, ese precio manda sobre
+-- rate_tiers y anula el descuento de lunes a jueves.
+create table if not exists public.rate_plans (
+  id                  uuid primary key default gen_random_uuid(),
+
+  -- Null = el plan aplica a TODOS los alojamientos.
+  accommodation_id    uuid references public.accommodations (id)
+                        on delete cascade,
+
+  name                text not null,
+  description         text,
+
+  -- Noches cubiertas, ambos extremos inclusive.
+  date_from           date not null,
+  date_to             date not null,
+
+  -- Null = el plan solo nombra la temporada y conserva el precio por tramos.
+  price_per_night_cop integer
+                        check (price_per_night_cop is null
+                               or price_per_night_cop >= 0),
+  guests_included     integer
+                        check (guests_included is null or guests_included > 0),
+
+  active              boolean not null default true,
+  sort                integer not null default 0,
+
+  created_at          timestamptz not null default now(),
+  updated_at          timestamptz not null default now(),
+
+  constraint rate_plans_dates check (date_to >= date_from)
+);
+
+drop trigger if exists set_updated_at_rate_plans on public.rate_plans;
+create trigger set_updated_at_rate_plans
+  before update on public.rate_plans
+  for each row execute function public.set_updated_at();
+
+create index if not exists idx_rate_plans_window
+  on public.rate_plans (active, date_from, date_to);
 
 
 -- =============================================================================
@@ -286,12 +467,20 @@ create index if not exists idx_ical_feeds_accommodation
 --     RLS deniega por defecto. El flujo público de reserva (Fase 3) insertará
 --     desde el servidor con SUPABASE_SERVICE_ROLE_KEY tras validar el pago.
 
+--   - rate_tiers / min_stay_rules / holidays / rate_plans: lectura pública
+--     (son precios y reglas de catálogo, sin nada sensible); escritura solo
+--     para "authenticated".
+
 alter table public.accommodations enable row level security;
 alter table public.experiences    enable row level security;
 alter table public.bookings       enable row level security;
 alter table public.blocked_dates  enable row level security;
 alter table public.site_content   enable row level security;
 alter table public.ical_feeds     enable row level security;
+alter table public.rate_tiers     enable row level security;
+alter table public.min_stay_rules enable row level security;
+alter table public.holidays       enable row level security;
+alter table public.rate_plans     enable row level security;
 
 -- Nota sobre las policies de SELECT: se escribe UNA sola policy permisiva por
 -- rol y acción. Dos policies permisivas para el mismo par (rol, acción)
@@ -361,6 +550,41 @@ create policy "blocked_dates_all_admin" on public.blocked_dates
   for all to authenticated using (true) with check (true);
 create policy "ical_feeds_all_admin" on public.ical_feeds
   for all to authenticated using (true) with check (true);
+
+-- --- tarifas: rate_tiers / min_stay_rules / holidays / rate_plans -----------
+-- Mismo patrón que site_content: una policy de lectura pública y la escritura
+-- partida en insert/update/delete para no solaparse con ella.
+do $$
+declare
+  rate_table text;
+begin
+  foreach rate_table in array
+    array['rate_tiers', 'min_stay_rules', 'holidays', 'rate_plans']
+  loop
+    execute format('drop policy if exists %I on public.%I',
+                   rate_table || '_select_public', rate_table);
+    execute format('drop policy if exists %I on public.%I',
+                   rate_table || '_insert_admin', rate_table);
+    execute format('drop policy if exists %I on public.%I',
+                   rate_table || '_update_admin', rate_table);
+    execute format('drop policy if exists %I on public.%I',
+                   rate_table || '_delete_admin', rate_table);
+
+    execute format(
+      'create policy %I on public.%I for select to anon, authenticated using (true)',
+      rate_table || '_select_public', rate_table);
+    execute format(
+      'create policy %I on public.%I for insert to authenticated with check (true)',
+      rate_table || '_insert_admin', rate_table);
+    execute format(
+      'create policy %I on public.%I for update to authenticated using (true) with check (true)',
+      rate_table || '_update_admin', rate_table);
+    execute format(
+      'create policy %I on public.%I for delete to authenticated using (true)',
+      rate_table || '_delete_admin', rate_table);
+  end loop;
+end
+$$;
 
 -- =============================================================================
 -- Pendiente para fases siguientes:

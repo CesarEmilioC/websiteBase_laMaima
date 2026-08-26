@@ -12,8 +12,15 @@ import {
   getAccommodationBySlug,
   getAccommodations,
   getContactInfo,
+  getRateConfig,
 } from "@/lib/content";
 import { formatCOP, formatGuests } from "@/lib/format";
+import {
+  breakfastLabel,
+  lowestRate,
+  minStaySummary,
+  tierRows,
+} from "@/lib/pricing";
 import { absoluteUrl, SITE } from "@/lib/site";
 import { accommodationMessage } from "@/lib/whatsapp";
 
@@ -62,13 +69,29 @@ export default async function AccommodationDetailPage({ params }: Props) {
 
   if (!accommodation) notFound();
 
-  const [all, contact] = await Promise.all([
+  const [all, contact, rates] = await Promise.all([
     getAccommodations(),
     getContactInfo(),
+    getRateConfig(accommodation),
   ]);
   const others = all.filter((item) => item.slug !== accommodation.slug).slice(0, 3);
   const cover = coverImage(accommodation.gallery, accommodation.name);
   const message = accommodationMessage(accommodation.name);
+
+  // La tarifa "Desde" sale de la tabla real de precios; la columna
+  // price_per_night_cop solo entra cuando la cabaña aún no tiene tabla.
+  const from = lowestRate(accommodation.tiers, accommodation.price_per_night_cop);
+  const breakfast = breakfastLabel(rates);
+  const minStays = minStaySummary(rates.minStayRules);
+
+  // Chips de la cabecera: lo que un huésped quiere saber antes de bajar a
+  // leer la descripción entera.
+  const chips = [
+    `Hasta ${formatGuests(accommodation.capacity)}`,
+    breakfast,
+    "Check-in 3:00 p. m.",
+    "Pet friendly",
+  ].filter((chip): chip is string => Boolean(chip));
 
   const roomJsonLd = {
     "@context": "https://schema.org",
@@ -134,10 +157,17 @@ export default async function AccommodationDetailPage({ params }: Props) {
               <h1 className="tracking-display text-[2.375rem] leading-[1.05] text-ink sm:text-5xl lg:text-[3.5rem]">
                 {accommodation.name}
               </h1>
-              <p className="mt-4 inline-flex items-center gap-2 rounded-full bg-forest-600/10 px-3.5 py-1.5 text-[0.875rem] font-semibold text-forest-700">
-                <UsersIcon className="h-4 w-4" />
-                Hasta {formatGuests(accommodation.capacity)}
-              </p>
+              <ul className="mt-4 flex flex-wrap gap-2">
+                {chips.map((chip, index) => (
+                  <li
+                    key={chip}
+                    className="inline-flex items-center gap-2 rounded-full bg-forest-600/10 px-3.5 py-1.5 text-[0.875rem] font-semibold text-forest-700"
+                  >
+                    {index === 0 && <UsersIcon className="h-4 w-4" />}
+                    {chip}
+                  </li>
+                ))}
+              </ul>
             </div>
 
             <div className="sm:text-right">
@@ -145,7 +175,7 @@ export default async function AccommodationDetailPage({ params }: Props) {
                 Desde
               </p>
               <p className="mt-1 text-[2rem] font-semibold leading-none tracking-[-0.035em] text-forest-700">
-                {formatCOP(accommodation.price_per_night_cop)}
+                {formatCOP(from.amountCop)}
                 <span className="ml-1.5 text-[0.875rem] font-medium tracking-normal text-ink-muted">
                   COP / noche
                 </span>
@@ -214,36 +244,59 @@ export default async function AccommodationDetailPage({ params }: Props) {
             <div className="lg:col-span-5">
               <div className="rounded-panel bg-white p-7 shadow-panel ring-1 ring-black/[0.05] lg:sticky lg:top-28">
                 <p className="text-[0.8125rem] font-medium text-ink-muted">
-                  Tarifa de referencia
+                  Tarifa desde
                 </p>
                 <p className="mt-1.5 text-[2.25rem] font-semibold leading-none tracking-[-0.04em] text-forest-700">
-                  {formatCOP(accommodation.price_per_night_cop)}
+                  {formatCOP(from.amountCop)}
                   <span className="ml-1.5 text-[0.875rem] font-medium tracking-normal text-ink-muted">
                     COP / noche
                   </span>
                 </p>
                 {accommodation.price_note && (
-                  <p className="mt-2 text-[0.8125rem] text-ink-muted">
+                  <p className="mt-2 text-[0.8125rem] leading-relaxed text-ink-muted">
                     {accommodation.price_note}
                   </p>
                 )}
 
-                <dl className="mt-6 overflow-hidden rounded-card bg-cream text-[0.9375rem]">
-                  <div className="flex items-center justify-between gap-4 px-4 py-3">
-                    <dt className="text-ink-muted">Capacidad</dt>
-                    <dd className="font-semibold text-ink">
-                      Hasta {formatGuests(accommodation.capacity)}
-                    </dd>
+                {/* Tabla de precios por ocupación: es LA pregunta que hace todo
+                    el que mira una cabaña, y aparece aquí sin tener que bajar
+                    al calendario. */}
+                {accommodation.tiers.length > 0 && (
+                  <dl className="mt-6 overflow-hidden rounded-card bg-cream text-[0.9375rem]">
+                    {tierRows(accommodation.tiers).map((row, index) => (
+                      <div
+                        key={row.key}
+                        className={`flex items-center justify-between gap-4 px-4 py-3 ${
+                          index > 0 ? "border-t border-black/[0.07]" : ""
+                        }`}
+                      >
+                        <dt className="text-ink-muted">{row.label}</dt>
+                        <dd className="font-semibold tabular-nums text-ink">
+                          {formatCOP(row.price)}
+                        </dd>
+                      </div>
+                    ))}
+                  </dl>
+                )}
+
+                {accommodation.rate_note && (
+                  <p className="mt-3 text-[0.8125rem] leading-relaxed text-ink-muted">
+                    {accommodation.rate_note}
+                  </p>
+                )}
+
+                {minStays.length > 0 && (
+                  <div className="mt-4 rounded-card bg-cream px-4 py-3">
+                    <p className="text-[0.8125rem] font-semibold text-ink">
+                      Estancia mínima
+                    </p>
+                    <ul className="mt-1.5 space-y-1 text-[0.8125rem] text-ink-muted">
+                      {minStays.map((line) => (
+                        <li key={line}>{line}</li>
+                      ))}
+                    </ul>
                   </div>
-                  <div className="flex items-center justify-between gap-4 border-t border-black/[0.07] px-4 py-3">
-                    <dt className="text-ink-muted">Cocineta</dt>
-                    <dd className="font-semibold text-ink">Equipada</dd>
-                  </div>
-                  <div className="flex items-center justify-between gap-4 border-t border-black/[0.07] px-4 py-3">
-                    <dt className="text-ink-muted">Baño</dt>
-                    <dd className="font-semibold text-ink">Privado</dd>
-                  </div>
-                </dl>
+                )}
 
                 <a
                   href="#reservar"
@@ -301,7 +354,7 @@ export default async function AccommodationDetailPage({ params }: Props) {
               slug={accommodation.slug}
               name={accommodation.name}
               capacity={accommodation.capacity}
-              pricePerNight={accommodation.price_per_night_cop}
+              rates={rates}
               priceNote={accommodation.price_note}
               whatsapp={contact.whatsapp}
               phoneDisplay={contact.phoneDisplay}

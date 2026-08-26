@@ -38,8 +38,15 @@ export type BookingRequest = {
   checkOut: string;
   nights: number;
   guests: number;
-  /** Total estimado en COP: noches × tarifa. */
+  /** Total estimado en COP: suma de las noches ya cotizadas. */
   totalCop: number;
+  /**
+   * Desglose corto de la cotización, ya en texto:
+   * "2 noches × $570.000 · 1 noche × $427.500 · Desayuno incluido".
+   * Va en el mensaje porque el precio ya no es una multiplicación simple y el
+   * equipo tiene que poder verificar de un vistazo lo que vio el huésped.
+   */
+  detail?: string | null;
 };
 
 /**
@@ -58,14 +65,16 @@ export function bookingRequestMessage({
   nights,
   guests,
   totalCop,
+  detail,
 }: BookingRequest): string {
   const nightsLabel = `${nights} ${nights === 1 ? "noche" : "noches"}`;
   const guestsLabel = `${guests} ${guests === 1 ? "huésped" : "huéspedes"}`;
+  const breakdown = detail ? `Detalle: ${detail}. ` : "";
 
   return (
     `Hola! Quiero reservar ${accommodation} del ${formatLongDateEs(checkIn)} ` +
     `al ${formatLongDateEs(checkOut)} (${nightsLabel}, ${guestsLabel}). ` +
-    `Total estimado: ${formatCOP(totalCop)} COP. ` +
+    `${breakdown}Total estimado: ${formatCOP(totalCop)} COP. ` +
     `¿Me confirman disponibilidad y pago?`
   );
 }
