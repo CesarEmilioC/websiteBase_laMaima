@@ -126,10 +126,18 @@ export function absoluteUrl(url: string): string {
   return /^https?:\/\//i.test(url) ? url : `${SITE.url}${url}`;
 }
 
-/** Imagen por defecto para OpenGraph / Twitter Cards. */
+/**
+ * Imagen por defecto para OpenGraph / Twitter Cards.
+ *
+ * `sitio/og.jpg` es un recorte dedicado a 1200x630 (la proporción 1.91:1 que
+ * esperan WhatsApp, Facebook y X), no el hero: el hero es casi cuadrado en
+ * móvil y las plataformas lo recortarían por el centro perdiendo la cabaña.
+ * Las medidas de aquí se publican tal cual en `og:image:width/height`, así que
+ * deben coincidir con el archivo real del bucket.
+ */
 export const OG_IMAGE = {
-  url: media("sitio/hero.jpg"),
-  width: 3000,
-  height: 2000,
-  alt: "Cabaña de La Maima frente al bosque nativo en las montañas de Dapa",
+  url: media("sitio/og.jpg"),
+  width: 1200,
+  height: 630,
+  alt: "La Maima, hotel campestre y reserva natural en Dapa, Yumbo",
 } as const;
