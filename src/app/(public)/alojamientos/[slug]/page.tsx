@@ -6,6 +6,7 @@ import { AccommodationCard } from "@/components/accommodation-card";
 import { BookingWidget } from "@/components/booking/booking-widget";
 import { Gallery } from "@/components/gallery";
 import { ArrowRightIcon, CheckIcon, UsersIcon } from "@/components/icons";
+import { SectionCurve } from "@/components/section-curve";
 import { WhatsAppButton } from "@/components/whatsapp-button";
 import {
   coverImage,
@@ -198,10 +199,12 @@ export default async function AccommodationDetailPage({ params }: Props) {
       </section>
 
       {/* Descripción + panel de reserva ------------------------------------- */}
-      <section className="bg-white py-14 sm:py-16 lg:py-20">
+      {/* El relleno inferior es más alto que el superior: por debajo, la curva
+          del motor de reservas se monta sobre esta sección hasta ~96 px. */}
+      <section className="bg-white pb-24 pt-14 sm:pt-16 lg:pb-32 lg:pt-20">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-10">
           <div className="grid gap-12 lg:grid-cols-12 lg:gap-14">
-            <div className="lg:col-span-7">
+            <div className="lg:col-span-7" data-reveal>
               <h2 className="text-[1.75rem] tracking-[-0.03em] text-ink sm:text-[2rem]">
                 Sobre {accommodation.name}
               </h2>
@@ -329,15 +332,19 @@ export default async function AccommodationDetailPage({ params }: Props) {
           estática (SSG + ISR de una hora) y el calendario tiene que ser fresco. */}
       <section
         id="reservar"
-        className="bg-forest-950 py-16 sm:py-20 lg:py-24"
+        className="relative bg-forest-950 pb-24 pt-16 sm:pt-20 lg:pb-32 lg:pt-24"
         aria-labelledby="reservar-title"
       >
+        {/* El motor de reservas no llega como una franja más: sube hacia la
+            descripción con un arco. Es la sección más importante de la ficha. */}
+        <SectionCurve variant="arco" fill="fill-forest-950" />
+
         <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-10">
           <div className="text-center">
             <p className="eyebrow text-forest-400">Reservas</p>
             <h2
               id="reservar-title"
-              className="mt-3 text-[2rem] leading-[1.1] tracking-[-0.03em] text-white sm:text-[2.5rem]"
+              className="tracking-editorial mt-3 text-[2.125rem] leading-[1.08] text-white sm:text-[2.75rem]"
             >
               Elige tus fechas en {accommodation.name}
             </h2>
@@ -367,14 +374,16 @@ export default async function AccommodationDetailPage({ params }: Props) {
       {/* Otros alojamientos -------------------------------------------------- */}
       {others.length > 0 && (
         <section
-          className="bg-cream py-16 sm:py-20 lg:py-24"
+          className="relative bg-cream pb-16 pt-14 sm:pb-20 sm:pt-16 lg:pb-24 lg:pt-20"
           aria-labelledby="otros-title"
         >
+          <SectionCurve variant="onda" fill="fill-cream" flip />
+
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-10">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
               <h2
                 id="otros-title"
-                className="text-[2rem] tracking-[-0.03em] text-ink sm:text-[2.25rem]"
+                className="tracking-editorial text-[2rem] text-ink sm:text-[2.25rem]"
               >
                 Otros alojamientos
               </h2>

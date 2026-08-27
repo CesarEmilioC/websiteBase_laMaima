@@ -8,16 +8,19 @@ import { lowestRate } from "@/lib/pricing";
 
 type Props = {
   accommodation: Accommodation;
-  /** Prioriza la carga de la imagen (usar solo en las primeras tarjetas). */
-  priority?: boolean;
 };
 
 /**
  * Tarjeta de alojamiento: foto grande arriba, metadatos limpios abajo.
  * Sin bordes duros — solo radio grande, sombra difusa y una elevación muy
  * sutil al pasar el cursor (estilo tarjeta de iOS).
+ *
+ * La foto va SIEMPRE en carga diferida: en todas las páginas donde aparece
+ * esta tarjeta (portada, listado, "otros alojamientos") queda por debajo del
+ * pliegue, y marcarla como prioritaria le robaba ancho de banda a la imagen
+ * que sí es el LCP —la banda de encabezado— empeorando la métrica.
  */
-export function AccommodationCard({ accommodation, priority = false }: Props) {
+export function AccommodationCard({ accommodation }: Props) {
   const cover = coverImage(
     accommodation.gallery,
     `${accommodation.name} en La Maima`,
@@ -35,8 +38,9 @@ export function AccommodationCard({ accommodation, priority = false }: Props) {
           src={cover.url}
           alt={cover.alt}
           fill
-          priority={priority}
-          sizes="(min-width: 1280px) 380px, (min-width: 768px) 45vw, 100vw"
+          /* Tres columnas desde `lg`, dos desde `sm`, una en móvil: cada
+             tramo pide su ancho real para no descargar píxeles de más. */
+          sizes="(min-width: 1280px) 384px, (min-width: 1024px) 30vw, (min-width: 640px) 46vw, 100vw"
           className="object-cover transition-transform duration-[600ms] ease-ios group-hover:scale-[1.03]"
         />
         {/* Fundido corto en el borde superior: separa el chip de capacidad de

@@ -7,6 +7,7 @@ import {
   saveSeoAction,
 } from "./actions";
 import { ActionForm } from "@/components/admin/action-form";
+import { GalleryEditor } from "@/components/admin/gallery-editor";
 import { ImageField } from "@/components/admin/image-field";
 import {
   Card,
@@ -19,6 +20,7 @@ import {
 } from "@/components/admin/ui";
 import { requireAdmin } from "@/lib/admin/auth";
 import { getSiteContentMap } from "@/lib/admin/data";
+import type { GalleryImage } from "@/lib/admin/types";
 
 export const metadata: Metadata = { title: "Contenido del sitio" };
 export const dynamic = "force-dynamic";
@@ -27,6 +29,18 @@ export const dynamic = "force-dynamic";
 function text(source: Record<string, unknown>, key: string): string {
   const value = source[key];
   return typeof value === "string" ? value : "";
+}
+
+/** Lectura segura de una galería (`[{ url, alt }]`) dentro del jsonb. */
+function galleryOf(source: Record<string, unknown>): GalleryImage[] {
+  const value = source.gallery;
+  if (!Array.isArray(value)) return [];
+  return value.flatMap((item) => {
+    if (typeof item !== "object" || item === null) return [];
+    const { url, alt } = item as Record<string, unknown>;
+    if (typeof url !== "string" || !url) return [];
+    return [{ url, alt: typeof alt === "string" ? alt : "" }];
+  });
 }
 
 /** Los párrafos se editan como un solo texto con líneas en blanco entre ellos. */
@@ -203,14 +217,29 @@ export default async function SiteContentPage() {
                 </Field>
 
                 <Field
-                  label="Imagen"
-                  hint="Sube una foto desde tu computador o pega la dirección de una que ya esté publicada."
+                  label="Galería (se pasa sola)"
+                  hint="Las fotos se van pasando solas cada pocos segundos en la página de inicio. Lo ideal son entre 4 y 6, en horizontal. La primera es la que se ve al cargar; usa las flechas para cambiar el orden."
+                  className="sm:col-span-2"
+                >
+                  <GalleryEditor
+                    name="gallery"
+                    initial={galleryOf(about)}
+                    folder="sitio"
+                  />
+                </Field>
+
+                <Field
+                  label="Foto de respaldo"
+                  hint="Solo se muestra si dejas la galería vacía."
                   className="sm:col-span-2"
                 >
                   <ImageField name="image" initialUrl={text(about, "image")} />
                 </Field>
 
-                <Field label="Descripción de la imagen" htmlFor="about_image_alt">
+                <Field
+                  label="Descripción de la foto de respaldo"
+                  htmlFor="about_image_alt"
+                >
                   <Input
                     id="about_image_alt"
                     name="image_alt"

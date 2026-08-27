@@ -7,16 +7,19 @@ import { experienceMessage } from "@/lib/whatsapp";
 
 type Props = {
   experience: Experience;
-  /** "compact" para la home, "full" para la página de experiencias. */
+  /**
+   * "compact" para el carrusel de la portada, "full" para la página de
+   * experiencias.
+   */
   variant?: "compact" | "full";
-  priority?: boolean;
 };
 
-export function ExperienceCard({
-  experience,
-  variant = "compact",
-  priority = false,
-}: Props) {
+/**
+ * La foto va siempre diferida: en las dos páginas donde aparece esta tarjeta,
+ * la imagen prioritaria es la banda de encabezado. Ver la nota de
+ * `AccommodationCard`.
+ */
+export function ExperienceCard({ experience, variant = "compact" }: Props) {
   const cover = coverImage(experience.gallery, `${experience.name} en La Maima`);
   const full = variant === "full";
 
@@ -29,11 +32,13 @@ export function ExperienceCard({
           src={cover.url}
           alt={cover.alt}
           fill
-          priority={priority}
+          /* "full": dos columnas desde `md`. "compact": las medidas del
+             carrusel de la portada (80 % del ancho en móvil, 46 % desde `sm`
+             y 30,5 % desde `lg`). */
           sizes={
             full
-              ? "(min-width: 1024px) 560px, 100vw"
-              : "(min-width: 1280px) 300px, (min-width: 640px) 45vw, 100vw"
+              ? "(min-width: 1280px) 600px, (min-width: 768px) 46vw, 100vw"
+              : "(min-width: 1280px) 372px, (min-width: 1024px) 29vw, (min-width: 640px) 44vw, 80vw"
           }
           className="object-cover transition-transform duration-[600ms] ease-ios group-hover:scale-[1.03]"
         />

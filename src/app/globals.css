@@ -279,6 +279,84 @@
     letter-spacing: -0.035em;
   }
 
+  /* Titulares de sección: un punto más grandes y más apretados que antes, para
+     que el aire generoso alrededor tenga contra qué contrastar. */
+  .tracking-editorial {
+    letter-spacing: -0.042em;
+  }
+
+  /* ---------------------------------------------------------------------
+     Máscaras orgánicas
+     ---------------------------------------------------------------------
+     Se usan con MUCHA moderación (dos en todo el sitio). El lenguaje de base
+     sigue siendo el rectángulo de esquinas muy redondeadas de iOS: es
+     justamente el contraste con esas dos piezas irregulares lo que hace que
+     se lean como una decisión y no como un accidente.
+
+     `.mask-pebble` — guijarro de río / hoja: radios porcentuales distintos en
+     cada esquina y en cada eje. Va en la galería de "Sobre la reserva".
+     `.mask-arch` — portal: dos esquinas opuestas muy abiertas y las otras dos
+     con el radio normal de panel. Va en el mapa de contacto.
+     --------------------------------------------------------------------- */
+  .mask-pebble {
+    border-radius: 58% 42% 55% 45% / 45% 58% 42% 55%;
+  }
+
+  .mask-arch {
+    border-radius: 1.75rem;
+  }
+
+  @media (min-width: 640px) {
+    .mask-arch {
+      border-radius: 7rem 1.75rem 7rem 1.75rem;
+    }
+  }
+
+  /* ---------------------------------------------------------------------
+     Entradas al hacer scroll
+     ---------------------------------------------------------------------
+     Sin librerías de animación: un único IntersectionObserver (ver
+     `src/components/reveal-observer.tsx`) marca los elementos con
+     `data-reveal` cuando entran en pantalla.
+
+     El estado OCULTO cuelga de `html.reveal-ready`, una clase que solo pone
+     ese componente al montar. Si el JavaScript no llega —o si el visitante
+     pidió menos movimiento— la clase no existe, la regla no aplica y todo el
+     contenido se ve desde el primer pintado. Nunca hay texto invisible.
+     --------------------------------------------------------------------- */
+  .reveal-ready [data-reveal] {
+    opacity: 0;
+    transform: translate3d(0, 18px, 0);
+    transition:
+      opacity 700ms var(--ease-ios),
+      transform 700ms var(--ease-ios);
+    transition-delay: var(--reveal-delay, 0ms);
+    will-change: opacity, transform;
+  }
+
+  .reveal-ready [data-reveal="side"] {
+    transform: translate3d(-16px, 0, 0);
+  }
+
+  .reveal-ready [data-reveal].is-revealed {
+    opacity: 1;
+    transform: none;
+    will-change: auto;
+  }
+
+  /* Carrusel horizontal con scroll-snap (experiencias). La barra nativa se
+     oculta: el desplazamiento se hace con el dedo, con la rueda o con las dos
+     flechas de escritorio, y una barra gris cortaría el borde inferior de las
+     tarjetas. */
+  .no-scrollbar {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
   /* ---------------------------------------------------------------------
      Lectura larga (documentos legales)
      ---------------------------------------------------------------------
@@ -389,5 +467,13 @@
   *::after {
     animation-duration: 0.01ms !important;
     transition-duration: 0.01ms !important;
+  }
+
+  /* Red de seguridad: el observador ya evita poner `reveal-ready` cuando se
+     pide menos movimiento, pero la preferencia puede cambiarse con la página
+     abierta. Aquí el contenido queda visible pase lo que pase. */
+  .reveal-ready [data-reveal] {
+    opacity: 1 !important;
+    transform: none !important;
   }
 }

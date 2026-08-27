@@ -228,9 +228,18 @@ export function weekdayIndex(iso: string): number {
   return (new Date(Date.UTC(y, m - 1, d)).getUTCDay() + 6) % 7;
 }
 
+/** Celdas de la rejilla de un mes: siempre seis semanas de siete días. */
+export const MONTH_GRID_CELLS = 42;
+
 /**
  * Días de un mes precedidos por los huecos necesarios para que el día 1 caiga
- * en su columna. `null` = celda vacía.
+ * en su columna, y seguidos de los que hagan falta para completar SIEMPRE seis
+ * filas. `null` = celda vacía.
+ *
+ * El relleno final no es cosmético: sin él, un mes de cinco filas y otro de
+ * seis miden distinto y el calendario cambia de alto al pasar de mes,
+ * empujando todo lo que tiene debajo (y contando como desplazamiento de
+ * diseño, CLS). Con seis filas fijas el panel nunca se mueve.
  */
 export function monthGrid(target: YearMonth): (string | null)[] {
   const total = daysInMonth(target);
@@ -239,5 +248,6 @@ export function monthGrid(target: YearMonth): (string | null)[] {
   for (let day = 1; day <= total; day += 1) {
     cells.push(isoFrom(target, day));
   }
+  while (cells.length < MONTH_GRID_CELLS) cells.push(null);
   return cells;
 }

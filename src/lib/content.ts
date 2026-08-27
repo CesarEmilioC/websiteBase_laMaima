@@ -86,8 +86,16 @@ export type HomeAbout = {
   eyebrow: string;
   title: string;
   paragraphs: string[];
+  /** Foto única de respaldo: se usa cuando `gallery` está vacía. */
   image: string;
   image_alt: string;
+  /**
+   * Galería que se pasa sola en la portada (ver `AboutGallery`). La edita el
+   * cliente en `/admin/contenido` con el mismo editor que las galerías de
+   * alojamientos y experiencias. Si queda vacía, la sección vuelve a mostrar
+   * la foto única de `image`.
+   */
+  gallery: GalleryImage[];
   stats: { value: string; label: string }[];
 };
 
@@ -166,6 +174,7 @@ const FALLBACK_ABOUT: HomeAbout = {
   ],
   image: media("sitio/sobre-la-reserva.jpg"),
   image_alt: "Jardines de La Maima con vista abierta al Valle del Cauca",
+  gallery: [],
   stats: [
     { value: "30", label: "años de rehabilitación" },
     { value: "6", label: "casas y cabañas" },
@@ -498,9 +507,22 @@ export const getHomeAbout = cache(async (): Promise<HomeAbout> => {
     paragraphs: toStringList(merged.paragraphs).length
       ? toStringList(merged.paragraphs)
       : FALLBACK_ABOUT.paragraphs,
+    gallery: toGallery(merged.gallery),
     stats: Array.isArray(merged.stats) ? merged.stats : FALLBACK_ABOUT.stats,
   };
 });
+
+/**
+ * Fotos que muestra la sección "Sobre la reserva" de la portada.
+ *
+ * La galería manda; si el cliente la deja vacía desde el panel, se cae con
+ * elegancia a la foto única de siempre en vez de dejar un hueco.
+ */
+export function aboutImages(about: HomeAbout): GalleryImage[] {
+  if (about.gallery.length > 0) return about.gallery;
+  if (!about.image) return [];
+  return [{ url: about.image, alt: about.image_alt }];
+}
 
 export const getContactInfo = cache(async (): Promise<ContactInfo> => {
   const value = await getSiteContent("contact");

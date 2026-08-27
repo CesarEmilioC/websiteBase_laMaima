@@ -1,3 +1,4 @@
+import { RevealObserver } from "@/components/reveal-observer";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
 import { WhatsAppFloat } from "@/components/whatsapp-float";
@@ -40,6 +41,10 @@ export default async function PublicLayout({
 
       <SiteFooter />
       <WhatsAppFloat />
+      {/* Un único observador para todas las entradas al hacer scroll: los
+          componentes de servidor solo marcan `data-reveal`. Ver
+          `reveal-observer.tsx`. */}
+      <RevealObserver />
     </div>
   );
 }

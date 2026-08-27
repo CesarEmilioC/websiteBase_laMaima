@@ -256,15 +256,65 @@ export function BookingWidget({
   if (status === "loading" || !availability || !cursor) {
     return (
       <Shell>
-        <div className="animate-pulse px-1 py-2" aria-live="polite">
+        {/* El esqueleto copia la RETÍCULA y las medidas del estado final —dos
+            columnas desde `lg`, seis filas de calendario, la misma pila de
+            filas del resumen— y no una silueta cualquiera. La disponibilidad
+            llega uno o dos segundos después del primer pintado: si el bloque
+            creciera al llegar, empujaría hacia abajo media página con el
+            visitante ya leyendo (y se contaría como CLS). Así no se mueve
+            nada. */}
+        <div
+          className="grid animate-pulse gap-8 lg:grid-cols-[minmax(0,1fr)_21.5rem] lg:gap-10"
+          aria-live="polite"
+        >
           <p className="sr-only">Cargando disponibilidad…</p>
-          <div className="h-5 w-40 rounded-full bg-cream-200" />
-          <div className="mt-6 grid grid-cols-7 gap-2">
-            {Array.from({ length: 35 }).map((_, index) => (
-              <div key={index} className="aspect-square rounded-full bg-cream" />
-            ))}
+
+          {/* Calendario */}
+          <div>
+            <div className="flex items-center gap-2">
+              <div className="h-10 w-10 shrink-0 rounded-full bg-cream" />
+              <div className="grid flex-1 grid-cols-1 sm:grid-cols-2 sm:gap-x-6">
+                <div className="mx-auto h-5 w-28 rounded-full bg-cream-200" />
+                <div className="mx-auto hidden h-5 w-28 rounded-full bg-cream-200 sm:block" />
+              </div>
+              <div className="h-10 w-10 shrink-0 rounded-full bg-cream" />
+            </div>
+
+            <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 sm:gap-x-6">
+              <MonthSkeleton />
+              <div className="hidden sm:block">
+                <MonthSkeleton />
+              </div>
+            </div>
+
+            <div className="mt-5 flex flex-wrap items-center gap-x-5 gap-y-2">
+              {[0, 1, 2].map((index) => (
+                <div key={index} className="flex items-center gap-2">
+                  <span className="h-3.5 w-3.5 rounded-full bg-cream-200" />
+                  <span className="h-4 w-20 rounded-full bg-cream-200" />
+                </div>
+              ))}
+            </div>
+
+            <div className="mt-5 h-5 w-56 rounded-full bg-cream-200" />
           </div>
-          <div className="mt-7 h-12 w-full rounded-full bg-cream-200" />
+
+          {/* Resumen */}
+          <div className="lg:border-l lg:border-black/[0.07] lg:pl-10">
+            <div className="h-4 w-24 rounded-full bg-cream-200" />
+            <div className="mt-2 h-6 w-40 rounded-full bg-cream-200" />
+            <div className="mt-4 h-[9.25rem] rounded-card bg-cream" />
+            <div className="mt-4 h-[5.25rem] rounded-card bg-cream" />
+            <div className="mt-5 border-t border-black/[0.07] pt-4">
+              <div className="h-5 w-full rounded-full bg-cream-200" />
+              <div className="mt-4 h-8 w-full rounded-full bg-cream-200" />
+              <div className="mt-3 h-6 w-2/3 rounded-full bg-cream-200" />
+            </div>
+            <div className="mt-5 h-[3.5rem] w-full rounded-full bg-cream-200" />
+            <div className="mx-auto mt-3 h-4 w-4/5 rounded-full bg-cream-200" />
+            <div className="mx-auto mt-2 h-4 w-3/5 rounded-full bg-cream-200" />
+            <div className="mx-auto mt-3 h-4 w-2/3 rounded-full bg-cream-200" />
+          </div>
         </div>
       </Shell>
     );
@@ -561,6 +611,37 @@ export function BookingWidget({
 /* ---------------------------------------------------------------------------
  * Piezas internas
  * ------------------------------------------------------------------------- */
+
+/**
+ * Rejilla de un mes en el esqueleto: mismas seis filas de celdas cuadradas
+ * que `AvailabilityCalendar`, para que el alto coincida al píxel.
+ */
+function MonthSkeleton() {
+  return (
+    <div>
+      <div className="mt-3 grid grid-cols-7">
+        {Array.from({ length: 7 }).map((_, index) => (
+          <span
+            key={index}
+            className="py-2 text-center text-[0.6875rem] leading-[1.25]"
+          >
+            &nbsp;
+          </span>
+        ))}
+      </div>
+      <div className="grid grid-cols-7">
+        {Array.from({ length: 42 }).map((_, index) => (
+          <span
+            key={index}
+            className="flex aspect-square w-full items-center justify-center"
+          >
+            <span className="h-[62%] w-[62%] rounded-full bg-cream" />
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 /** Tarjeta blanca del widget: la misma caja en todos los estados. */
 function Shell({ children }: { children: React.ReactNode }) {

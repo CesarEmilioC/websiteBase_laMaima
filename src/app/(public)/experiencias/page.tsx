@@ -1,7 +1,10 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 
 import { ExperienceCard } from "@/components/experience-card";
+import { CalendarIcon } from "@/components/icons";
 import { PageHero } from "@/components/page-hero";
+import { SectionCurve } from "@/components/section-curve";
 import { WhatsAppButton } from "@/components/whatsapp-button";
 import { getExperiences } from "@/lib/content";
 import { media } from "@/lib/site";
@@ -36,24 +39,27 @@ export default async function ExperiencesPage() {
         title="Experiencias entre el bosque y el agua"
         description="La Maima no es solo dónde dormir. Treinta años de rehabilitación dejaron senderos, una quebrada con pozos naturales y un bosque al que volvieron las aves."
         image={HERO_IMAGE}
-        imageAlt="Senderos y jardines de La Maima con vista al Valle del Cauca"
+        imageAlt="Sendero con escalones de madera entre guaduas y árboles del bosque de La Maima, con una banca de guadua a un lado"
         breadcrumbs={[
           { href: "/", label: "Inicio" },
           { href: "/experiencias", label: "Experiencias" },
         ]}
       />
 
-      <section className="bg-cream py-16 sm:py-20 lg:py-24">
+      <section className="bg-cream pb-16 pt-12 sm:pb-20 sm:pt-14 lg:pb-24 lg:pt-16">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-10">
           {experiences.length > 0 ? (
+            /* Dos columnas desfasadas en vertical: el par de tarjetas deja de
+               leerse como una tabla de 2×2 y la página respira en diagonal. */
             <div className="grid gap-6 md:grid-cols-2 lg:gap-8">
               {experiences.map((experience, index) => (
-                <ExperienceCard
+                <div
                   key={experience.id}
-                  experience={experience}
-                  variant="full"
-                  priority={index < 2}
-                />
+                  data-reveal
+                  className={index % 2 === 1 ? "md:mt-14" : ""}
+                >
+                  <ExperienceCard experience={experience} variant="full" />
+                </div>
               ))}
             </div>
           ) : (
@@ -73,17 +79,28 @@ export default async function ExperiencesPage() {
         </div>
       </section>
 
-      {/* Verde más claro que el footer para que no se fundan en un solo bloque. */}
-      <section className="bg-forest-800 py-16 sm:py-20">
-        <div className="mx-auto max-w-3xl px-4 text-center sm:px-6">
-          <h2 className="text-[2rem] leading-[1.1] tracking-[-0.03em] text-white sm:text-[2.5rem]">
-            ¿Quieres armar tu plan?
+      {/* Verde más claro que el footer para que no se fundan en un solo bloque.
+          Sube hacia la sección anterior con un arco, no con una línea recta. */}
+      <section className="relative bg-forest-800 pb-16 pt-14 sm:pb-20 sm:pt-16">
+        <SectionCurve variant="arco" fill="fill-forest-800" />
+
+        <div className="mx-auto max-w-3xl px-4 text-center sm:px-6" data-reveal>
+          <h2 className="tracking-editorial text-[2.125rem] leading-[1.08] text-white sm:text-[2.75rem]">
+            ¿Quieres armar{" "}
+            <span className="font-normal text-forest-300">tu plan?</span>
           </h2>
           <p className="mx-auto mt-5 max-w-xl text-[1.0625rem] leading-relaxed text-cream/75">
             Cuéntanos cuántos vienen y qué fechas tienen en mente, y te ayudamos
             a combinar alojamiento y experiencias.
           </p>
-          <div className="mt-8 flex justify-center">
+          <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
+            <Link
+              href="/alojamientos"
+              className="inline-flex items-center justify-center gap-2 rounded-full bg-white px-7 py-4 text-[1.0625rem] font-semibold text-forest-800 shadow-pill transition-[background-color,transform] duration-200 ease-ios hover:bg-forest-50 active:scale-[0.98]"
+            >
+              <CalendarIcon className="h-[1.05rem] w-[1.05rem]" />
+              Ver alojamientos y fechas
+            </Link>
             <WhatsAppButton
               message={GENERAL_MESSAGE}
               label="Hablar con nosotros"

@@ -5,7 +5,13 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-import { ChevronRightIcon, CloseIcon, MenuIcon, WhatsAppIcon } from "./icons";
+import {
+  CalendarIcon,
+  ChevronRightIcon,
+  CloseIcon,
+  MenuIcon,
+  WhatsAppIcon,
+} from "./icons";
 import { NAV_LINKS } from "@/lib/site";
 import { GENERAL_MESSAGE, whatsappUrl } from "@/lib/whatsapp";
 
@@ -152,16 +158,21 @@ export function SiteHeader({
             {/* Pastilla blanca con texto verde: sobre el vidrio oscuro es la
                 opción de mayor contraste y la que mejor lee como acción
                 primaria. Un verde sobre verde se apagaba. Oculto por debajo
-                de `lg`, donde manda el botón flotante de WhatsApp. */}
-            <a
-              href={whatsappUrl(GENERAL_MESSAGE, whatsapp)}
-              target="_blank"
-              rel="noopener noreferrer"
+                de `lg`, donde manda el botón flotante de WhatsApp.
+
+                Lleva al LISTADO DE ALOJAMIENTOS, que es donde vive el motor de
+                reservas (calendario real + cálculo de la estadía), no a
+                WhatsApp: reservar es la experiencia central del sitio y el
+                chat sigue a un toque en el botón flotante, que el cliente pidió
+                mantener en todos los tamaños. Al ser un `next/link`, además,
+                Next precarga la ruta en cuanto el botón entra en pantalla. */}
+            <Link
+              href="/alojamientos"
               className="hidden shrink-0 items-center gap-2 rounded-full bg-white px-5 py-2.5 text-[0.9375rem] font-semibold text-forest-700 shadow-pill transition-[background-color,transform] duration-200 ease-ios hover:bg-forest-50 active:scale-[0.97] lg:inline-flex"
             >
-              <WhatsAppIcon className="h-[1.05rem] w-[1.05rem]" />
+              <CalendarIcon className="h-[1.05rem] w-[1.05rem]" />
               Reservar
-            </a>
+            </Link>
 
             {/* Botón hamburguesa (móvil) */}
             <button
@@ -241,16 +252,26 @@ export function SiteHeader({
           </div>
         </nav>
 
-        <div className="p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
+        {/* Pie fijo del menú: primero reservar en línea (la acción central del
+            sitio) y debajo, con menos peso, el atajo al chat. */}
+        <div className="space-y-2.5 p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
+          <Link
+            href="/alojamientos"
+            onClick={() => setMenuOpen(false)}
+            className="flex min-h-[54px] w-full items-center justify-center gap-2.5 rounded-full bg-forest-600 px-6 py-4 text-[1.0625rem] font-semibold text-white shadow-pill transition-[background-color,transform] duration-200 ease-ios hover:bg-forest-700 active:scale-[0.98]"
+          >
+            <CalendarIcon className="h-5 w-5" />
+            Reservar en línea
+          </Link>
           <a
             href={whatsappUrl(GENERAL_MESSAGE, whatsapp)}
             target="_blank"
             rel="noopener noreferrer"
             onClick={() => setMenuOpen(false)}
-            className="flex min-h-[54px] w-full items-center justify-center gap-2.5 rounded-full bg-forest-600 px-6 py-4 text-[1.0625rem] font-semibold text-white shadow-pill transition-[background-color,transform] duration-200 ease-ios hover:bg-forest-700 active:scale-[0.98]"
+            className="flex min-h-[50px] w-full items-center justify-center gap-2.5 rounded-full bg-white px-6 py-3.5 text-[0.9375rem] font-semibold text-forest-700 shadow-card transition-[background-color,transform] duration-200 ease-ios hover:bg-forest-50 active:scale-[0.98]"
           >
-            <WhatsAppIcon className="h-5 w-5" />
-            Reservar por WhatsApp
+            <WhatsAppIcon className="h-[1.15rem] w-[1.15rem]" />
+            Escribir por WhatsApp
           </a>
         </div>
       </div>

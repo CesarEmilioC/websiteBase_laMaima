@@ -39,7 +39,10 @@ export function Gallery({ images, name }: Props) {
             alt={main.alt || fallbackAlt}
             fill
             priority
-            sizes="(min-width: 1024px) 66vw, 100vw"
+            /* Es el LCP de la ficha: se le pide prioridad explícita para que
+               el navegador no la ponga en la misma cola que el resto. */
+            fetchPriority="high"
+            sizes="(min-width: 1280px) 800px, (min-width: 1024px) 66vw, 100vw"
             className="object-cover"
           />
         </div>
@@ -65,7 +68,7 @@ export function Gallery({ images, name }: Props) {
                     src={image.url}
                     alt={image.alt || fallbackAlt}
                     fill
-                    sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
+                    sizes="(min-width: 1280px) 400px, (min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
                     className="object-cover"
                   />
                 </div>

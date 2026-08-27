@@ -6,9 +6,32 @@ import { requireAdmin } from "@/lib/admin/auth";
 import { revalidatePublicSite } from "@/lib/admin/revalidate";
 import { cleanupRemovedGalleryImages } from "@/lib/admin/storage-cleanup";
 import { okState, type ActionState } from "@/lib/admin/types";
-import { optionalText, requiredText, runAction } from "@/lib/admin/validation";
+import {
+  galleryList,
+  optionalText,
+  requiredText,
+  runAction,
+} from "@/lib/admin/validation";
 
 const PATH = "/admin/contenido";
+
+/**
+ * Direcciones de imagen que contiene un patch de contenido: el campo único
+ * `image` y, si la clave tiene galería (hoy solo `home_about`), las de la
+ * lista. Es lo que compara la higiene de Storage antes y después de guardar.
+ */
+function imageUrlsOf(value: Record<string, unknown>): string[] {
+  const urls: string[] = [];
+  if (typeof value.image === "string" && value.image) urls.push(value.image);
+  if (Array.isArray(value.gallery)) {
+    for (const item of value.gallery) {
+      if (typeof item !== "object" || item === null) continue;
+      const { url } = item as Record<string, unknown>;
+      if (typeof url === "string" && url) urls.push(url);
+    }
+  }
+  return urls;
+}
 
 /**
  * Guarda una fila de `site_content` fusionando con lo que ya había.
@@ -43,13 +66,24 @@ async function upsertContent(
 
   if (error) throw new Error(error.message);
 
-  // Higiene de Storage: si este patch reemplaza el campo `image` por otra
-  // dirección, la anterior queda potencialmente huérfana (los formularios de
-  // contenido guardan un solo campo de imagen, no una galería).
-  const previousImage = typeof base.image === "string" ? base.image : "";
-  const nextImage = typeof patch.image === "string" ? patch.image : undefined;
-  if (previousImage && nextImage !== undefined && nextImage !== previousImage) {
-    await cleanupRemovedGalleryImages(supabase, [previousImage]);
+  // Higiene de Storage: las direcciones que estaban en esta fila y ya no están
+  // tras guardar (foto de portada reemplazada, imagen sacada de la galería de
+  // "Sobre la reserva") quedan potencialmente huérfanas.
+  //
+  // Solo se comparan los campos que ESTE patch trae: si el formulario no envió
+  // `gallery`, la lista guardada sigue intacta y sus fotos no son candidatas a
+  // nada. `cleanupRemovedGalleryImages` vuelve a comprobar después —ya con el
+  // guardado hecho— que ninguna otra fila de la base las siga usando antes de
+  // borrar un solo objeto.
+  const touched: Record<string, unknown> = {};
+  if (patch.image !== undefined) touched.image = base.image;
+  if (patch.gallery !== undefined) touched.gallery = base.gallery;
+
+  const stillUsed = new Set(imageUrlsOf(patch));
+  const orphans = imageUrlsOf(touched).filter((url) => !stillUsed.has(url));
+
+  if (orphans.length > 0) {
+    await cleanupRemovedGalleryImages(supabase, orphans);
   }
 
   revalidatePath(PATH);
@@ -99,6 +133,9 @@ export async function saveAboutAction(
       eyebrow: optionalText(formData, "eyebrow", 120) ?? "",
       title: requiredText(formData, "title", "Titular", 200),
       paragraphs: toParagraphs(optionalText(formData, "paragraphs", 6000)),
+      // Galería que se pasa sola en la portada. Si queda vacía, el sitio cae
+      // con elegancia a la foto única de `image` (ver `aboutImages()`).
+      gallery: galleryList(formData, "gallery").slice(0, 10),
       image: optionalText(formData, "image", 500) ?? "",
       image_alt: optionalText(formData, "image_alt", 300) ?? "",
       stats,

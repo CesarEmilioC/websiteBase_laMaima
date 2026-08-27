@@ -162,11 +162,14 @@ function Month({
         ))}
       </div>
 
-      {/* Sin `gap`: las celdas contiguas forman la banda continua del rango. */}
+      {/* Sin `gap`: las celdas contiguas forman la banda continua del rango.
+          Las celdas vacías llevan `aspect-square` para que las seis filas midan
+          siempre lo mismo: así el calendario no cambia de alto al pasar de mes
+          (ver `monthGrid`). */}
       <div className="grid grid-cols-7">
         {cells.map((iso, index) =>
           iso === null ? (
-            <span key={`empty-${index}`} aria-hidden="true" />
+            <span key={`empty-${index}`} aria-hidden="true" className="aspect-square" />
           ) : (
             <Day
               key={iso}
