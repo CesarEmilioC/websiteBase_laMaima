@@ -99,6 +99,9 @@ export function InstagramStrip({ href, handle }: Props) {
                   fill
                   sizes="(min-width: 1024px) 200px, 32vw"
                   quality={68}
+                  /* Última franja de la portada: nunca compite por el ancho de
+                     banda del primer pintado. */
+                  fetchPriority="low"
                   className="object-cover transition-transform duration-[600ms] ease-ios group-hover:scale-[1.04]"
                 />
                 {/* Velo azul que solo aparece al pasar el cursor, con el icono

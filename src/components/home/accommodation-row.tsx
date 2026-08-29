@@ -73,6 +73,9 @@ export function AccommodationRow({ accommodation, index }: Props) {
              LCP (lo es la portada), así que todas van diferidas. */
           sizes="(min-width: 1024px) 640px, 100vw"
           quality={68}
+          /* Ninguna de las seis es el LCP: prioridad baja explícita para que
+             no compitan con la fotografía de portada. */
+          fetchPriority="low"
           className="object-cover"
         />
       </div>

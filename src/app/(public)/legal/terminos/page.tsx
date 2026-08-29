@@ -6,26 +6,31 @@ import {
   Pending,
   type LegalSection,
 } from "@/components/legal/legal-document";
-import { getContactInfo } from "@/lib/content";
+import { getContactInfo, getOgImage } from "@/lib/content";
 import { LEGAL_UPDATED } from "@/lib/legal";
+import { pageMetadata } from "@/lib/seo";
 import { LEGAL_LINKS, SITE } from "@/lib/site";
 
 export const revalidate = 3600;
 
 const DOC = LEGAL_LINKS[1];
 
-export const metadata: Metadata = {
-  title: "Términos y condiciones de reserva",
-  description:
-    "Condiciones de reserva y hospedaje en La Maima — Hotel Campestre: tarifas por ocupación con descuento entre semana, anticipo del 10 %, estancias mínimas, check-in 3:00 p. m. y check-out 1:00 p. m., mascotas, eventos y normas de la reserva natural.",
-  alternates: { canonical: DOC.href },
-  openGraph: {
-    title: "Términos y condiciones · La Maima",
+export async function generateMetadata(): Promise<Metadata> {
+  const ogImage = await getOgImage();
+
+  return pageMetadata({
+    title: "Términos y condiciones de reserva",
+    /* La anterior medía 247 caracteres: Google recorta a partir de unos 160
+       y lo que sobra no se lee nunca. */
     description:
+      "Condiciones de reserva y hospedaje en La Maima: tarifas por ocupación, anticipo, estancias mínimas, check-in 3:00 p. m., mascotas y normas de la reserva.",
+    path: DOC.href,
+    image: { url: ogImage.url, alt: ogImage.alt },
+    socialTitle: "Términos y condiciones · La Maima",
+    socialDescription:
       "Condiciones de reserva, pago, capacidad, horarios y normas de La Maima — Hotel Campestre.",
-    url: DOC.href,
-  },
-};
+  });
+}
 
 export default async function TermsPage() {
   const contact = await getContactInfo();

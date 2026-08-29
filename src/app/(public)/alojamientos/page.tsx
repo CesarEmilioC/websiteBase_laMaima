@@ -1,9 +1,11 @@
 import type { Metadata } from "next";
 
 import { AccommodationCard } from "@/components/accommodation-card";
+import { JsonLd } from "@/components/json-ld";
 import { PageHero } from "@/components/page-hero";
 import { WhatsAppButton } from "@/components/whatsapp-button";
 import { getAccommodations } from "@/lib/content";
+import { breadcrumbList, pageMetadata } from "@/lib/seo";
 import { media } from "@/lib/site";
 import { GENERAL_MESSAGE } from "@/lib/whatsapp";
 
@@ -17,22 +19,27 @@ import { GENERAL_MESSAGE } from "@/lib/whatsapp";
  * vidrio) y suelo oscuro abajo (donde cae el titular).
  */
 const HERO_IMAGE = media("alojamientos/mirador/2.jpg");
+const HERO_ALT =
+  "Ventanal del Mirador de La Maima abierto sobre el Valle del Cauca";
+
+/** Migas visibles y marcado estructurado salen de esta misma lista. */
+const CRUMBS = [
+  { name: "Inicio", path: "/" },
+  { name: "Alojamientos", path: "/alojamientos" },
+];
 
 export const revalidate = 3600;
 
-export const metadata: Metadata = {
-  title: "Alojamientos",
+export const metadata: Metadata = pageMetadata({
+  title: "Alojamientos: casas y cabañas en Dapa",
   description:
-    "Seis casas y cabañas independientes en La Maima, Dapa (Yumbo): Casa Maima, Mirador, Casa Loma, Casa Uba, Dos Casitas y Tres Casitas. Todas con cocineta y baño privado.",
-  alternates: { canonical: "/alojamientos" },
-  openGraph: {
-    title: "Alojamientos · La Maima",
-    description:
-      "Seis casas y cabañas independientes entre el bosque de Dapa, todas con cocineta y baño privado.",
-    url: "/alojamientos",
-    images: [{ url: HERO_IMAGE }],
-  },
-};
+    "Seis casas y cabañas independientes en Dapa (Yumbo): Casa Maima, Mirador, Casa Loma, Casa Uba, Dos Casitas y Tres Casitas. Con cocineta y baño privado.",
+  path: "/alojamientos",
+  image: { url: HERO_IMAGE, alt: HERO_ALT },
+  socialTitle: "Alojamientos · La Maima",
+  socialDescription:
+    "Seis casas y cabañas independientes entre el bosque de Dapa, todas con cocineta y baño privado.",
+});
 
 export default async function AccommodationsPage() {
   const accommodations = await getAccommodations();
@@ -40,16 +47,19 @@ export default async function AccommodationsPage() {
   return (
     <>
       <PageHero
-        eyebrow="Casas y cabañas"
+        /* El rótulo es el antetítulo del `h1` (ver `page-hero.tsx`), así que
+           es donde entran de forma natural el tipo de alojamiento y el lugar
+           que el titular, por tono, no nombra. */
+        eyebrow="Casas y cabañas en Dapa"
         title="Dormir dentro de"
         titleAccent="la reserva"
         description="Seis alojamientos independientes repartidos por la ladera. Cada uno con su entrada, su terraza y su vista. Todos con cocineta equipada y baño privado."
         image={HERO_IMAGE}
-        imageAlt="Ventanal del Mirador de La Maima abierto sobre el Valle del Cauca"
-        breadcrumbs={[
-          { href: "/", label: "Inicio" },
-          { href: "/alojamientos", label: "Alojamientos" },
-        ]}
+        imageAlt={HERO_ALT}
+        breadcrumbs={CRUMBS.map((crumb) => ({
+          href: crumb.path,
+          label: crumb.name,
+        }))}
       />
 
       {/* Fondo `shell` (no arena): las tarjetas son blancas y necesitan el
@@ -102,6 +112,9 @@ export default async function AccommodationsPage() {
           )}
         </div>
       </section>
+
+      {/* La miga de pan que se ve arriba, en formato legible por máquina. */}
+      <JsonLd graph={[breadcrumbList(CRUMBS)]} />
     </>
   );
 }

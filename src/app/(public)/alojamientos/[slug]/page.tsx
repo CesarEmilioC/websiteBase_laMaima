@@ -6,6 +6,7 @@ import { AccommodationCard } from "@/components/accommodation-card";
 import { BookingWidget } from "@/components/booking/booking-widget";
 import { Gallery } from "@/components/gallery";
 import { ArrowRightIcon, CheckIcon, UsersIcon } from "@/components/icons";
+import { JsonLd } from "@/components/json-ld";
 import { LeafField } from "@/components/leaf-field";
 import { SpecialPlans } from "@/components/special-plans";
 import { WhatsAppButton } from "@/components/whatsapp-button";
@@ -15,6 +16,7 @@ import {
   getAccommodations,
   getContactInfo,
   getRateConfig,
+  type Accommodation,
 } from "@/lib/content";
 import { formatCOP, formatGuests } from "@/lib/format";
 import {
@@ -23,6 +25,13 @@ import {
   minStaySummary,
   tierRows,
 } from "@/lib/pricing";
+import {
+  accommodationTails,
+  breadcrumbList,
+  composeDescription,
+  LODGING_ID,
+  pageMetadata,
+} from "@/lib/seo";
 import { absoluteUrl, SITE } from "@/lib/site";
 import { accommodationMessage } from "@/lib/whatsapp";
 
@@ -38,31 +47,64 @@ export async function generateStaticParams() {
   return accommodations.map((accommodation) => ({ slug: accommodation.slug }));
 }
 
+/**
+ * Migas de la ficha: las mismas que se pintan y las mismas que se marcan.
+ */
+function crumbsFor(accommodation: Accommodation) {
+  return [
+    { name: "Inicio", path: "/" },
+    { name: "Alojamientos", path: "/alojamientos" },
+    {
+      name: accommodation.name,
+      path: `/alojamientos/${accommodation.slug}`,
+    },
+  ];
+}
+
+/**
+ * Tarifa "desde" publicada, ya formateada, o `null` cuando el alojamiento aún
+ * no tiene tabla de tarifas (hoy Casa Uba). En ese caso ni la descripción ni
+ * el JSON-LD prometen un precio.
+ */
+function publishedPrice(accommodation: Accommodation): string | null {
+  if (accommodation.tiers.length === 0) return null;
+  return formatCOP(
+    lowestRate(accommodation.tiers, accommodation.price_per_night_cop).amountCop,
+  );
+}
+
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
   const accommodation = await getAccommodationBySlug(slug);
 
   if (!accommodation) {
-    return { title: "Alojamiento no encontrado" };
+    return { title: "Alojamiento no encontrado", robots: { index: false } };
   }
 
-  const description =
+  const base =
     accommodation.short_description ??
-    `${accommodation.name} en La Maima: alojamiento para ${formatGuests(accommodation.capacity)} con cocineta y baño privado, en la reserva natural de Dapa (Yumbo).`;
+    `${accommodation.name}: alojamiento para ${formatGuests(accommodation.capacity)} con cocineta y baño privado.`;
+
+  /* La descripción se compone: el texto del panel más dónde está y desde
+     cuánto sale. Ver `composeDescription()`. */
+  const description = composeDescription(
+    base,
+    accommodationTails(publishedPrice(accommodation)),
+  );
 
   const cover = coverImage(accommodation.gallery, accommodation.name);
 
-  return {
-    title: accommodation.name,
+  return pageMetadata({
+    /* Título único y descriptivo: el nombre solo ("Casa Maima · La Maima")
+       no dice ni para cuántos es ni dónde queda, que es lo que se busca. */
+    title: `${accommodation.name}, alojamiento para ${formatGuests(accommodation.capacity)} en Dapa`,
     description,
-    alternates: { canonical: `/alojamientos/${accommodation.slug}` },
-    openGraph: {
-      title: `${accommodation.name} · La Maima`,
-      description,
-      url: `/alojamientos/${accommodation.slug}`,
-      images: [{ url: cover.url, alt: cover.alt }],
-    },
-  };
+    path: `/alojamientos/${accommodation.slug}`,
+    /* SU foto de portada, no la genérica del sitio: es lo que se ve al
+       compartir la ficha por WhatsApp, que es como se comparte aquí. */
+    image: { url: cover.url, alt: cover.alt },
+    socialTitle: `${accommodation.name} · La Maima`,
+  });
 }
 
 export default async function AccommodationDetailPage({ params }: Props) {
@@ -95,28 +137,85 @@ export default async function AccommodationDetailPage({ params }: Props) {
     "Pet friendly",
   ].filter((chip): chip is string => Boolean(chip));
 
-  const roomJsonLd = {
-    "@context": "https://schema.org",
-    "@type": "HotelRoom",
+  /* -------------------------------------------------------------------------
+   * Datos estructurados de la ficha
+   * -----------------------------------------------------------------------
+   * Dos nodos y una miga de pan:
+   *
+   *   · `Accommodation` + `Product` en el MISMO nodo. `Accommodation` es lo
+   *     que la ficha describe de verdad (una casa, con su ocupación y sus
+   *     comodidades) pero, al ser un `Place`, no admite `offers`; `Product`
+   *     sí, y es el tipo que Google entiende cuando hay un precio. Declarar
+   *     los dos en un mismo nodo es la forma canónica de decir "esto es un
+   *     alojamiento Y se ofrece a este precio" sin duplicar la entidad.
+   *
+   *   · La oferta lleva el precio MÁS BAJO publicado en la tabla por
+   *     ocupación —el mismo "Desde" que se lee en pantalla— y se omite entera
+   *     cuando el alojamiento todavía no tiene tabla: una oferta con un precio
+   *     que la página no muestra es exactamente lo que penaliza Google.
+   *
+   *   · `containedInPlace` apunta por `@id` al `LodgingBusiness` que emite el
+   *     layout público, y ese a su vez lista esta ficha en `containsPlace`:
+   *     el grafo queda cerrado en los dos sentidos.
+   * ---------------------------------------------------------------------- */
+  const url = `${SITE.url}/alojamientos/${accommodation.slug}`;
+  const price = accommodation.tiers.length > 0 ? from.amountCop : null;
+
+  const accommodationNode = {
+    "@type": ["Accommodation", "Product"],
+    "@id": `${url}#accommodation`,
     name: accommodation.name,
-    description: accommodation.short_description ?? accommodation.description,
-    url: `${SITE.url}/alojamientos/${accommodation.slug}`,
-    image: absoluteUrl(cover.url),
+    description:
+      accommodation.short_description ?? accommodation.description ?? undefined,
+    url,
+    /* Toda la galería, no solo la portada: son fotos propias del cliente y
+       alimentan la búsqueda de imágenes. */
+    image: accommodation.gallery.length
+      ? accommodation.gallery.map((photo) => absoluteUrl(photo.url))
+      : [absoluteUrl(cover.url)],
     occupancy: {
       "@type": "QuantitativeValue",
       maxValue: accommodation.capacity,
       unitCode: "C62",
     },
+    petsAllowed: SITE.stay.petsAllowed,
+    smokingAllowed: SITE.stay.smokingAllowed,
     amenityFeature: accommodation.amenities.map((name) => ({
       "@type": "LocationFeatureSpecification",
       name,
       value: true,
     })),
-    containedInPlace: {
-      "@type": "LodgingBusiness",
-      "@id": `${SITE.url}/#lodging`,
-      name: SITE.legalName,
-    },
+    containedInPlace: { "@id": LODGING_ID },
+    ...(price !== null
+      ? {
+          offers: {
+            "@type": "Offer",
+            url,
+            price,
+            priceCurrency: "COP",
+            availability: "https://schema.org/InStock",
+            /* "Desde": el precio es por noche y corresponde a la ocupación
+               más baja de la tabla. `UnitPriceSpecification` es la manera de
+               decirlo sin que se lea como una tarifa cerrada. */
+            priceSpecification: {
+              "@type": "UnitPriceSpecification",
+              price,
+              priceCurrency: "COP",
+              unitCode: "DAY",
+              unitText: "noche",
+              ...(from.guests !== null
+                ? { eligibleQuantity: {
+                    "@type": "QuantitativeValue",
+                    value: from.guests,
+                    unitCode: "C62",
+                    unitText: "huéspedes",
+                  } }
+                : {}),
+            },
+            seller: { "@id": LODGING_ID },
+          },
+        }
+      : {}),
   };
 
   return (
@@ -410,9 +509,8 @@ export default async function AccommodationDetailPage({ params }: Props) {
         </section>
       )}
 
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(roomJsonLd) }}
+      <JsonLd
+        graph={[accommodationNode, breadcrumbList(crumbsFor(accommodation))]}
       />
     </>
   );

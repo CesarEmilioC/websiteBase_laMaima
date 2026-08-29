@@ -46,6 +46,11 @@ export function AccommodationCard({ accommodation }: Props) {
              tramo pide su ancho real para no descargar píxeles de más. */
           sizes="(min-width: 1280px) 384px, (min-width: 1024px) 30vw, (min-width: 640px) 46vw, 100vw"
           quality={68}
+          /* Prioridad baja explícita: en `/alojamientos` las seis tarjetas
+             caen dentro del margen con el que Chrome adelanta las imágenes
+             diferidas y salían a la red junto con la banda de encabezado, que
+             es la que marca el LCP. */
+          fetchPriority="low"
           className="object-cover transition-transform duration-[600ms] ease-ios group-hover:scale-[1.03]"
         />
         {/* Fundido corto en el borde superior: separa el chip de capacidad de

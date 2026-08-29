@@ -7,26 +7,29 @@ import {
   PendingBlock,
   type LegalSection,
 } from "@/components/legal/legal-document";
-import { getContactInfo } from "@/lib/content";
+import { getContactInfo, getOgImage } from "@/lib/content";
 import { LEGAL_UPDATED } from "@/lib/legal";
+import { pageMetadata } from "@/lib/seo";
 import { LEGAL_LINKS, SITE } from "@/lib/site";
 
 export const revalidate = 3600;
 
 const DOC = LEGAL_LINKS[2];
 
-export const metadata: Metadata = {
-  title: "Política de cancelación y reembolsos",
-  description:
-    "Cómo cancelar o reprogramar una reserva en La Maima — Hotel Campestre: anticipo del 10 %, cambio de fechas hasta 24 horas antes con el anticipo como crédito, no presentación y casos de fuerza mayor.",
-  alternates: { canonical: DOC.href },
-  openGraph: {
-    title: "Cancelaciones y reembolsos · La Maima",
+export async function generateMetadata(): Promise<Metadata> {
+  const ogImage = await getOgImage();
+
+  return pageMetadata({
+    title: "Política de cancelación y reembolsos",
     description:
+      "Cómo cancelar o reprogramar una reserva en La Maima: anticipo del 10 %, cambio de fechas hasta 24 horas antes con el anticipo como crédito y no presentación.",
+    path: DOC.href,
+    image: { url: ogImage.url, alt: ogImage.alt },
+    socialTitle: "Cancelaciones y reembolsos · La Maima",
+    socialDescription:
       "Plazos, reembolsos y cambios de fecha de las reservas de La Maima — Hotel Campestre.",
-    url: DOC.href,
-  },
-};
+  });
+}
 
 export default async function CancellationPage() {
   const contact = await getContactInfo();

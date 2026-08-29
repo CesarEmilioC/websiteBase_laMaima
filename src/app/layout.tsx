@@ -2,8 +2,8 @@ import type { Metadata, Viewport } from "next";
 import { Inter, Playfair_Display } from "next/font/google";
 
 import "./globals.css";
-import { getContactInfo, getOgImage } from "@/lib/content";
-import { absoluteUrl, SITE } from "@/lib/site";
+import { getOgImage } from "@/lib/content";
+import { SITE } from "@/lib/site";
 
 /**
  * Tipografía de CUERPO e interfaz.
@@ -85,7 +85,16 @@ export async function generateMetadata(): Promise<Metadata> {
     authors: [{ name: SITE.legalName }],
     creator: SITE.legalName,
     publisher: SITE.legalName,
-    alternates: { canonical: "/" },
+    /**
+     * NO se declara `alternates.canonical` aquí.
+     *
+     * El canónico se hereda, y un canónico heredado es un canónico equivocado:
+     * el 404 —que es `noindex`— estaba publicando `<link rel="canonical">`
+     * apuntando a la portada, que es exactamente la señal contradictoria que
+     * hay que evitar. Cada página declara el suyo (todas lo hacen a través de
+     * `pageMetadata()`), y la que no lo declare se queda sin él, que es el
+     * fallo seguro.
+     */
     openGraph: {
       type: "website",
       locale: "es_CO",
@@ -119,61 +128,9 @@ export const viewport: Viewport = {
   initialScale: 1,
 };
 
-export default async function RootLayout({
+export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
-  const [contact, ogImage] = await Promise.all([getContactInfo(), getOgImage()]);
-
-  /**
-   * Datos estructurados (schema.org) del hotel. Google los usa para el panel
-   * de conocimiento y los resultados enriquecidos de alojamiento.
-   *
-   * `telephone`, `address` y `sameAs` salen de `getContactInfo()` (editable
-   * desde `/admin/contenido`, con fallback a `SITE` si la fila falta).
-   */
-  const lodgingJsonLd = {
-    "@context": "https://schema.org",
-    "@type": "LodgingBusiness",
-    "@id": `${SITE.url}/#lodging`,
-    name: SITE.legalName,
-    alternateName: SITE.name,
-    description: SITE.description,
-    slogan: SITE.tagline,
-    url: SITE.url,
-    telephone: contact.phoneDisplay,
-    image: [absoluteUrl(ogImage.url)],
-    logo: `${SITE.url}/logo-lamaima.png`,
-    priceRange: "$$",
-    currenciesAccepted: "COP",
-    address: {
-      "@type": "PostalAddress",
-      streetAddress: contact.street,
-      addressLocality: contact.locality,
-      addressRegion: contact.region,
-      addressCountry: "CO",
-    },
-    geo: {
-      "@type": "GeoCoordinates",
-      latitude: SITE.geo.latitude,
-      longitude: SITE.geo.longitude,
-    },
-    hasMap: contact.maps.url,
-    sameAs: [contact.social.instagram, contact.social.facebook],
-    amenityFeature: [
-      "Cocineta equipada",
-      "Baño privado",
-      "Senderos ecológicos",
-      "Piscina natural de río",
-      "Fogata",
-      "Avistamiento de aves",
-      "Parqueadero",
-    ].map((name) => ({
-      "@type": "LocationFeatureSpecification",
-      name,
-      value: true,
-    })),
-  };
-
   return (
     /* Las dos variables de fuente van en <html> (no en <body>) a propósito:
        los tokens `--font-sans` y `--font-display` que Tailwind emite en `:root`
@@ -183,15 +140,11 @@ export default async function RootLayout({
        en :root sin conocer las variables, quedarían inválidos y el sitio caería
        al stack por defecto del navegador. */
     <html lang="es" className={`${inter.variable} ${playfair.variable}`}>
-      <body className="antialiased">
-        {children}
-        <script
-          type="application/ld+json"
-          // El objeto es estático y lo controlamos nosotros: no hay entrada de
-          // usuario que pueda inyectarse aquí.
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(lodgingJsonLd) }}
-        />
-      </body>
+      {/* Los datos estructurados del hotel NO se emiten aquí sino en el layout
+          de `(public)`: este layout envuelve también el panel de
+          administración, y allí ni hacen falta ni deben costar una consulta a
+          Supabase en cada carga. Ver `app/(public)/layout.tsx`. */}
+      <body className="antialiased">{children}</body>
     </html>
   );
 }

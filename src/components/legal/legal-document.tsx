@@ -1,5 +1,7 @@
 import Link from "next/link";
 
+import { JsonLd } from "@/components/json-ld";
+import { breadcrumbList } from "@/lib/seo";
 import { LEGAL_LINKS } from "@/lib/site";
 
 /**
@@ -191,6 +193,18 @@ export function LegalDocument({
           </div>
         </div>
       </section>
+
+      {/* La misma miga de pan que se pinta arriba, en formato legible por
+          máquina. Se emite aquí, en el armazón compartido, para que los tres
+          documentos la tengan sin repetirla en cada página. */}
+      <JsonLd
+        graph={[
+          breadcrumbList([
+            { name: "Inicio", path: "/" },
+            { name: title, path: current },
+          ]),
+        ]}
+      />
     </>
   );
 }

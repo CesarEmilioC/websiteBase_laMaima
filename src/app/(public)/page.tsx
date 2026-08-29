@@ -33,8 +33,19 @@ import { GENERAL_MESSAGE, whatsappUrl } from "@/lib/whatsapp";
 /** Revalidación cada hora: el contenido lo edita el cliente, no cambia por minuto. */
 export const revalidate = 3600;
 
+/**
+ * `title.absolute` y no una cadena suelta: la plantilla del layout raíz
+ * (`%s · La Maima`) se aplica a cualquier `title` que sea texto, y la portada
+ * estaba publicando "La Maima — Hotel campestre… · La Maima", con la marca
+ * repetida y 76 caracteres, o sea recortada en resultados.
+ *
+ * OpenGraph y Twitter se heredan enteros del layout raíz, que describe
+ * exactamente esta página: no hace falta repetirlos.
+ */
 export const metadata: Metadata = {
-  title: `${SITE.name} — Hotel campestre y reserva natural en Dapa, Yumbo`,
+  title: {
+    absolute: `${SITE.name} — Hotel campestre y reserva natural en Dapa, Yumbo`,
+  },
   description: SITE.description,
   alternates: { canonical: "/" },
 };
@@ -101,11 +112,25 @@ export default async function HomePage() {
         <LeafField tone="light" className="-z-[5]" />
 
         <div className="on-photo container-page pb-24 pt-32 sm:pb-28 lg:pb-36">
-          <p className="eyebrow eyebrow-chip mb-6 inline-flex items-center rounded-full bg-white/20 px-3.5 py-1.5 text-white ring-1 ring-inset ring-white/30 backdrop-blur-md">
-            {hero.eyebrow}
-          </p>
+          {/* El rótulo va DENTRO del `h1`, como antetítulo.
+              -------------------------------------------------------------
+              El titular de la portada es el eslogan de la marca ("La
+              naturaleza a tu alcance"), que es lo que el cliente aprobó y lo
+              que la administradora edita desde el panel. Como eslogan no dice
+              qué es este sitio: un buscador leía un `h1` sin una sola de las
+              palabras por las que se busca el hotel.
 
+              El rótulo de encima —"Reserva natural y hotel campestre"— sí lo
+              dice, y tipográficamente ya funciona como antetítulo del
+              titular. Meterlo dentro del `h1` no cambia un píxel (`.eyebrow`
+              fija su propio cuerpo, familia y espaciado, y `flex w-fit`
+              reproduce el `inline-flex` que tenía como párrafo suelto) y
+              convierte el encabezado en la frase completa que se quería leer,
+              sin añadir palabras clave que nadie ve. */}
           <h1 className="tracking-display max-w-3xl text-[2.75rem] leading-[1.06] text-white sm:text-6xl lg:text-[4.25rem]">
+            <span className="eyebrow eyebrow-chip mb-6 flex w-fit items-center rounded-full bg-white/20 py-1.5 pl-3.5 text-white ring-1 ring-inset ring-white/30 backdrop-blur-md">
+              {hero.eyebrow}
+            </span>
             <ItalicTail text={hero.title} className="text-white/90" />
           </h1>
 

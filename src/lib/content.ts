@@ -590,6 +590,85 @@ export const getOgImage = cache(async (): Promise<OgImage> => {
   };
 });
 
+/* ---------------------------------------------------------------------------
+ * Fechas de última modificación (sitemap)
+ * ------------------------------------------------------------------------- */
+
+/**
+ * Cuándo cambió por última vez lo que se ve en cada página.
+ *
+ * El sitemap publicaba `new Date()` en las doce entradas, o sea la hora del
+ * último despliegue: le decía al buscador que las páginas legales cambian cada
+ * vez que se toca una coma del código. Un `lastmod` que miente es peor que no
+ * ponerlo —Google deja de fiarse de él para todo el sitio—, así que sale de las
+ * columnas `updated_at` que ya mantiene el panel.
+ *
+ * La fecha de una ficha es la más reciente entre la del alojamiento y la de su
+ * tabla de tarifas: cambiar un precio cambia la página aunque el texto siga
+ * igual.
+ */
+export type LastModified = {
+  /** Por slug de alojamiento. */
+  accommodations: Map<string, Date>;
+  /** Lo más reciente de todos los alojamientos y sus tarifas. */
+  accommodationsLatest: Date | null;
+  /** Lo más reciente de las experiencias. */
+  experiences: Date | null;
+  /** Lo más reciente del contenido editable de la portada. */
+  siteContent: Date | null;
+};
+
+/** Mayor de varias fechas, ignorando las nulas. */
+function latest(...dates: (Date | null | undefined)[]): Date | null {
+  const valid = dates.filter((date): date is Date => date instanceof Date);
+  if (valid.length === 0) return null;
+  return new Date(Math.max(...valid.map((date) => date.getTime())));
+}
+
+function toDate(value: unknown): Date | null {
+  if (typeof value !== "string") return null;
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+export const getLastModified = cache(async (): Promise<LastModified> => {
+  const supabase = createPublicClient();
+
+  const [accommodations, tiers, experiences, content] = await Promise.all([
+    supabase
+      .from("accommodations")
+      .select("id, slug, updated_at")
+      .eq("visible", true),
+    supabase.from("rate_tiers").select("accommodation_id, updated_at"),
+    supabase.from("experiences").select("updated_at").eq("visible", true),
+    supabase.from("site_content").select("updated_at"),
+  ]);
+
+  const tiersByAccommodation = new Map<string, Date>();
+  for (const row of tiers.data ?? []) {
+    const date = toDate(row.updated_at);
+    if (!date) continue;
+    const current = tiersByAccommodation.get(row.accommodation_id);
+    tiersByAccommodation.set(
+      row.accommodation_id,
+      latest(current, date) ?? date,
+    );
+  }
+
+  const bySlug = new Map<string, Date>();
+  for (const row of accommodations.data ?? []) {
+    const date = latest(toDate(row.updated_at), tiersByAccommodation.get(row.id));
+    if (date) bySlug.set(row.slug, date);
+  }
+
+  return {
+    accommodations: bySlug,
+    accommodationsLatest: latest(...bySlug.values()),
+    experiences: latest(...(experiences.data ?? []).map((row) => toDate(row.updated_at))),
+    siteContent: latest(...(content.data ?? []).map((row) => toDate(row.updated_at))),
+  };
+});
+
 /** Primera imagen de la galería, con un placeholder seguro si viene vacía. */
 export function coverImage(
   gallery: GalleryImage[],

@@ -6,8 +6,9 @@ import {
   Pending,
   type LegalSection,
 } from "@/components/legal/legal-document";
-import { getContactInfo } from "@/lib/content";
+import { getContactInfo, getOgImage } from "@/lib/content";
 import { LEGAL_UPDATED, SIC } from "@/lib/legal";
+import { pageMetadata } from "@/lib/seo";
 import { LEGAL_LINKS, SITE } from "@/lib/site";
 
 /** Misma revalidación que el resto del sitio público: la página es estática. */
@@ -15,18 +16,26 @@ export const revalidate = 3600;
 
 const DOC = LEGAL_LINKS[0];
 
-export const metadata: Metadata = {
-  title: "Política de privacidad y tratamiento de datos personales",
-  description:
-    "Cómo trata La Maima — Hotel Campestre los datos personales de sus huéspedes, conforme a la Ley 1581 de 2012 y al Decreto 1377 de 2013: finalidades, derechos del titular y canal para ejercerlos.",
-  alternates: { canonical: DOC.href },
-  openGraph: {
-    title: "Política de privacidad · La Maima",
+/**
+ * `generateMetadata` y no un objeto: los documentos legales no tienen foto
+ * propia y deben caer en la del sitio, que se edita en `/admin/contenido`.
+ * Antes se quedaban sin `og:image` porque declarar un `openGraph` propio
+ * reemplaza el del layout raíz en vez de completarlo.
+ */
+export async function generateMetadata(): Promise<Metadata> {
+  const ogImage = await getOgImage();
+
+  return pageMetadata({
+    title: "Política de privacidad y tratamiento de datos",
     description:
+      "Cómo trata La Maima los datos personales de sus huéspedes conforme a la Ley 1581 de 2012: finalidades, derechos del titular y canal para ejercerlos.",
+    path: DOC.href,
+    image: { url: ogImage.url, alt: ogImage.alt },
+    socialTitle: "Política de privacidad · La Maima",
+    socialDescription:
       "Tratamiento de datos personales en La Maima — Hotel Campestre (Ley 1581 de 2012).",
-    url: DOC.href,
-  },
-};
+  });
+}
 
 export default async function PrivacyPage() {
   const contact = await getContactInfo();

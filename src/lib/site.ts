@@ -12,8 +12,14 @@ export const SITE = {
   name: "La Maima",
   legalName: "La Maima — Hotel Campestre",
   tagline: "La naturaleza a tu alcance",
+  /**
+   * Descripción canónica del sitio: la de la portada, la del `og:description`
+   * y la del JSON-LD. Mide 152 caracteres —Google recorta a partir de unos
+   * 160— y empieza por las dos cosas que se buscan ("hotel campestre",
+   * "Dapa"), porque la primera línea es la que sobrevive en móvil.
+   */
   description:
-    "Reserva natural y hotel campestre en el Km 12 Vía a Dapa, Yumbo (Valle del Cauca). Seis casas y cabañas entre 30 años de bosque en rehabilitación, a menos de una hora de Cali.",
+    "Hotel campestre y reserva natural en el Km 12 vía a Dapa, Yumbo: seis casas y cabañas entre 30 años de bosque rehabilitado, a menos de una hora de Cali.",
 
   /** URL canónica de producción. Se sobreescribe con NEXT_PUBLIC_SITE_URL. */
   url: process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.lamaima.com",
@@ -35,6 +41,23 @@ export const SITE = {
   geo: {
     latitude: 3.5347,
     longitude: -76.5583,
+  },
+
+  /**
+   * Condiciones de estadía del documento oficial del cliente. Están aquí
+   * porque las publica el JSON-LD (`checkinTime`, `checkoutTime`,
+   * `petsAllowed`, `smokingAllowed`) además de leerse en los términos: si
+   * mañana cambia el horario, tiene que cambiar en un solo sitio.
+   *
+   * Las horas van en formato de 24 h, que es lo que espera schema.org.
+   */
+  stay: {
+    checkIn: "15:00",
+    checkOut: "13:00",
+    petsAllowed: true,
+    smokingAllowed: false,
+    /** Total de casas y cabañas publicadas. */
+    units: 6,
   },
 
   maps: {
@@ -123,7 +146,12 @@ export function media(path: string): string {
  * rutas propias del sitio (`/algo`) se prefijan con el dominio canónico.
  */
 export function absoluteUrl(url: string): string {
-  return /^https?:\/\//i.test(url) ? url : `${SITE.url}${url}`;
+  if (/^https?:\/\//i.test(url)) return url;
+  // La portada es "/" en el código pero su dirección canónica no lleva barra
+  // final: si la miga de pan publicara ".../" y el `<link rel=canonical>"
+  // ".../", serían dos formas distintas de nombrar la misma página.
+  if (url === "/") return SITE.url;
+  return `${SITE.url}${url}`;
 }
 
 /**

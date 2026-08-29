@@ -10,7 +10,55 @@ const supabaseHostname = new URL(
     "https://mauolzwhergekdvigmaf.supabase.co",
 ).hostname;
 
+/**
+ * Redirecciones 301 desde las direcciones del sitio anterior (Wix).
+ *
+ * El dominio lamaima.com lleva años publicado y esas direcciones tienen
+ * historial y enlaces entrantes. Si al cambiar de sitio devolvieran 404, ese
+ * historial se pierde: una 301 se lo traspasa a la página nueva.
+ *
+ * Están ACTIVAS desde ya —ninguna choca con una ruta real del sitio nuevo— y
+ * son permanentes (`permanent: true` = 308, que Google trata igual que la 301
+ * y conserva el método). Cuando el dominio apunte a Vercel empiezan a
+ * trabajar solas.
+ *
+ * Si aparecen más direcciones antiguas en Search Console ("Páginas" →
+ * "No encontradas (404)"), se añaden aquí. Ver README, "SEO al publicar".
+ */
+const wixRedirects = [
+  // Listado de alojamientos (Wix lo tenía en singular).
+  { source: "/alojamiento", destination: "/alojamientos" },
+  { source: "/alojamiento/:slug", destination: "/alojamientos" },
+  // Reservas: en el sitio nuevo se reserva desde la ficha de cada casa, así
+  // que el destino natural es el listado.
+  { source: "/reservar", destination: "/alojamientos" },
+  { source: "/book-online", destination: "/alojamientos" },
+  { source: "/booking-calendar", destination: "/alojamientos" },
+  { source: "/booking-calendar/:path*", destination: "/alojamientos" },
+  // Tarifas: hoy cada ficha publica su propia tabla por ocupación.
+  { source: "/plans-pricing", destination: "/alojamientos" },
+  // Contacto y "nosotros": secciones de la portada.
+  { source: "/contacto", destination: "/#contacto" },
+  { source: "/contact", destination: "/#contacto" },
+  { source: "/nosotros", destination: "/#reserva-natural" },
+  { source: "/about", destination: "/#reserva-natural" },
+  // Experiencias y galería.
+  { source: "/experiencia", destination: "/experiencias" },
+  { source: "/galeria", destination: "/alojamientos" },
+] as const;
+
 const nextConfig: NextConfig = {
+  /**
+   * Sin barra final, que es el valor por defecto y el que ya usan los
+   * canónicos y el sitemap. Se declara explícitamente porque cambiarlo
+   * duplicaría todas las direcciones del sitio.
+   */
+  trailingSlash: false,
+
+  async redirects() {
+    return wixRedirects.map((rule) => ({ ...rule, permanent: true }));
+  },
+
   images: {
     formats: ["image/avif", "image/webp"],
     /**

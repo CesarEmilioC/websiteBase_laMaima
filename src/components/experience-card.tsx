@@ -40,6 +40,17 @@ export function ExperienceCard({ experience, variant = "compact" }: Props) {
               ? "(min-width: 1280px) 600px, (min-width: 768px) 46vw, 100vw"
               : "(min-width: 1280px) 372px, (min-width: 1024px) 29vw, (min-width: 640px) 44vw, 80vw"
           }
+          /* Calidad 68, como el resto de la fotografía que queda por debajo
+             del pliegue (ver `next.config.ts`). Esta tarjeta se quedó fuera de
+             aquel ajuste y era la única que seguía pidiendo calidad 75: en
+             `/experiencias` son cuatro fotos grandes que se descargaban a la
+             vez que la banda de encabezado y le robaban el ancho de banda
+             justo cuando esta marca el LCP. */
+          quality={68}
+          /* Y por si acaso llegan a la vez: prioridad baja explícita. El
+             navegador reserva el ancho de banda para la foto de encabezado,
+             que sí es el elemento más grande del primer pintado. */
+          fetchPriority="low"
           className="object-cover transition-transform duration-[600ms] ease-ios group-hover:scale-[1.03]"
         />
         {experience.price_note && (

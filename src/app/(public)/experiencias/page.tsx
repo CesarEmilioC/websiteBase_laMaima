@@ -3,31 +3,37 @@ import Link from "next/link";
 
 import { ExperienceCard } from "@/components/experience-card";
 import { CalendarIcon } from "@/components/icons";
+import { JsonLd } from "@/components/json-ld";
 import { LeafField } from "@/components/leaf-field";
 import { PageHero } from "@/components/page-hero";
 import { WhatsAppButton } from "@/components/whatsapp-button";
 import { getExperiences } from "@/lib/content";
+import { breadcrumbList, pageMetadata } from "@/lib/seo";
 import { media } from "@/lib/site";
 import { GENERAL_MESSAGE } from "@/lib/whatsapp";
 
 /** Foto de la banda de encabezado (bucket "gallery" de Supabase Storage). */
 const HERO_IMAGE = media("sitio/senderos.jpg");
+const HERO_ALT =
+  "Sendero con escalones de madera entre guaduas y árboles del bosque de La Maima, con una banca de guadua a un lado";
+
+const CRUMBS = [
+  { name: "Inicio", path: "/" },
+  { name: "Experiencias", path: "/experiencias" },
+];
 
 export const revalidate = 3600;
 
-export const metadata: Metadata = {
-  title: "Experiencias",
+export const metadata: Metadata = pageMetadata({
+  title: "Experiencias en la reserva natural",
   description:
-    "Senderos por bosque primario, secundario y terciario, piscina natural de río, fogata y avistamiento de flora y fauna en la reserva La Maima, Dapa (Yumbo).",
-  alternates: { canonical: "/experiencias" },
-  openGraph: {
-    title: "Experiencias · La Maima",
-    description:
-      "Senderos, piscina de río, fogata y avistamiento de aves dentro de la reserva natural de La Maima.",
-    url: "/experiencias",
-    images: [{ url: HERO_IMAGE }],
-  },
-};
+    "Senderos por bosque primario, secundario y terciario, piscina natural de río, fogata y avistamiento de aves en la reserva La Maima, Dapa (Yumbo).",
+  path: "/experiencias",
+  image: { url: HERO_IMAGE, alt: HERO_ALT },
+  socialTitle: "Experiencias · La Maima",
+  socialDescription:
+    "Senderos, piscina de río, fogata y avistamiento de aves dentro de la reserva natural de La Maima.",
+});
 
 export default async function ExperiencesPage() {
   const experiences = await getExperiences();
@@ -35,20 +41,33 @@ export default async function ExperiencesPage() {
   return (
     <>
       <PageHero
-        eyebrow="Qué hacer en la reserva"
+        eyebrow="Qué hacer en la reserva de Dapa"
         title="Experiencias entre el bosque"
         titleAccent="y el agua"
         description="La Maima no es solo dónde dormir. Treinta años de rehabilitación dejaron senderos, una quebrada con pozos naturales y un bosque al que volvieron las aves."
         image={HERO_IMAGE}
-        imageAlt="Sendero con escalones de madera entre guaduas y árboles del bosque de La Maima, con una banca de guadua a un lado"
-        breadcrumbs={[
-          { href: "/", label: "Inicio" },
-          { href: "/experiencias", label: "Experiencias" },
-        ]}
+        imageAlt={HERO_ALT}
+        breadcrumbs={CRUMBS.map((crumb) => ({
+          href: crumb.path,
+          label: crumb.name,
+        }))}
       />
 
-      <section className="section-y bg-shell">
+      <section
+        className="section-y bg-shell"
+        aria-labelledby="listado-experiencias"
+      >
         <div className="container-page">
+          {/* Encabezado de la rejilla. No se pinta —el titular de la banda de
+              arriba ya presenta la página y el cliente aprobó ese ritmo— pero
+              tiene que existir: sin él la página saltaba del `h1` a los `h3`
+              de las tarjetas, y un salto de nivel rompe tanto el árbol de
+              encabezados que lee un lector de pantalla como el esquema que
+              deduce el buscador. */}
+          <h2 id="listado-experiencias" className="sr-only">
+            Experiencias incluidas en la estadía
+          </h2>
+
           {experiences.length > 0 ? (
             /* Rejilla alineada de dos columnas: sin desfases verticales. Las
                tarjetas son grandes y la retícula recta las deja respirar sin
@@ -112,6 +131,8 @@ export default async function ExperiencesPage() {
           </div>
         </div>
       </section>
+
+      <JsonLd graph={[breadcrumbList(CRUMBS)]} />
     </>
   );
 }

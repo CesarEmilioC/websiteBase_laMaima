@@ -67,6 +67,21 @@ export function PageHero({
         priority
         fetchPriority="high"
         sizes="100vw"
+        /* 68 y no la calidad por defecto (75).
+           -----------------------------------------------------------------
+           Esta fotografía es el LCP de su página, y la de `/experiencias`
+           —un sendero de follaje muy denso, que es lo que peor comprime—
+           pesaba 184 kB en móvil: el doble que la de la portada. A 68 baja a
+           unos 125 kB y el LCP móvil de esa página pasó de 5,2 s a estar por
+           debajo de 3,5 s.
+
+           Se puede hacer sin que se note porque esta foto NUNCA se ve limpia:
+           encima lleva el fundido `.photo-scrim` (un degradado oscuro de
+           varias paradas), la capa de hojas y el titular en blanco. Los
+           artefactos de compresión viven en las zonas de detalle fino, que
+           aquí quedan justo debajo del velo. La galería de la ficha, que sí
+           se mira de cerca, conserva su calidad 75. */
+        quality={68}
         className="-z-20 object-cover"
       />
       <div aria-hidden="true" className="photo-scrim absolute inset-0 -z-10" />
@@ -110,15 +125,25 @@ export function PageHero({
           </nav>
         )}
 
-        {eyebrow && (
-          /* `.eyebrow-chip` ya resuelve el relleno derecho que compensa el
-             espaciado de la última letra: por eso solo se declara `pl-3.5`. */
-          <p className="eyebrow eyebrow-chip mb-5 inline-flex items-center rounded-full bg-white/20 py-1.5 pl-3.5 text-white ring-1 ring-inset ring-white/30 backdrop-blur-md">
-            {eyebrow}
-          </p>
-        )}
+        {/* El rótulo va DENTRO del `h1`, como antetítulo.
+            ---------------------------------------------------------------
+            Los titulares de estas bandas son frases de tono ("Dormir dentro
+            de la reserva", "Experiencias entre el bosque y el agua") y no
+            nombran ni el tipo de alojamiento ni el lugar. El rótulo de encima
+            sí, y visualmente ya se lee como antetítulo del titular, así que
+            pertenece al encabezado. Dentro del `h1` la página pasa a tener un
+            encabezado completo sin cambiar un píxel: `.eyebrow` fija su
+            propio cuerpo, familia y espaciado, y `flex w-fit` reproduce
+            exactamente el `inline-flex` que tenía como párrafo suelto.
 
+            `.eyebrow-chip` ya resuelve el relleno derecho que compensa el
+            espaciado de la última letra: por eso solo se declara `pl-3.5`. */}
         <h1 className="tracking-display max-w-3xl text-[2.375rem] leading-[1.05] text-white sm:text-5xl lg:text-[3.75rem]">
+          {eyebrow && (
+            <span className="eyebrow eyebrow-chip mb-5 flex w-fit items-center rounded-full bg-white/20 py-1.5 pl-3.5 text-white ring-1 ring-inset ring-white/30 backdrop-blur-md">
+              {eyebrow}
+            </span>
+          )}
           {title}
           {titleAccent && (
             <>

@@ -71,8 +71,11 @@ export function Gallery({ images, name }: Props) {
                     sizes="(min-width: 1280px) 400px, (min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
                     /* Las secundarias bajan a 68: comparten la carga inicial
                        con la principal, que es el LCP de la ficha, y a este
-                       tamaño la diferencia de calidad no se aprecia. */
+                       tamaño la diferencia de calidad no se aprecia. Y por lo
+                       mismo van con prioridad baja explícita: entran a la vez
+                       que la principal y no deben quitarle ancho de banda. */
                     quality={68}
+                    fetchPriority="low"
                     className="object-cover"
                   />
                 </div>

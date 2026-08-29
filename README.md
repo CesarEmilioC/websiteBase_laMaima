@@ -89,13 +89,13 @@ npm run lint     # ESLint
 website/
 ├── src/
 │   ├── app/
-│   │   ├── layout.tsx        # fuentes, metadata base, JSON-LD LodgingBusiness
+│   │   ├── layout.tsx        # fuentes y metadata base (título, OG, Twitter)
 │   │   ├── globals.css       # tokens de diseño (Tailwind v4 @theme) y base
 │   │   ├── not-found.tsx     # 404 personalizada
-│   │   ├── sitemap.ts        # sitemap dinámico (incluye los 6 alojamientos)
-│   │   ├── robots.ts         # robots.txt (bloquea /admin)
+│   │   ├── sitemap.ts        # sitemap con lastmod reales (incluye legales)
+│   │   ├── robots.ts         # robots.txt (bloquea /admin y /api)
 │   │   ├── (public)/         # rutas públicas (route group, no afecta la URL)
-│   │   │   ├── layout.tsx      # SiteHeader + SiteFooter + WhatsAppFloat
+│   │   │   ├── layout.tsx      # header + footer + WhatsApp + JSON-LD del hotel
 │   │   │   ├── page.tsx        # Home
 │   │   │   ├── alojamientos/page.tsx
 │   │   │   ├── alojamientos/[slug]/page.tsx
@@ -114,6 +114,8 @@ website/
 │   └── lib/
 │       ├── content.ts       # acceso tipado al contenido público de Supabase
 │       ├── format.ts        # formato de precios COP ($350.000) y huéspedes
+│       ├── seo.ts           # metadatos por página (canónica + OG + Twitter),
+│       │                      descripciones compuestas y datos estructurados
 │       ├── site.ts          # constantes: contacto, redes, mapa, navegación
 │       ├── whatsapp.ts      # construcción de enlaces wa.me con mensaje
 │       └── supabase/
@@ -188,6 +190,121 @@ mientras se escribe), las mitigaciones recomendadas son:
 - Como alternativa más robusta a largo plazo, mover el repo fuera de
   OneDrive (ej. `C:\dev\MAIMA`) y dejar OneDrive solo para los documentos
   de `docs/` e `Insumos/`.
+
+## SEO al publicar
+
+El SEO técnico del sitio ya está resuelto en el código: cada ruta publica su
+propio `title`, su descripción, su canónica y su tarjeta social con la foto que
+le corresponde; el grafo de datos estructurados (`LodgingBusiness`, `WebSite`,
+`Accommodation`/`Product` con oferta y `BreadcrumbList`) sale de la base de
+datos, y el sitemap lleva fechas de modificación reales. Nada de eso hay que
+tocarlo al lanzar.
+
+Lo que sí depende del dominio y de las cuentas del cliente es esta lista. **En
+orden**, porque los pasos 2 y 3 no sirven de nada antes del 1.
+
+### 1. Apuntar el sitio al dominio real
+
+Todo lo canónico —`<link rel="canonical">`, `og:url`, el sitemap, el
+`robots.txt` y los `@id` del JSON-LD— cuelga de una sola constante:
+`SITE.url` en `src/lib/site.ts`, que lee `NEXT_PUBLIC_SITE_URL` y cae en
+`https://www.lamaima.com` si no existe.
+
+- En **Vercel → Project Settings → Environment Variables**, definir
+  `NEXT_PUBLIC_SITE_URL` con el dominio definitivo **exactamente como se va a
+  servir**: con `https://`, con o sin `www` según lo que se elija, y **sin
+  barra final**. Si el dominio queda en `https://lamaima.com` (sin `www`) y la
+  variable dice `https://www.lamaima.com`, todas las canónicas apuntarán a una
+  dirección que redirige, que es la forma más común de perder posicionamiento
+  en una migración.
+- En **Vercel → Domains**, dejar UNA sola versión como principal y la otra como
+  redirección (Vercel lo hace solo al marcar el dominio primario).
+- Volver a desplegar: la variable se compila en las páginas estáticas.
+- Comprobar después: `https://<dominio>/robots.txt` y
+  `https://<dominio>/sitemap.xml` deben mostrar el dominio nuevo, y el
+  `view-source` de la portada debe tener `rel="canonical"` con ese mismo
+  dominio.
+
+### 2. Redirecciones 301 desde el sitio anterior (Wix)
+
+Ya están escritas y **activas** en `next.config.ts` (`wixRedirects`), así que
+empiezan a funcionar solas en cuanto el DNS apunte a Vercel:
+
+| Dirección antigua (Wix)              | Destino nuevo         |
+| ------------------------------------ | --------------------- |
+| `/alojamiento`, `/alojamiento/:slug`  | `/alojamientos`       |
+| `/reservar`, `/book-online`           | `/alojamientos`       |
+| `/booking-calendar`, `/booking-calendar/*` | `/alojamientos` |
+| `/plans-pricing`                      | `/alojamientos`       |
+| `/contacto`, `/contact`               | `/#contacto`          |
+| `/nosotros`, `/about`                 | `/#reserva-natural`   |
+| `/experiencia`                        | `/experiencias`       |
+| `/galeria`                            | `/alojamientos`       |
+
+Cuando el sitio lleve unos días publicado, entrar a **Search Console →
+Páginas → No encontradas (404)**: ahí aparecerán las direcciones antiguas que
+falten (Wix suele generar rutas del tipo `/copy-of-...`, `/blank-1` o con
+prefijo de idioma). Añadirlas al mismo array. **Nunca encadenar** una
+redirección con otra: cada dirección vieja debe llegar a su destino final en un
+solo salto.
+
+### 3. Search Console y sitemap
+
+1. Entrar a [Google Search Console](https://search.google.com/search-console)
+   con la cuenta que vaya a quedarse el cliente (o la corporativa de ORYON).
+2. Añadir una propiedad de tipo **dominio** (verificación por registro `TXT`
+   en el DNS: cubre `http`, `https`, `www` y subdominios de una vez). Si no hay
+   acceso al DNS, usar propiedad de **prefijo de URL** y verificar subiendo el
+   archivo HTML que da Google a `public/`.
+3. **Sitemaps → Añadir sitemap:** `sitemap.xml`.
+4. **Inspección de URLs → Solicitar indexación** para la portada,
+   `/alojamientos` y las seis fichas: acelera el primer rastreo.
+5. Repetir el registro en [Bing Webmaster Tools](https://www.bing.com/webmasters),
+   que importa la propiedad desde Search Console en dos clics.
+
+### 4. Perfil de empresa en Google (lo que más tráfico local trae)
+
+Para "hotel campestre Dapa" o "cabañas cerca de Cali", el perfil pesa tanto
+como el sitio.
+
+- Reclamar o crear el perfil en
+  [business.google.com](https://business.google.com) con la categoría
+  **"Hotel"** y la secundaria **"Alojamiento con desayuno"**.
+- Que **coincidan exactamente** con lo que publica el sitio (y con el JSON-LD)
+  el nombre `La Maima — Hotel Campestre`, la dirección `Km 12 Vía a Dapa,
+  Yumbo, Valle del Cauca` y el teléfono `+57 311 308 2813`. Google cruza esos
+  tres datos entre fuentes; si no cuadran, desconfía de las dos.
+- Sitio web del perfil: el dominio nuevo. Horario de check-in 3:00 p. m. y
+  check-out 1:00 p. m., atributos "admite mascotas" y "prohibido fumar".
+- Subir las mismas fotos del sitio y enlazar Instagram y Facebook.
+
+### 5. Verificación del dominio para los correos (Resend)
+
+Los correos de confirmación se envían desde el dominio del cliente, y sin
+verificar acaban en spam.
+
+- En [Resend → Domains](https://resend.com/domains), añadir `lamaima.com` y
+  crear en el DNS los registros que indique: **SPF** (`TXT`), **DKIM**
+  (`CNAME`) y el `MX` de la subdirección de rebotes.
+- Añadir también un registro **DMARC** (`_dmarc.lamaima.com`, `TXT`), empezando
+  por `v=DMARC1; p=none; rua=mailto:<correo del cliente>` para observar sin
+  bloquear, y endurecerlo a `p=quarantine` cuando el informe salga limpio.
+- Cargar `RESEND_API_KEY` en las variables de entorno de Vercel. Sin ella el
+  código no falla: registra el envío y no manda nada (ver `src/lib/email/`).
+
+### 6. Repaso final antes de anunciar
+
+- [ ] `NEXT_PUBLIC_SITE_URL` con el dominio definitivo y sin barra final.
+- [ ] `SUPABASE_SERVICE_ROLE_KEY` cargada en Vercel (sin ella el calendario de
+      disponibilidad no responde).
+- [ ] Los datos en ámbar de las páginas legales (NIT, RNT, correo oficial,
+      vigencia del crédito de reprogramación) reemplazados por los reales.
+- [ ] Las URLs iCal para Airbnb y Booking apuntando al dominio nuevo:
+      `https://<dominio>/api/ical/<slug>`.
+- [ ] Contraseña de `admin@lamaima.com` cambiada antes de entregar el panel.
+- [ ] Lighthouse móvil de portada, listado y ficha por encima de 90 (medido
+      contra producción, no contra `next start` local: sin CDN ni HTTP/2 las
+      fotos del optimizador salen entre 5 y 10 puntos por debajo).
 
 ## Roadmap (resumen, 5 semanas)
 
