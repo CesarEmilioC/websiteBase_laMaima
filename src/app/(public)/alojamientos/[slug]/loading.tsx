@@ -7,31 +7,31 @@
 export default function Loading() {
   return (
     <div className="bg-white pb-16 pt-28 sm:pt-32 lg:pt-36">
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-10">
-        <div className="h-4 w-56 animate-pulse rounded-full bg-cream-200" />
+      <div className="container-page">
+        <div className="h-4 w-56 animate-pulse rounded-full bg-sand" />
 
         <div className="mt-5 flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
           <div className="min-w-0 flex-1">
-            <div className="h-12 w-64 animate-pulse rounded-full bg-cream-200 sm:h-14 sm:w-80" />
+            <div className="h-12 w-64 animate-pulse rounded-full bg-sand sm:h-14 sm:w-80" />
             <div className="mt-4 flex flex-wrap gap-2">
               {["w-32", "w-40", "w-36", "w-28"].map((width) => (
                 <div
                   key={width}
-                  className={`h-8 animate-pulse rounded-full bg-cream-200 ${width}`}
+                  className={`h-8 animate-pulse rounded-full bg-sand ${width}`}
                 />
               ))}
             </div>
           </div>
-          <div className="h-12 w-48 animate-pulse rounded-full bg-cream-200" />
+          <div className="h-12 w-48 animate-pulse rounded-full bg-sand" />
         </div>
 
         <div className="mt-9 grid gap-3 sm:gap-4 lg:grid-cols-3">
-          <div className="aspect-[4/3] animate-pulse rounded-card bg-cream-200 lg:col-span-2 lg:aspect-[3/2]" />
+          <div className="aspect-[4/3] animate-pulse rounded-card bg-sand lg:col-span-2 lg:aspect-[3/2]" />
           <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-1 lg:grid-rows-3">
             {[0, 1, 2].map((index) => (
               <div
                 key={index}
-                className={`animate-pulse rounded-card bg-cream-200 lg:h-full ${
+                className={`animate-pulse rounded-card bg-sand lg:h-full ${
                   index === 2 ? "col-span-2 aspect-[16/9] lg:aspect-auto" : "aspect-[4/3] lg:aspect-auto"
                 }`}
               />

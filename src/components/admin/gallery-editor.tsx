@@ -160,7 +160,7 @@ export function GalleryEditor({ name, initial, folder }: Props) {
       )}
 
       {items.length === 0 ? (
-        <p className="mb-4 rounded-2xl bg-black/[0.03] px-4 py-6 text-center text-[0.875rem] text-ink-muted">
+        <p className="mb-4 rounded-2xl bg-ink/[0.03] px-4 py-6 text-center text-[0.875rem] text-ink-muted">
           Todavía no hay imágenes. Sube una foto o pega una dirección.
         </p>
       ) : (
@@ -168,9 +168,9 @@ export function GalleryEditor({ name, initial, folder }: Props) {
           {items.map((item, index) => (
             <li
               key={`${item.url}-${index}`}
-              className="flex flex-wrap items-start gap-3 rounded-card bg-black/[0.025] p-2.5 sm:flex-nowrap"
+              className="flex flex-wrap items-start gap-3 rounded-card bg-ink/[0.025] p-2.5 sm:flex-nowrap"
             >
-              <div className="relative h-20 w-28 shrink-0 overflow-hidden rounded-xl bg-black/10">
+              <div className="relative h-20 w-28 shrink-0 overflow-hidden rounded-xl bg-ink/10">
                 {/* <img> y no next/image: las direcciones externas que pegue el
                     cliente (Cloudinary u otro CDN) no están en la lista blanca
                     de next.config.ts y el optimizador las rechazaría. */}
@@ -182,7 +182,7 @@ export function GalleryEditor({ name, initial, folder }: Props) {
                   loading="lazy"
                 />
                 {index === 0 && (
-                  <span className="absolute left-1.5 top-1.5 rounded-full bg-forest-600 px-2 py-0.5 text-[0.625rem] font-bold uppercase tracking-wide text-white">
+                  <span className="absolute left-1.5 top-1.5 rounded-full bg-brand-600 px-2 py-0.5 text-[0.625rem] font-bold uppercase tracking-wide text-white">
                     Portada
                   </span>
                 )}
@@ -220,7 +220,7 @@ export function GalleryEditor({ name, initial, folder }: Props) {
                   type="button"
                   onClick={() => makeCover(index)}
                   disabled={index === 0}
-                  className="rounded-full px-2.5 py-1.5 text-[0.75rem] font-semibold text-forest-700 transition-colors hover:bg-forest-600/10 disabled:opacity-40 disabled:hover:bg-transparent"
+                  className="rounded-full px-2.5 py-1.5 text-[0.75rem] font-semibold text-brand-700 transition-colors hover:bg-brand-600/10 disabled:opacity-40 disabled:hover:bg-transparent"
                 >
                   Portada
                 </button>
@@ -238,7 +238,7 @@ export function GalleryEditor({ name, initial, folder }: Props) {
       )}
 
       <div className="grid gap-3 sm:grid-cols-2">
-        <div className="rounded-card bg-black/[0.025] p-3.5">
+        <div className="rounded-card bg-ink/[0.025] p-3.5">
           <p className="text-[0.8125rem] font-semibold text-ink">Subir imágenes</p>
           <p className="mt-1 text-[0.75rem] leading-relaxed text-ink-muted">
             JPG, PNG o WebP. Máximo 10 MB por archivo.
@@ -250,16 +250,16 @@ export function GalleryEditor({ name, initial, folder }: Props) {
             multiple
             disabled={uploading}
             onChange={(event) => void upload(event.target.files)}
-            className="mt-2.5 block w-full text-[0.8125rem] text-ink-muted file:mr-3 file:rounded-full file:border-0 file:bg-forest-600 file:px-4 file:py-2 file:text-[0.8125rem] file:font-semibold file:text-white hover:file:bg-forest-700"
+            className="mt-2.5 block w-full text-[0.8125rem] text-ink-muted file:mr-3 file:rounded-full file:border-0 file:bg-brand-600 file:px-4 file:py-2 file:text-[0.8125rem] file:font-semibold file:text-white hover:file:bg-brand-700"
           />
           {uploading && (
-            <p className="mt-2 text-[0.75rem] font-medium text-forest-700">
+            <p className="mt-2 text-[0.75rem] font-medium text-brand-700">
               Subiendo…
             </p>
           )}
         </div>
 
-        <div className="rounded-card bg-black/[0.025] p-3.5">
+        <div className="rounded-card bg-ink/[0.025] p-3.5">
           <p className="text-[0.8125rem] font-semibold text-ink">
             Añadir por dirección
           </p>
@@ -283,7 +283,7 @@ export function GalleryEditor({ name, initial, folder }: Props) {
             <button
               type="button"
               onClick={addExternal}
-              className="shrink-0 rounded-2xl bg-black/[0.06] px-4 text-[0.8125rem] font-semibold text-ink transition-colors hover:bg-black/[0.1]"
+              className="shrink-0 rounded-2xl bg-ink/[0.06] px-4 text-[0.8125rem] font-semibold text-ink transition-colors hover:bg-ink/[0.1]"
             >
               Añadir
             </button>
@@ -312,7 +312,7 @@ function IconButton({
       disabled={disabled}
       aria-label={label}
       title={label}
-      className="inline-flex h-8 w-8 items-center justify-center rounded-full text-ink-soft transition-colors hover:bg-black/[0.06] disabled:opacity-30 disabled:hover:bg-transparent"
+      className="inline-flex h-8 w-8 items-center justify-center rounded-full text-ink-soft transition-colors hover:bg-ink/[0.06] disabled:opacity-30 disabled:hover:bg-transparent"
     >
       <svg
         viewBox="0 0 24 24"

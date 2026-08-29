@@ -86,21 +86,21 @@ export function AvailabilityCalendar({
         <li className="flex items-center gap-2">
           <span
             aria-hidden="true"
-            className="h-3.5 w-3.5 rounded-full bg-white ring-1 ring-inset ring-black/15"
+            className="h-3.5 w-3.5 rounded-full bg-white ring-1 ring-inset ring-ink/15"
           />
           Disponible
         </li>
         <li className="flex items-center gap-2">
           <span
             aria-hidden="true"
-            className="h-3.5 w-3.5 rounded-full bg-cream-200"
+            className="h-3.5 w-3.5 rounded-full bg-sand"
           />
           No disponible
         </li>
         <li className="flex items-center gap-2">
           <span
             aria-hidden="true"
-            className="h-3.5 w-3.5 rounded-full bg-forest-600"
+            className="h-3.5 w-3.5 rounded-full bg-brand-600"
           />
           Tus fechas
         </li>
@@ -131,7 +131,7 @@ function NavButton({
       onClick={onClick}
       disabled={disabled}
       aria-label={label}
-      className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-cream text-ink transition-[background-color,color,transform] duration-200 ease-ios hover:bg-cream-200 active:scale-[0.94] disabled:cursor-not-allowed disabled:bg-transparent disabled:text-ink-muted/35 disabled:active:scale-100"
+      className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-sand-soft text-ink transition-[background-color,color,transform] duration-200 ease-ios hover:bg-sand active:scale-[0.94] disabled:cursor-not-allowed disabled:bg-transparent disabled:text-ink-muted/35 disabled:active:scale-100"
     >
       <Icon className="h-4 w-4" />
     </button>
@@ -203,16 +203,16 @@ function Day({
   // La banda del rango va en la celda (no en el botón) para que no se corte
   // entre día y día; los extremos la redondean hacia fuera.
   let band = "";
-  if (state.role === "between") band = "bg-forest-50";
-  else if (hasRange && state.role === "start") band = "bg-forest-50 rounded-l-full";
-  else if (hasRange && state.role === "end") band = "bg-forest-50 rounded-r-full";
+  if (state.role === "between") band = "bg-brand-50";
+  else if (hasRange && state.role === "start") band = "bg-brand-50 rounded-l-full";
+  else if (hasRange && state.role === "end") band = "bg-brand-50 rounded-r-full";
 
   let tone: string;
   if (isEdge) {
-    tone = "bg-forest-600 text-white shadow-pill";
+    tone = "bg-brand-600 text-white shadow-pill";
   } else if (state.selectable) {
-    tone = `text-ink hover:bg-forest-100 active:scale-[0.94] ${
-      state.role === "between" ? "text-forest-700" : ""
+    tone = `text-ink hover:bg-brand-100 active:scale-[0.94] ${
+      state.role === "between" ? "text-brand-700" : ""
     }`;
   } else {
     tone = `cursor-not-allowed text-ink-muted/45 ${
@@ -238,7 +238,7 @@ function Day({
         {isToday && !isEdge && (
           <span
             aria-hidden="true"
-            className="absolute bottom-1.5 h-1 w-1 rounded-full bg-forest-500"
+            className="absolute bottom-1.5 h-1 w-1 rounded-full bg-brand-500"
           />
         )}
       </button>

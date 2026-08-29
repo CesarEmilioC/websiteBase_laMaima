@@ -10,9 +10,12 @@ type Props = {
   /** Etiqueta accesible si el texto visible no es suficientemente descriptivo. */
   ariaLabel?: string;
   /**
-   * - `solid`: pastilla verde WhatsApp (acción principal).
-   * - `soft`: pastilla verde clara con texto verde (acción secundaria clara).
-   * - `outline`: pastilla con filete, sobre fondos claros.
+   * Todas las variantes van en AZUL DE MARCA, no en verde WhatsApp: el verde
+   * desapareció con la identidad nueva. Lo que identifica el canal es el icono.
+   *
+   * - `solid`: pastilla azul llena (acción principal).
+   * - `soft`: pastilla de azul translúcido con texto azul (acción secundaria).
+   * - `outline`: pastilla blanca con filete, sobre fondos claros.
    * - `onDark`: pastilla de vidrio para fondos oscuros.
    */
   variant?: "solid" | "soft" | "outline" | "onDark";
@@ -53,10 +56,10 @@ export async function WhatsAppButton({
     "inline-flex items-center justify-center rounded-full font-semibold tracking-[-0.01em] transition-[background-color,box-shadow,transform,color] duration-200 ease-ios active:scale-[0.97]";
 
   const variants = {
-    solid: "bg-whatsapp text-white shadow-pill hover:bg-whatsapp-dark",
-    soft: "bg-whatsapp/12 text-whatsapp-dark hover:bg-whatsapp/20",
+    solid: "bg-brand-600 text-white shadow-pill hover:bg-brand-700",
+    soft: "bg-brand-600/10 text-brand-700 hover:bg-brand-600/16",
     outline:
-      "bg-white text-whatsapp-dark shadow-card ring-1 ring-inset ring-black/[0.07] hover:bg-whatsapp/[0.06]",
+      "bg-white text-brand-700 shadow-card ring-1 ring-inset ring-brand-600/15 hover:bg-brand-50",
     onDark:
       "bg-white/12 text-white ring-1 ring-inset ring-white/25 backdrop-blur-md hover:bg-white/20",
   } as const;

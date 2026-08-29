@@ -65,13 +65,13 @@ export function ChipsInput({
         <ul className="mb-2.5 flex flex-wrap gap-2">
           {items.map((item, index) => (
             <li key={`${item}-${index}`}>
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-forest-600/10 py-1 pl-3 pr-1.5 text-[0.8125rem] font-medium text-forest-800">
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-brand-600/10 py-1 pl-3 pr-1.5 text-[0.8125rem] font-medium text-brand-800">
                 {item}
                 <button
                   type="button"
                   onClick={() => remove(index)}
                   aria-label={`Quitar ${item}`}
-                  className="inline-flex h-5 w-5 items-center justify-center rounded-full text-forest-700/70 transition-colors hover:bg-forest-600/20 hover:text-forest-900"
+                  className="inline-flex h-5 w-5 items-center justify-center rounded-full text-brand-700/70 transition-colors hover:bg-brand-600/20 hover:text-navy-soft"
                 >
                   <svg viewBox="0 0 24 24" className="h-3 w-3" aria-hidden="true">
                     <path
@@ -102,7 +102,7 @@ export function ChipsInput({
         <button
           type="button"
           onClick={() => add(draft)}
-          className="shrink-0 rounded-2xl bg-black/[0.05] px-4 text-[0.875rem] font-semibold text-ink transition-colors hover:bg-black/[0.08]"
+          className="shrink-0 rounded-2xl bg-ink/[0.05] px-4 text-[0.875rem] font-semibold text-ink transition-colors hover:bg-ink/[0.08]"
         >
           Añadir
         </button>
@@ -116,7 +116,7 @@ export function ChipsInput({
               key={item}
               type="button"
               onClick={() => add(item)}
-              className="rounded-full bg-black/[0.04] px-2.5 py-1 text-[0.75rem] font-medium text-ink-soft transition-colors hover:bg-black/[0.08]"
+              className="rounded-full bg-ink/[0.04] px-2.5 py-1 text-[0.75rem] font-medium text-ink-soft transition-colors hover:bg-ink/[0.08]"
             >
               + {item}
             </button>

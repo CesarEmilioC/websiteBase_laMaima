@@ -49,15 +49,17 @@ export function LegalDocument({
   return (
     <>
       {/* Encabezado limpio (sin foto): un documento legal se lee, no se
-          contempla. Mismo ritmo vertical que la ficha de alojamiento. */}
-      <section className="bg-white pb-10 pt-28 sm:pt-32 lg:pt-36">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-10">
+          contempla. El relleno superior es el mismo de la ficha de alojamiento
+          —el que deja libre el header fijo— y el fondo, el lienzo `shell`: así
+          los únicos blancos de la página son los paneles de lectura. */}
+      <section className="bg-shell pb-10 pt-28 sm:pt-32 lg:pt-36">
+        <div className="container-page">
           <nav aria-label="Ruta de navegación">
             <ol className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-[0.8125rem] text-ink-muted">
               <li>
                 <Link
                   href="/"
-                  className="transition-colors duration-200 hover:text-forest-600"
+                  className="transition-colors duration-200 hover:text-brand-600"
                 >
                   Inicio
                 </Link>
@@ -71,22 +73,22 @@ export function LegalDocument({
             </ol>
           </nav>
 
-          <p className="eyebrow mt-6 text-forest-700">Legal</p>
+          <p className="eyebrow mt-6 text-brand-700">Legal</p>
           <h1 className="tracking-display mt-3 max-w-3xl text-[2.125rem] leading-[1.08] text-ink sm:text-[2.75rem] lg:text-5xl">
             {title}
           </h1>
           <p className="mt-5 max-w-2xl text-[1.0625rem] leading-relaxed text-ink-muted">
             {intro}
           </p>
-          <p className="mt-6 inline-flex items-center gap-2 rounded-full bg-cream px-3.5 py-1.5 text-[0.8125rem] font-medium text-ink-soft">
+          <p className="glass-sand mt-6 inline-flex items-center gap-2 rounded-full px-3.5 py-1.5 text-[0.8125rem] font-medium text-ink-soft">
             Última actualización: {updated}
           </p>
         </div>
       </section>
 
       {/* Cuerpo ------------------------------------------------------------ */}
-      <section className="bg-cream py-12 sm:py-14 lg:py-16">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-10">
+      <section className="section-y-sm bg-sand-soft">
+        <div className="container-page">
           <div className="grid gap-8 lg:grid-cols-12 lg:gap-12">
             {/* Índice: en pantalla ancha acompaña la lectura pegado arriba;
                 en móvil se pliega para no empujar el texto media pantalla. */}
@@ -94,7 +96,7 @@ export function LegalDocument({
               aria-label="Contenido del documento"
               className="lg:col-span-4 lg:order-2"
             >
-              <details className="group rounded-panel bg-white p-5 shadow-card ring-1 ring-black/[0.05] lg:hidden">
+              <details className="group rounded-panel bg-white p-5 shadow-card ring-1 ring-ink/[0.05] lg:hidden">
                 <summary className="flex cursor-pointer list-none items-center justify-between gap-4 text-[0.9375rem] font-semibold text-ink [&::-webkit-details-marker]:hidden">
                   Contenido del documento
                   <span
@@ -104,12 +106,12 @@ export function LegalDocument({
                     ⌄
                   </span>
                 </summary>
-                <ol className="mt-4 space-y-2.5 border-t border-black/[0.07] pt-4 text-[0.9375rem]">
+                <ol className="mt-4 space-y-2.5 border-t border-ink/[0.07] pt-4 text-[0.9375rem]">
                   {sections.map((section) => (
                     <li key={section.id}>
                       <a
                         href={`#${section.id}`}
-                        className="text-ink-muted transition-colors duration-200 hover:text-forest-700"
+                        className="text-ink-muted transition-colors duration-200 hover:text-brand-700"
                       >
                         {section.title}
                       </a>
@@ -119,16 +121,17 @@ export function LegalDocument({
               </details>
 
               <div className="hidden lg:sticky lg:top-28 lg:block">
-                <div className="rounded-panel bg-white p-6 shadow-card ring-1 ring-black/[0.05]">
-                  <h2 className="text-[0.8125rem] font-semibold text-ink-muted">
-                    Contenido
-                  </h2>
+                <div className="rounded-panel bg-white p-6 shadow-card ring-1 ring-ink/[0.05]">
+                  {/* `.eyebrow` fija la familia SANS: es un rótulo de
+                      interfaz, no un titular, y a 13 px la serifa de display
+                      con peso 600 solo se ve emborronada. */}
+                  <h2 className="eyebrow text-ink-muted">Contenido</h2>
                   <ol className="mt-4 space-y-2.5 text-[0.9375rem]">
                     {sections.map((section) => (
                       <li key={section.id}>
                         <a
                           href={`#${section.id}`}
-                          className="text-ink-muted transition-colors duration-200 hover:text-forest-700"
+                          className="text-ink-muted transition-colors duration-200 hover:text-brand-700"
                         >
                           {section.title}
                         </a>
@@ -140,7 +143,7 @@ export function LegalDocument({
             </nav>
 
             <article className="lg:col-span-8 lg:order-1">
-              <div className="rounded-panel bg-white p-6 shadow-panel ring-1 ring-black/[0.05] sm:p-9 lg:p-11">
+              <div className="rounded-panel bg-white p-6 shadow-panel ring-1 ring-ink/[0.05] sm:p-9 lg:p-11">
                 <div className="legal-prose max-w-[68ch]">
                   {sections.map((section, index) => (
                     <section
@@ -148,11 +151,11 @@ export function LegalDocument({
                       id={section.id}
                       className={
                         index > 0
-                          ? "mt-11 scroll-mt-28 border-t border-black/[0.07] pt-9"
+                          ? "mt-11 scroll-mt-28 border-t border-ink/[0.07] pt-9"
                           : "scroll-mt-28"
                       }
                     >
-                      <h2 className="text-[1.375rem] tracking-[-0.025em] text-ink sm:text-[1.5rem]">
+                      <h2 className="tracking-editorial text-[1.375rem] text-ink sm:text-[1.5rem]">
                         {section.title}
                       </h2>
                       <div className="mt-4">{section.body}</div>
@@ -161,7 +164,7 @@ export function LegalDocument({
                 </div>
 
                 {footnote && (
-                  <div className="legal-prose mt-11 max-w-[68ch] border-t border-black/[0.07] pt-8 text-[0.9375rem] text-ink-muted">
+                  <div className="legal-prose mt-11 max-w-[68ch] border-t border-ink/[0.07] pt-8 text-[0.9375rem] text-ink-muted">
                     {footnote}
                   </div>
                 )}
@@ -177,7 +180,7 @@ export function LegalDocument({
                   <Link
                     key={link.href}
                     href={link.href}
-                    className="flex items-center justify-between gap-4 rounded-card bg-white px-5 py-4 text-[0.9375rem] font-semibold text-ink shadow-card ring-1 ring-black/[0.05] transition-[background-color,color,transform] duration-200 ease-ios hover:bg-forest-600 hover:text-white active:scale-[0.99]"
+                    className="flex items-center justify-between gap-4 rounded-card bg-white px-5 py-4 text-[0.9375rem] font-semibold text-ink shadow-card ring-1 ring-ink/[0.05] transition-[background-color,color,transform] duration-200 ease-ios hover:bg-brand-50 hover:text-brand-700 active:scale-[0.99]"
                   >
                     {link.label}
                     <span aria-hidden="true">›</span>

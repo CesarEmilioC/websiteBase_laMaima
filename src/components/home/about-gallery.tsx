@@ -28,8 +28,10 @@ import type { GalleryImage } from "@/lib/content";
  *  - Con `prefers-reduced-motion` NO hay avance automático: se ve la primera
  *    foto y los puntos siguen sirviendo para cambiarla a mano.
  *
- * El marco lleva la máscara orgánica `.mask-pebble` (ver globals.css). Es una
- * de las dos únicas piezas irregulares del sitio, y por eso funciona.
+ * El marco es un RECTÁNGULO de esquinas moderadas. La máscara de guijarro
+ * (`.mask-pebble`) del diseño anterior desaparece: el cliente pidió de forma
+ * explícita fotos solo rectangulares, cuadradas o a página completa, sin
+ * formas irregulares.
  */
 
 const INTERVAL_MS = 4500;
@@ -122,9 +124,9 @@ export function AboutGallery({ images, fallbackAlt }: Props) {
         role="group"
         aria-roledescription="carrusel"
         aria-label="Fotos de la reserva natural"
-        /* `mask-pebble` es el guijarro asimétrico; `shadow-panel` lo despega
-           del blanco de la sección sin dibujarle un borde. */
-        className="mask-pebble relative aspect-[4/3] overflow-hidden bg-forest-100 shadow-panel sm:aspect-[5/4] lg:aspect-[4/5]"
+        /* `shadow-panel` despega la foto del blanco cálido de la sección sin
+           dibujarle un borde. */
+        className="relative aspect-[4/3] overflow-hidden rounded-panel bg-brand-100 shadow-panel sm:aspect-[5/4] lg:aspect-[4/5]"
       >
         {images.map((image, position) => {
           if (!mounted.includes(position)) return null;
@@ -142,6 +144,7 @@ export function AboutGallery({ images, fallbackAlt }: Props) {
                 alt={active ? image.alt || fallbackAlt : ""}
                 fill
                 sizes="(min-width: 1024px) 42vw, (min-width: 640px) 80vw, 100vw"
+                quality={68}
                 className="object-cover"
               />
             </div>
@@ -150,7 +153,13 @@ export function AboutGallery({ images, fallbackAlt }: Props) {
       </div>
 
       {images.length > 1 && (
-        <div className="mt-5 flex items-center justify-center gap-1 lg:justify-start lg:pl-6">
+        /* BUG CORREGIDO: los puntos llevaban `lg:justify-start lg:pl-6`, así
+           que en escritorio quedaban pegados a la izquierda y con una sangría
+           de 24 px — descentrados respecto a la foto que controlan. Ahora van
+           centrados bajo la imagen en TODOS los tamaños. El contenedor es el
+           mismo `relative` que envuelve la foto, de modo que el centro de los
+           puntos y el de la imagen son el mismo punto. */
+        <div className="mt-4 flex items-center justify-center">
           {images.map((image, position) => {
             const active = position === index;
             return (
@@ -160,14 +169,18 @@ export function AboutGallery({ images, fallbackAlt }: Props) {
                 onClick={() => setIndex(position)}
                 aria-label={`Ver la foto ${position + 1} de ${images.length}`}
                 aria-current={active ? "true" : undefined}
-                /* Punto de 7 px dentro de un botón de 28 px: discreto a la
-                   vista y con el área táctil que pide la WCAG 2.2. */
-                className="group inline-flex h-7 w-7 items-center justify-center rounded-full transition-colors duration-200 hover:bg-black/[0.04]"
+                /* Punto de 7 px dentro de un botón de 40 px: discreto a la
+                   vista y con el área táctil holgada que pide la WCAG 2.2. A
+                   28 px, con separación de 4, la auditoría de accesibilidad lo
+                   marcaba como objetivo insuficiente; los botones van ahora
+                   pegados (sin `gap`) para que sus áreas se toquen y no quede
+                   ni un píxel muerto entre punto y punto. */
+                className="group inline-flex h-10 w-10 items-center justify-center rounded-full transition-colors duration-200 hover:bg-ink/[0.04]"
               >
                 <span
                   className={`block rounded-full transition-[width,height,background-color] duration-300 ease-ios ${
                     active
-                      ? "h-[7px] w-[18px] bg-forest-600"
+                      ? "h-[7px] w-[18px] bg-brand-600"
                       : "h-[7px] w-[7px] bg-ink-muted/35 group-hover:bg-ink-muted/60"
                   }`}
                 />

@@ -33,7 +33,7 @@ export function Gallery({ images, name }: Props) {
   return (
     <section aria-label={`Galería de fotos de ${name}`}>
       <div className="grid gap-3 sm:gap-4 lg:grid-cols-3">
-        <div className="relative aspect-[4/3] overflow-hidden rounded-card bg-forest-100 lg:col-span-2 lg:aspect-[3/2]">
+        <div className="relative aspect-[4/3] overflow-hidden rounded-card bg-brand-100 lg:col-span-2 lg:aspect-[3/2]">
           <Image
             src={main.url}
             alt={main.alt || fallbackAlt}
@@ -58,7 +58,7 @@ export function Gallery({ images, name }: Props) {
               return (
                 <div
                   key={`${image.url}-${index}`}
-                  className={`relative overflow-hidden rounded-card bg-forest-100 lg:col-span-1 lg:aspect-auto lg:h-full ${
+                  className={`relative overflow-hidden rounded-card bg-brand-100 lg:col-span-1 lg:aspect-auto lg:h-full ${
                     isLoneLast
                       ? "col-span-2 aspect-[16/9]"
                       : "aspect-[4/3]"
@@ -69,6 +69,10 @@ export function Gallery({ images, name }: Props) {
                     alt={image.alt || fallbackAlt}
                     fill
                     sizes="(min-width: 1280px) 400px, (min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
+                    /* Las secundarias bajan a 68: comparten la carga inicial
+                       con la principal, que es el LCP de la ficha, y a este
+                       tamaño la diferencia de calidad no se aprecia. */
+                    quality={68}
                     className="object-cover"
                   />
                 </div>

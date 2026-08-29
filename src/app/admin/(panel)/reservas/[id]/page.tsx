@@ -131,7 +131,7 @@ export default async function BookingDetailPage({
               </form>
             ))}
 
-            <div className="border-t border-black/[0.07] pt-3">
+            <div className="border-t border-ink/[0.07] pt-3">
               <form action={deleteBookingAction}>
                 <input type="hidden" name="id" value={booking.id} />
                 <SubmitButton
@@ -149,7 +149,7 @@ export default async function BookingDetailPage({
         </Card>
       </div>
 
-      <h2 className="mb-3 text-[1.125rem] font-semibold tracking-[-0.02em] text-ink">
+      <h2 className="mb-3 font-sans text-[1.125rem] font-semibold tracking-[-0.02em] text-ink">
         Editar la reserva
       </h2>
       <BookingForm booking={booking} accommodations={accommodations} />

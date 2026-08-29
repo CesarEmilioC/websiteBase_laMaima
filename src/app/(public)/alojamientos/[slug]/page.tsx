@@ -6,7 +6,8 @@ import { AccommodationCard } from "@/components/accommodation-card";
 import { BookingWidget } from "@/components/booking/booking-widget";
 import { Gallery } from "@/components/gallery";
 import { ArrowRightIcon, CheckIcon, UsersIcon } from "@/components/icons";
-import { SectionCurve } from "@/components/section-curve";
+import { LeafField } from "@/components/leaf-field";
+import { SpecialPlans } from "@/components/special-plans";
 import { WhatsAppButton } from "@/components/whatsapp-button";
 import {
   coverImage,
@@ -121,14 +122,14 @@ export default async function AccommodationDetailPage({ params }: Props) {
   return (
     <>
       {/* Banda de encabezado ------------------------------------------------ */}
-      <section className="bg-white pb-8 pt-28 sm:pb-10 sm:pt-32 lg:pt-36">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-10">
+      <section className="bg-shell pb-10 pt-28 sm:pb-12 sm:pt-32 lg:pt-36">
+        <div className="container-page">
           <nav aria-label="Ruta de navegación">
             <ol className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-[0.8125rem] text-ink-muted">
               <li>
                 <Link
                   href="/"
-                  className="transition-colors duration-200 hover:text-forest-600"
+                  className="transition-colors duration-200 hover:text-brand-600"
                 >
                   Inicio
                 </Link>
@@ -139,7 +140,7 @@ export default async function AccommodationDetailPage({ params }: Props) {
               <li>
                 <Link
                   href="/alojamientos"
-                  className="transition-colors duration-200 hover:text-forest-600"
+                  className="transition-colors duration-200 hover:text-brand-600"
                 >
                   Alojamientos
                 </Link>
@@ -162,7 +163,7 @@ export default async function AccommodationDetailPage({ params }: Props) {
                 {chips.map((chip, index) => (
                   <li
                     key={chip}
-                    className="inline-flex items-center gap-2 rounded-full bg-forest-600/10 px-3.5 py-1.5 text-[0.875rem] font-semibold text-forest-700"
+                    className="inline-flex items-center gap-2 rounded-full bg-brand-600/10 px-3.5 py-1.5 text-[0.8125rem] font-semibold text-brand-700 ring-1 ring-inset ring-brand-600/15"
                   >
                     {index === 0 && <UsersIcon className="h-4 w-4" />}
                     {chip}
@@ -172,10 +173,8 @@ export default async function AccommodationDetailPage({ params }: Props) {
             </div>
 
             <div className="sm:text-right">
-              <p className="text-[0.8125rem] font-medium text-ink-muted">
-                Desde
-              </p>
-              <p className="mt-1 text-[2rem] font-semibold leading-none tracking-[-0.035em] text-forest-700">
+              <p className="eyebrow text-ink-muted">Desde</p>
+              <p className="mt-2 text-[2rem] font-semibold leading-none tracking-[-0.02em] text-brand-700">
                 {formatCOP(from.amountCop)}
                 <span className="ml-1.5 text-[0.875rem] font-medium tracking-normal text-ink-muted">
                   COP / noche
@@ -192,20 +191,21 @@ export default async function AccommodationDetailPage({ params }: Props) {
       </section>
 
       {/* Galería ------------------------------------------------------------ */}
-      <section className="bg-white">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-10">
+      <section className="bg-shell">
+        <div className="container-page">
           <Gallery images={accommodation.gallery} name={accommodation.name} />
         </div>
       </section>
 
       {/* Descripción + panel de reserva ------------------------------------- */}
-      {/* El relleno inferior es más alto que el superior: por debajo, la curva
-          del motor de reservas se monta sobre esta sección hasta ~96 px. */}
-      <section className="bg-white pb-24 pt-14 sm:pt-16 lg:pb-32 lg:pt-20">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-10">
+      {/* Ritmo simétrico: al desaparecer la curva que se montaba sobre la
+          sección siguiente, el relleno inferior ya no tiene que ser más alto
+          que el superior. */}
+      <section className="section-y bg-shell">
+        <div className="container-page">
           <div className="grid gap-12 lg:grid-cols-12 lg:gap-14">
             <div className="lg:col-span-7" data-reveal>
-              <h2 className="text-[1.75rem] tracking-[-0.03em] text-ink sm:text-[2rem]">
+              <h2 className="text-[1.75rem] text-ink sm:text-[2rem]">
                 Sobre {accommodation.name}
               </h2>
               {accommodation.description && (
@@ -216,23 +216,23 @@ export default async function AccommodationDetailPage({ params }: Props) {
 
               {accommodation.amenities.length > 0 && (
                 <div className="mt-12">
-                  <h3 className="text-[1.5rem] tracking-[-0.03em] text-ink">
+                  <h3 className="text-[1.5rem] text-ink">
                     Qué incluye
                   </h3>
                   {/* Lista estilo iOS: icono + texto + separador hairline */}
-                  <ul className="mt-5 overflow-hidden rounded-panel bg-cream sm:grid sm:grid-cols-2">
+                  <ul className="mt-5 overflow-hidden rounded-panel bg-sand-soft sm:grid sm:grid-cols-2">
                     {accommodation.amenities.map((amenity, index) => (
                       <li
                         key={amenity}
                         className={`flex items-center gap-3.5 px-5 py-3.5 text-[0.9375rem] text-ink-soft ${
-                          index > 0 ? "border-t border-black/[0.07]" : ""
+                          index > 0 ? "border-t border-ink/[0.07]" : ""
                         } ${
                           index % 2 === 1
-                            ? "sm:border-l sm:border-l-black/[0.07]"
+                            ? "sm:border-l sm:border-l-ink/[0.08]"
                             : ""
                         } ${index === 1 ? "sm:border-t-0" : ""}`}
                       >
-                        <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-forest-600 text-white">
+                        <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-brand-600 text-white">
                           <CheckIcon className="h-3.5 w-3.5" />
                         </span>
                         {amenity}
@@ -245,11 +245,9 @@ export default async function AccommodationDetailPage({ params }: Props) {
 
             {/* Panel lateral */}
             <div className="lg:col-span-5">
-              <div className="rounded-panel bg-white p-7 shadow-panel ring-1 ring-black/[0.05] lg:sticky lg:top-28">
-                <p className="text-[0.8125rem] font-medium text-ink-muted">
-                  Tarifa desde
-                </p>
-                <p className="mt-1.5 text-[2.25rem] font-semibold leading-none tracking-[-0.04em] text-forest-700">
+              <div className="rounded-panel bg-white p-7 shadow-panel ring-1 ring-inset ring-ink/[0.06] lg:sticky lg:top-28">
+                <p className="eyebrow text-ink-muted">Tarifa desde</p>
+                <p className="mt-2 text-[2.25rem] font-semibold leading-none tracking-[-0.02em] text-brand-700">
                   {formatCOP(from.amountCop)}
                   <span className="ml-1.5 text-[0.875rem] font-medium tracking-normal text-ink-muted">
                     COP / noche
@@ -265,12 +263,12 @@ export default async function AccommodationDetailPage({ params }: Props) {
                     el que mira una cabaña, y aparece aquí sin tener que bajar
                     al calendario. */}
                 {accommodation.tiers.length > 0 && (
-                  <dl className="mt-6 overflow-hidden rounded-card bg-cream text-[0.9375rem]">
+                  <dl className="mt-6 overflow-hidden rounded-card bg-sand-soft text-[0.9375rem]">
                     {tierRows(accommodation.tiers).map((row, index) => (
                       <div
                         key={row.key}
                         className={`flex items-center justify-between gap-4 px-4 py-3 ${
-                          index > 0 ? "border-t border-black/[0.07]" : ""
+                          index > 0 ? "border-t border-ink/[0.07]" : ""
                         }`}
                       >
                         <dt className="text-ink-muted">{row.label}</dt>
@@ -289,7 +287,7 @@ export default async function AccommodationDetailPage({ params }: Props) {
                 )}
 
                 {minStays.length > 0 && (
-                  <div className="mt-4 rounded-card bg-cream px-4 py-3">
+                  <div className="mt-4 rounded-card bg-sand-soft px-4 py-3">
                     <p className="text-[0.8125rem] font-semibold text-ink">
                       Estancia mínima
                     </p>
@@ -301,9 +299,13 @@ export default async function AccommodationDetailPage({ params }: Props) {
                   </div>
                 )}
 
+                {/* Paquetes vigentes o próximos que el cliente crea en el panel
+                    (/admin/tarifas). Si no hay ninguno, no se pinta nada. */}
+                <SpecialPlans plans={rates.ratePlans} />
+
                 <a
                   href="#reservar"
-                  className="mt-6 flex w-full items-center justify-center gap-2 rounded-full bg-forest-600 px-6 py-4 text-[1.0625rem] font-semibold tracking-[-0.01em] text-white shadow-pill transition-[background-color,transform] duration-200 ease-ios hover:bg-forest-700 active:scale-[0.98]"
+                  className="mt-6 flex w-full items-center justify-center gap-2 rounded-full bg-brand-600 px-6 py-4 text-[1.0625rem] font-semibold tracking-[-0.01em] text-white shadow-pill transition-[background-color,transform] duration-200 ease-ios hover:bg-brand-700 active:scale-[0.98]"
                 >
                   Reservar
                   <ArrowRightIcon className="h-[1.05rem] w-[1.05rem]" />
@@ -332,23 +334,30 @@ export default async function AccommodationDetailPage({ params }: Props) {
           estática (SSG + ISR de una hora) y el calendario tiene que ser fresco. */}
       <section
         id="reservar"
-        className="relative bg-forest-950 pb-24 pt-16 sm:pt-20 lg:pb-32 lg:pt-24"
+        className="section-y relative isolate overflow-hidden bg-navy"
         aria-labelledby="reservar-title"
       >
-        {/* El motor de reservas no llega como una franja más: sube hacia la
-            descripción con un arco. Es la sección más importante de la ficha. */}
-        <SectionCurve variant="arco" fill="fill-forest-950" />
+        {/* El motor de reservas es la sección más importante de la ficha y
+            tiene que destacarse, pero ya no con una curva recortada: ahora lo
+            hacen una veladura de luz azul en el borde superior —una capa de
+            transparencia, que es lo que pidió el cliente— y las hojas
+            flotando de fondo. */}
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-64 bg-[radial-gradient(80%_100%_at_50%_0%,rgb(52_95_198/0.3),transparent_70%)]"
+        />
+        <LeafField tone="light" className="-z-10" />
 
-        <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-10">
+        <div className="container-page max-w-6xl">
           <div className="text-center">
-            <p className="eyebrow text-forest-400">Reservas</p>
+            <p className="eyebrow text-brand-400">Reservas</p>
             <h2
               id="reservar-title"
               className="tracking-editorial mt-3 text-[2.125rem] leading-[1.08] text-white sm:text-[2.75rem]"
             >
               Elige tus fechas en {accommodation.name}
             </h2>
-            <p className="mx-auto mt-5 max-w-2xl text-[1.0625rem] leading-relaxed text-cream/70">
+            <p className="mx-auto mt-5 max-w-2xl text-[1.0625rem] leading-relaxed text-sand-soft/70">
               El calendario muestra la disponibilidad real, incluidas las
               reservas que llegan por Airbnb y Booking. Arma tu estadía y
               envíanos la solicitud: confirmamos fechas y forma de pago el mismo
@@ -373,30 +382,26 @@ export default async function AccommodationDetailPage({ params }: Props) {
 
       {/* Otros alojamientos -------------------------------------------------- */}
       {others.length > 0 && (
-        <section
-          className="relative bg-cream pb-16 pt-14 sm:pb-20 sm:pt-16 lg:pb-24 lg:pt-20"
-          aria-labelledby="otros-title"
-        >
-          <SectionCurve variant="onda" fill="fill-cream" flip />
+        <section className="section-y bg-sand-soft" aria-labelledby="otros-title">
 
-          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-10">
+          <div className="container-page">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
               <h2
                 id="otros-title"
-                className="tracking-editorial text-[2rem] text-ink sm:text-[2.25rem]"
+                className="tracking-editorial text-[2rem] text-ink sm:text-[2.375rem]"
               >
                 Otros alojamientos
               </h2>
               <Link
                 href="/alojamientos"
-                className="inline-flex shrink-0 items-center gap-2 rounded-full bg-white px-5 py-2.5 text-[0.9375rem] font-semibold text-forest-700 shadow-card transition-[background-color,color,transform] duration-200 ease-ios hover:bg-forest-600 hover:text-white active:scale-[0.98]"
+                className="inline-flex shrink-0 items-center gap-2 rounded-full bg-white px-5 py-2.5 text-[0.9375rem] font-semibold text-brand-700 shadow-card transition-[background-color,color,transform] duration-200 ease-ios hover:bg-brand-600 hover:text-white active:scale-[0.98]"
               >
                 Ver los seis
                 <ArrowRightIcon className="h-[1.05rem] w-[1.05rem]" />
               </Link>
             </div>
 
-            <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3 lg:gap-7">
+            <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3 lg:gap-7 lg:mt-12">
               {others.map((item) => (
                 <AccommodationCard key={item.id} accommodation={item} />
               ))}

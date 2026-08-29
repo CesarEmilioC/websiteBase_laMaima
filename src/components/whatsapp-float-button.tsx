@@ -77,7 +77,12 @@ export function WhatsAppFloatButton({ href }: Props) {
       aria-label="Escríbenos por WhatsApp"
       aria-hidden={overBooking}
       tabIndex={overBooking ? -1 : undefined}
-      className={`fixed bottom-5 right-4 z-30 flex h-14 w-14 items-center justify-center rounded-full bg-forest-600 text-white shadow-float transition-[background-color,opacity,transform] duration-300 ease-ios hover:bg-forest-700 focus-visible:outline-offset-4 sm:bottom-6 sm:right-6 sm:h-[3.75rem] sm:w-[3.75rem] ${
+      /* AZUL PRIMARIO, no verde WhatsApp: el verde de marca dejó de existir
+         con la identidad nueva y una pastilla verde flotando sobre una paleta
+         azul y arena se leería como un elemento pegado de otro sitio. El icono
+         sigue siendo el de WhatsApp en blanco, que es lo que identifica el
+         canal. */
+      className={`fixed bottom-5 right-4 z-30 flex h-14 w-14 items-center justify-center rounded-full bg-brand-600 text-white shadow-float transition-[background-color,opacity,transform] duration-300 ease-ios hover:bg-brand-700 focus-visible:outline-offset-4 sm:bottom-6 sm:right-6 sm:h-[3.75rem] sm:w-[3.75rem] ${
         overBooking
           ? "pointer-events-none scale-90 opacity-0"
           : "scale-100 opacity-100 hover:scale-[1.04] active:scale-95"

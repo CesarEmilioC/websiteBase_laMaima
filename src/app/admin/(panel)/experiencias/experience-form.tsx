@@ -176,12 +176,12 @@ export function ExperienceForm({
           </Field>
 
           <div className="flex items-end">
-            <label className="flex w-full cursor-pointer items-center gap-3 rounded-2xl bg-black/[0.035] px-4 py-3 ring-1 ring-inset ring-black/[0.06]">
+            <label className="flex w-full cursor-pointer items-center gap-3 rounded-2xl bg-ink/[0.035] px-4 py-3 ring-1 ring-inset ring-ink/[0.06]">
               <input
                 type="checkbox"
                 name="visible"
                 defaultChecked={experience?.visible ?? true}
-                className="h-5 w-5 rounded-md accent-forest-600"
+                className="h-5 w-5 rounded-md accent-brand-600"
               />
               <span className="text-[0.9375rem] font-medium text-ink">
                 Visible en el sitio público

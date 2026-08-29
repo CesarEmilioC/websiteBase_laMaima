@@ -229,7 +229,7 @@ export function BookingWidget({
     return (
       <Shell>
         <div className="flex flex-col items-center gap-4 px-2 py-10 text-center">
-          <span className="flex h-12 w-12 items-center justify-center rounded-full bg-cream text-ink-muted">
+          <span className="flex h-12 w-12 items-center justify-center rounded-full bg-sand-soft text-ink-muted">
             <AlertIcon className="h-6 w-6" />
           </span>
           <div>
@@ -244,7 +244,7 @@ export function BookingWidget({
           <button
             type="button"
             onClick={() => void load()}
-            className="rounded-full bg-forest-600 px-6 py-3 text-[0.9375rem] font-semibold text-white shadow-pill transition-[background-color,transform] duration-200 ease-ios hover:bg-forest-700 active:scale-[0.98]"
+            className="rounded-full bg-brand-600 px-6 py-3 text-[0.9375rem] font-semibold text-white shadow-pill transition-[background-color,transform] duration-200 ease-ios hover:bg-brand-700 active:scale-[0.98]"
           >
             Reintentar
           </button>
@@ -272,12 +272,12 @@ export function BookingWidget({
           {/* Calendario */}
           <div>
             <div className="flex items-center gap-2">
-              <div className="h-10 w-10 shrink-0 rounded-full bg-cream" />
+              <div className="h-10 w-10 shrink-0 rounded-full bg-sand-soft" />
               <div className="grid flex-1 grid-cols-1 sm:grid-cols-2 sm:gap-x-6">
-                <div className="mx-auto h-5 w-28 rounded-full bg-cream-200" />
-                <div className="mx-auto hidden h-5 w-28 rounded-full bg-cream-200 sm:block" />
+                <div className="mx-auto h-5 w-28 rounded-full bg-sand" />
+                <div className="mx-auto hidden h-5 w-28 rounded-full bg-sand sm:block" />
               </div>
-              <div className="h-10 w-10 shrink-0 rounded-full bg-cream" />
+              <div className="h-10 w-10 shrink-0 rounded-full bg-sand-soft" />
             </div>
 
             <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 sm:gap-x-6">
@@ -290,30 +290,30 @@ export function BookingWidget({
             <div className="mt-5 flex flex-wrap items-center gap-x-5 gap-y-2">
               {[0, 1, 2].map((index) => (
                 <div key={index} className="flex items-center gap-2">
-                  <span className="h-3.5 w-3.5 rounded-full bg-cream-200" />
-                  <span className="h-4 w-20 rounded-full bg-cream-200" />
+                  <span className="h-3.5 w-3.5 rounded-full bg-sand" />
+                  <span className="h-4 w-20 rounded-full bg-sand" />
                 </div>
               ))}
             </div>
 
-            <div className="mt-5 h-5 w-56 rounded-full bg-cream-200" />
+            <div className="mt-5 h-5 w-56 rounded-full bg-sand" />
           </div>
 
           {/* Resumen */}
-          <div className="lg:border-l lg:border-black/[0.07] lg:pl-10">
-            <div className="h-4 w-24 rounded-full bg-cream-200" />
-            <div className="mt-2 h-6 w-40 rounded-full bg-cream-200" />
-            <div className="mt-4 h-[9.25rem] rounded-card bg-cream" />
-            <div className="mt-4 h-[5.25rem] rounded-card bg-cream" />
-            <div className="mt-5 border-t border-black/[0.07] pt-4">
-              <div className="h-5 w-full rounded-full bg-cream-200" />
-              <div className="mt-4 h-8 w-full rounded-full bg-cream-200" />
-              <div className="mt-3 h-6 w-2/3 rounded-full bg-cream-200" />
+          <div className="lg:border-l lg:border-ink/[0.07] lg:pl-10">
+            <div className="h-4 w-24 rounded-full bg-sand" />
+            <div className="mt-2 h-6 w-40 rounded-full bg-sand" />
+            <div className="mt-4 h-[9.25rem] rounded-card bg-sand-soft" />
+            <div className="mt-4 h-[5.25rem] rounded-card bg-sand-soft" />
+            <div className="mt-5 border-t border-ink/[0.07] pt-4">
+              <div className="h-5 w-full rounded-full bg-sand" />
+              <div className="mt-4 h-8 w-full rounded-full bg-sand" />
+              <div className="mt-3 h-6 w-2/3 rounded-full bg-sand" />
             </div>
-            <div className="mt-5 h-[3.5rem] w-full rounded-full bg-cream-200" />
-            <div className="mx-auto mt-3 h-4 w-4/5 rounded-full bg-cream-200" />
-            <div className="mx-auto mt-2 h-4 w-3/5 rounded-full bg-cream-200" />
-            <div className="mx-auto mt-3 h-4 w-2/3 rounded-full bg-cream-200" />
+            <div className="mt-5 h-[3.5rem] w-full rounded-full bg-sand" />
+            <div className="mx-auto mt-3 h-4 w-4/5 rounded-full bg-sand" />
+            <div className="mx-auto mt-2 h-4 w-3/5 rounded-full bg-sand" />
+            <div className="mx-auto mt-3 h-4 w-2/3 rounded-full bg-sand" />
           </div>
         </div>
       </Shell>
@@ -360,7 +360,7 @@ export function BookingWidget({
               <button
                 type="button"
                 onClick={clearDates}
-                className="rounded-full bg-cream px-4 py-2 text-[0.8125rem] font-semibold text-ink-soft transition-[background-color,transform] duration-200 ease-ios hover:bg-cream-200 active:scale-[0.97]"
+                className="rounded-full bg-sand-soft px-4 py-2 text-[0.8125rem] font-semibold text-ink-soft transition-[background-color,transform] duration-200 ease-ios hover:bg-sand active:scale-[0.97]"
               >
                 Borrar fechas
               </button>
@@ -379,7 +379,7 @@ export function BookingWidget({
         </div>
 
         {/* Resumen --------------------------------------------------------- */}
-        <div className="lg:border-l lg:border-black/[0.07] lg:pl-10">
+        <div className="lg:border-l lg:border-ink/[0.07] lg:pl-10">
           <p className="text-[0.8125rem] font-semibold text-ink-muted">
             Tu solicitud
           </p>
@@ -387,7 +387,7 @@ export function BookingWidget({
             {name}
           </p>
 
-          <dl className="mt-4 overflow-hidden rounded-card bg-cream text-[0.9375rem]">
+          <dl className="mt-4 overflow-hidden rounded-card bg-sand-soft text-[0.9375rem]">
             <SummaryRow
               label="Entrada"
               value={checkIn ? formatDateEs(checkIn) : "Sin elegir"}
@@ -411,7 +411,7 @@ export function BookingWidget({
 
           {/* Huéspedes: pasos de ±1 en vez de un <select>, mucho más cómodo
               con el pulgar y sin abrir la rueda nativa de iOS. */}
-          <div className="mt-4 flex items-center justify-between gap-3 rounded-card bg-cream px-4 py-3">
+          <div className="mt-4 flex items-center justify-between gap-3 rounded-card bg-sand-soft px-4 py-3">
             <div>
               <p className="flex items-center gap-2 text-[0.9375rem] font-semibold text-ink">
                 <UsersIcon className="h-4 w-4 text-ink-muted" />
@@ -452,11 +452,11 @@ export function BookingWidget({
           {/* El precio depende de la ocupación Y del tipo de cada noche, así que
               el desglose no es decorativo: es la única forma de que el huésped
               entienda por qué dos noches del mismo alojamiento valen distinto. */}
-          <div className="mt-5 border-t border-black/[0.07] pt-4 text-[0.9375rem]">
+          <div className="mt-5 border-t border-ink/[0.07] pt-4 text-[0.9375rem]">
             {estimate ? (
               <>
                 {estimate.planNames.length > 0 && (
-                  <p className="mb-3 inline-flex items-center gap-1.5 rounded-full bg-forest-600/10 px-3 py-1 text-[0.75rem] font-semibold text-forest-700">
+                  <p className="mb-3 inline-flex items-center gap-1.5 rounded-full bg-brand-600/10 px-3 py-1 text-[0.75rem] font-semibold text-brand-700">
                     {estimate.planNames.join(" · ")}
                   </p>
                 )}
@@ -479,9 +479,9 @@ export function BookingWidget({
                   ))}
                 </ul>
 
-                <div className="mt-3 flex items-baseline justify-between gap-4 border-t border-black/[0.07] pt-3">
+                <div className="mt-3 flex items-baseline justify-between gap-4 border-t border-ink/[0.07] pt-3">
                   <span className="font-semibold text-ink">Total estimado</span>
-                  <span className="text-[1.375rem] font-semibold tracking-[-0.03em] tabular-nums text-forest-700">
+                  <span className="text-[1.375rem] font-semibold tracking-[-0.03em] tabular-nums text-brand-700">
                     {formatCOP(estimate.totalCop)}
                   </span>
                 </div>
@@ -507,9 +507,9 @@ export function BookingWidget({
                     {formatCOP(from.amountCop)}
                   </span>
                 </div>
-                <div className="mt-3 flex items-baseline justify-between gap-4 border-t border-black/[0.07] pt-3">
+                <div className="mt-3 flex items-baseline justify-between gap-4 border-t border-ink/[0.07] pt-3">
                   <span className="font-semibold text-ink">Total estimado</span>
-                  <span className="text-[1.375rem] font-semibold tracking-[-0.03em] tabular-nums text-forest-700">
+                  <span className="text-[1.375rem] font-semibold tracking-[-0.03em] tabular-nums text-brand-700">
                     —
                   </span>
                 </div>
@@ -518,7 +518,7 @@ export function BookingWidget({
 
             {/* Desayuno: incluido o con su valor por persona, nunca en silencio. */}
             {breakfast && (
-              <p className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-forest-600/10 px-3 py-1 text-[0.75rem] font-semibold text-forest-700">
+              <p className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-brand-600/10 px-3 py-1 text-[0.75rem] font-semibold text-brand-700">
                 {breakfast}
               </p>
             )}
@@ -567,7 +567,7 @@ export function BookingWidget({
               href={whatsappHref}
               target="_blank"
               rel="noopener noreferrer"
-              className="mt-5 flex w-full items-center justify-center gap-2 rounded-full bg-whatsapp px-4 py-4 text-center text-[0.9375rem] font-semibold tracking-[-0.01em] text-white shadow-pill transition-[background-color,transform] duration-200 ease-ios hover:bg-whatsapp-dark active:scale-[0.98]"
+              className="mt-5 flex w-full items-center justify-center gap-2 rounded-full bg-brand-600 px-4 py-4 text-center text-[0.9375rem] font-semibold tracking-[-0.01em] text-white shadow-pill transition-[background-color,transform] duration-200 ease-ios hover:bg-brand-700 active:scale-[0.98]"
             >
               <WhatsAppIcon className="h-5 w-5 shrink-0" />
               Solicitar reserva por WhatsApp
@@ -576,7 +576,7 @@ export function BookingWidget({
             <button
               type="button"
               disabled
-              className="mt-5 flex w-full cursor-not-allowed items-center justify-center gap-2 rounded-full bg-cream-200 px-4 py-4 text-[0.9375rem] font-semibold tracking-[-0.01em] text-ink-muted"
+              className="mt-5 flex w-full cursor-not-allowed items-center justify-center gap-2 rounded-full bg-sand px-4 py-4 text-[0.9375rem] font-semibold tracking-[-0.01em] text-ink-muted"
             >
               <WhatsAppIcon className="h-5 w-5 shrink-0" />
               Solicitar reserva por WhatsApp
@@ -590,14 +590,14 @@ export function BookingWidget({
                 ? "Ajusta las fechas para cumplir la estancia mínima."
                 : "Elige las fechas para enviar tu solicitud."}
           </p>
-          <p className="mt-2 text-center text-[0.8125rem] font-medium text-forest-700">
+          <p className="mt-2 text-center text-[0.8125rem] font-medium text-brand-700">
             Muy pronto podrás pagar en línea aquí mismo.
           </p>
           <p className="mt-3 text-center text-[0.8125rem] text-ink-muted">
             ¿Prefieres hablar?{" "}
             <a
               href={phoneHref}
-              className="font-semibold text-forest-700 underline-offset-4 transition-colors duration-200 hover:underline"
+              className="font-semibold text-brand-700 underline-offset-4 transition-colors duration-200 hover:underline"
             >
               {phoneDisplay}
             </a>
@@ -635,7 +635,7 @@ function MonthSkeleton() {
             key={index}
             className="flex aspect-square w-full items-center justify-center"
           >
-            <span className="h-[62%] w-[62%] rounded-full bg-cream" />
+            <span className="h-[62%] w-[62%] rounded-full bg-sand-soft" />
           </span>
         ))}
       </div>
@@ -646,7 +646,7 @@ function MonthSkeleton() {
 /** Tarjeta blanca del widget: la misma caja en todos los estados. */
 function Shell({ children }: { children: React.ReactNode }) {
   return (
-    <div className="rounded-panel bg-white p-5 shadow-panel ring-1 ring-black/[0.05] sm:p-7">
+    <div className="rounded-panel bg-white p-5 shadow-panel ring-1 ring-ink/[0.05] sm:p-7">
       {children}
     </div>
   );
@@ -668,15 +668,19 @@ function SummaryRow({
   return (
     <div
       className={`flex items-center justify-between gap-4 px-4 py-3 ${
-        divider ? "border-t border-black/[0.07]" : ""
+        divider ? "border-t border-ink/[0.07]" : ""
       }`}
     >
       <dt className="flex items-center gap-2 text-ink-muted">
         {icon}
         {label}
       </dt>
+      {/* El estado "Sin elegir" va en `text-ink-muted` a plena opacidad: al
+          70 % sobre el arena de la fila daba 2,7:1 de contraste y la auditoría
+          de accesibilidad lo marcaba. A plena opacidad son 4,6:1 y sigue
+          leyéndose como el valor apagado que es. */}
       <dd
-        className={`font-semibold ${muted ? "text-ink-muted/70" : "text-ink"}`}
+        className={`font-semibold ${muted ? "text-ink-muted" : "text-ink"}`}
       >
         {value}
       </dd>
@@ -701,7 +705,7 @@ function StepperButton({
       onClick={onClick}
       disabled={disabled}
       aria-label={label}
-      className="flex h-10 w-10 items-center justify-center rounded-full bg-white text-ink shadow-card transition-[background-color,color,transform] duration-200 ease-ios hover:bg-forest-50 active:scale-[0.94] disabled:cursor-not-allowed disabled:bg-white/60 disabled:text-ink-muted/35 disabled:shadow-none disabled:active:scale-100"
+      className="flex h-10 w-10 items-center justify-center rounded-full bg-white text-ink shadow-card transition-[background-color,color,transform] duration-200 ease-ios hover:bg-brand-50 active:scale-[0.94] disabled:cursor-not-allowed disabled:bg-white/60 disabled:text-ink-muted/35 disabled:shadow-none disabled:active:scale-100"
     >
       {children}
     </button>

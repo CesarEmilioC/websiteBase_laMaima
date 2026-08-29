@@ -119,7 +119,7 @@ export function BlockForm({
                 key={item}
                 type="button"
                 onClick={() => setReason(item)}
-                className="rounded-full bg-black/[0.04] px-2.5 py-1 text-[0.75rem] font-medium text-ink-soft transition-colors hover:bg-black/[0.08]"
+                className="rounded-full bg-ink/[0.04] px-2.5 py-1 text-[0.75rem] font-medium text-ink-soft transition-colors hover:bg-ink/[0.08]"
               >
                 {item}
               </button>

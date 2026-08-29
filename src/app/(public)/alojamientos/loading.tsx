@@ -1,13 +1,22 @@
-import { CardGridSkeleton, HeroBandSkeleton } from "@/components/skeletons";
+import {
+  CardGridSkeleton,
+  HeroBandSkeleton,
+  SectionHeadingSkeleton,
+} from "@/components/skeletons";
 
-/** Silueta del listado: banda fotográfica + seis tarjetas en tres columnas. */
+/**
+ * Silueta del listado: banda fotográfica, encabezado de sección y seis
+ * tarjetas en tres columnas. El fondo, el ritmo vertical y el margen superior
+ * de la rejilla son los mismos que los de `alojamientos/page.tsx`.
+ */
 export default function Loading() {
   return (
     <>
       <HeroBandSkeleton />
-      <div className="bg-cream pb-16 pt-12 sm:pb-20 sm:pt-14 lg:pb-24 lg:pt-16">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-10">
-          <div className="mt-12 lg:mt-16">
+      <div className="section-y bg-shell">
+        <div className="container-page">
+          <SectionHeadingSkeleton />
+          <div className="mt-12 lg:mt-14">
             <CardGridSkeleton count={6} />
           </div>
         </div>

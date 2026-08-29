@@ -20,15 +20,15 @@ export default async function AdminPanelLayout({
   const { user } = await requireAdmin();
 
   return (
-    <div className="min-h-screen bg-cream">
-      <header className="glass-strong sticky top-0 z-40 border-b border-black/[0.07]">
+    <div className="min-h-screen bg-sand-soft">
+      <header className="glass-strong sticky top-0 z-40 border-b border-ink/[0.07]">
         <div className="mx-auto flex max-w-[88rem] items-center justify-between gap-4 px-4 py-3 sm:px-6 lg:px-8">
           <Link href="/admin" className="flex items-center gap-3">
             <Image
               src="/logo-lamaima.png"
               alt="La Maima"
-              width={108}
-              height={36}
+              width={946}
+              height={256}
               priority
               className="h-8 w-auto"
             />
@@ -42,7 +42,7 @@ export default async function AdminPanelLayout({
               href="/"
               target="_blank"
               rel="noreferrer"
-              className="hidden rounded-full px-3 py-1.5 text-[0.8125rem] font-semibold text-forest-700 transition-colors hover:bg-forest-600/10 sm:inline-flex"
+              className="hidden rounded-full px-3 py-1.5 text-[0.8125rem] font-semibold text-brand-700 transition-colors hover:bg-brand-600/10 sm:inline-flex"
             >
               Ver el sitio
             </Link>

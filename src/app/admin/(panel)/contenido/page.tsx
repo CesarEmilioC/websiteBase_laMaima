@@ -256,7 +256,7 @@ export default async function SiteContentPage() {
                     {[0, 1, 2].map((index) => (
                       <div
                         key={index}
-                        className="rounded-card bg-black/[0.025] p-3.5"
+                        className="rounded-card bg-ink/[0.025] p-3.5"
                       >
                         <Field label="Número" htmlFor={`stat_${index}_value`}>
                           <Input

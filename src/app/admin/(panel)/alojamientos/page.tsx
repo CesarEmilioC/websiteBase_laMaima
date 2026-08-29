@@ -72,7 +72,7 @@ export default async function AccommodationsAdminPage({
           </div>
         ) : (
           <>
-            <ul className="divide-y divide-black/[0.07]">
+            <ul className="divide-y divide-ink/[0.07]">
               {accommodations.map((item) => {
                 const cover = item.gallery[0];
                 return (
@@ -80,7 +80,7 @@ export default async function AccommodationsAdminPage({
                     key={item.id}
                     className="flex flex-wrap items-center gap-4 px-5 py-4 sm:px-6"
                   >
-                    <div className="h-14 w-20 shrink-0 overflow-hidden rounded-xl bg-black/[0.06]">
+                    <div className="h-14 w-20 shrink-0 overflow-hidden rounded-xl bg-ink/[0.06]">
                       {cover ? (
                         /* eslint-disable-next-line @next/next/no-img-element */
                         <img
@@ -100,7 +100,7 @@ export default async function AccommodationsAdminPage({
                       <div className="flex flex-wrap items-center gap-2">
                         <Link
                           href={`/admin/alojamientos/${item.id}`}
-                          className="text-[1rem] font-semibold text-ink transition-colors hover:text-forest-700"
+                          className="text-[1rem] font-semibold text-ink transition-colors hover:text-brand-700"
                         >
                           {item.name}
                         </Link>
@@ -128,14 +128,14 @@ export default async function AccommodationsAdminPage({
                         min={0}
                         max={9999}
                         aria-label={`Orden de ${item.name}`}
-                        className="w-16 rounded-xl bg-black/[0.04] px-2.5 py-1.5 text-center text-[0.875rem] font-semibold text-ink ring-1 ring-inset ring-black/[0.06] focus:bg-white focus:outline-none focus:ring-2 focus:ring-forest-500"
+                        className="w-16 rounded-xl bg-ink/[0.04] px-2.5 py-1.5 text-center text-[0.875rem] font-semibold text-ink ring-1 ring-inset ring-ink/[0.06] focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-500"
                       />
                     </label>
 
                     <div className="flex items-center gap-1.5">
                       <Link
                         href={`/admin/alojamientos/${item.id}`}
-                        className="rounded-full px-3 py-1.5 text-[0.8125rem] font-semibold text-forest-700 transition-colors hover:bg-forest-600/10"
+                        className="rounded-full px-3 py-1.5 text-[0.8125rem] font-semibold text-brand-700 transition-colors hover:bg-brand-600/10"
                       >
                         Editar
                       </Link>
@@ -173,7 +173,7 @@ export default async function AccommodationsAdminPage({
               })}
             </ul>
 
-            <div className="flex justify-end border-t border-black/[0.07] px-5 py-4 sm:px-6">
+            <div className="flex justify-end border-t border-ink/[0.07] px-5 py-4 sm:px-6">
               <form id={ORDER_FORM_ID} action={saveAccommodationsOrderAction}>
                 <SubmitButton tone="secondary" size="sm" pendingLabel="Guardando…">
                   Guardar orden

@@ -24,7 +24,7 @@ export function Card({
 }) {
   return (
     <section
-      className={`rounded-panel bg-white shadow-card ring-1 ring-black/[0.05] ${className}`}
+      className={`rounded-panel bg-white shadow-card ring-1 ring-ink/[0.05] ${className}`}
     >
       {children}
     </section>
@@ -41,9 +41,9 @@ export function CardHeader({
   action?: ReactNode;
 }) {
   return (
-    <header className="flex flex-wrap items-start justify-between gap-3 border-b border-black/[0.07] px-5 py-4 sm:px-6">
+    <header className="flex flex-wrap items-start justify-between gap-3 border-b border-ink/[0.07] px-5 py-4 sm:px-6">
       <div className="min-w-0">
-        <h2 className="text-[1.0625rem] font-semibold tracking-[-0.02em] text-ink">
+        <h2 className="font-sans text-[1.0625rem] font-semibold tracking-[-0.02em] text-ink">
           {title}
         </h2>
         {description && (
@@ -80,7 +80,7 @@ export function PageHeading({
   return (
     <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
       <div className="min-w-0">
-        <h1 className="text-[1.75rem] font-semibold tracking-[-0.03em] text-ink sm:text-[2rem]">
+        <h1 className="text-[1.75rem] text-ink sm:text-[2rem]">
           {title}
         </h1>
         {description && (
@@ -105,11 +105,11 @@ const BUTTON_BASE =
 
 const BUTTON_TONES: Record<ButtonTone, string> = {
   primary:
-    "bg-forest-600 text-white shadow-pill hover:bg-forest-700 active:scale-[0.98]",
+    "bg-brand-600 text-white shadow-pill hover:bg-brand-700 active:scale-[0.98]",
   secondary:
-    "bg-black/[0.05] text-ink hover:bg-black/[0.08] active:scale-[0.98]",
+    "bg-ink/[0.05] text-ink hover:bg-ink/[0.08] active:scale-[0.98]",
   ghost:
-    "bg-transparent text-forest-700 hover:bg-forest-600/10 active:scale-[0.98]",
+    "bg-transparent text-brand-700 hover:bg-brand-600/10 active:scale-[0.98]",
   danger: "bg-red-600/10 text-red-700 hover:bg-red-600/15 active:scale-[0.98]",
 };
 
@@ -150,7 +150,7 @@ export function LinkButton({
  * ------------------------------------------------------------------------- */
 
 export const INPUT_CLASS =
-  "w-full rounded-2xl border-0 bg-black/[0.035] px-4 py-3 text-[0.9375rem] text-ink shadow-none outline-none ring-1 ring-inset ring-black/[0.06] transition-[box-shadow,background-color] duration-200 placeholder:text-ink-muted/70 focus:bg-white focus:ring-2 focus:ring-inset focus:ring-forest-500";
+  "w-full rounded-2xl border-0 bg-ink/[0.035] px-4 py-3 text-[0.9375rem] text-ink shadow-none outline-none ring-1 ring-inset ring-ink/[0.06] transition-[box-shadow,background-color] duration-200 placeholder:text-ink-muted/70 focus:bg-white focus:ring-2 focus:ring-inset focus:ring-brand-500";
 
 export function Field({
   label,
@@ -217,8 +217,8 @@ export function Select(props: ComponentProps<"select">) {
 type PillTone = "neutral" | "green" | "amber" | "red" | "blue";
 
 const PILL_TONES: Record<PillTone, string> = {
-  neutral: "bg-black/[0.06] text-ink-soft",
-  green: "bg-forest-600/12 text-forest-700",
+  neutral: "bg-ink/[0.06] text-ink-soft",
+  green: "bg-brand-600/12 text-brand-700",
   amber: "bg-amber-500/15 text-amber-700",
   red: "bg-red-600/10 text-red-700",
   blue: "bg-sky-600/12 text-sky-800",
@@ -250,7 +250,7 @@ export function EmptyState({
   action?: ReactNode;
 }) {
   return (
-    <div className="rounded-card bg-black/[0.02] px-6 py-12 text-center">
+    <div className="rounded-card bg-ink/[0.02] px-6 py-12 text-center">
       <p className="text-[1rem] font-semibold text-ink">{title}</p>
       {description && (
         <p className="mx-auto mt-2 max-w-md text-[0.875rem] leading-relaxed text-ink-muted">
@@ -271,7 +271,7 @@ export function Banner({
   children: ReactNode;
 }) {
   const tones = {
-    ok: "bg-forest-600/10 text-forest-800 ring-forest-600/20",
+    ok: "bg-brand-600/10 text-brand-800 ring-brand-600/20",
     error: "bg-red-600/8 text-red-800 ring-red-600/20",
     info: "bg-sky-600/8 text-sky-900 ring-sky-600/20",
   } as const;
@@ -300,7 +300,7 @@ export function StatTile({
 }) {
   const content = (
     <>
-      <p className="text-[2rem] font-semibold leading-none tracking-[-0.035em] text-forest-700">
+      <p className="text-[2rem] font-semibold leading-none tracking-[-0.035em] text-brand-700">
         {value}
       </p>
       <p className="mt-2 text-[0.875rem] font-semibold text-ink">{label}</p>
@@ -309,7 +309,7 @@ export function StatTile({
   );
 
   const className =
-    "block rounded-card bg-white px-5 py-5 shadow-card ring-1 ring-black/[0.05] transition-[box-shadow,transform] duration-200 ease-ios";
+    "block rounded-card bg-white px-5 py-5 shadow-card ring-1 ring-ink/[0.05] transition-[box-shadow,transform] duration-200 ease-ios";
 
   if (href) {
     return (

@@ -70,7 +70,7 @@ export default async function BlockedDatesPage({
                   description="Todo el calendario está disponible salvo lo que ocupen las reservas."
                 />
               ) : (
-                <ul className="divide-y divide-black/[0.07]">
+                <ul className="divide-y divide-ink/[0.07]">
                   {upcoming.map((block) => {
                     const lastNight = addDays(block.end, -1);
                     const nights = nightsBetween(block.start, block.end);
@@ -122,7 +122,7 @@ export default async function BlockedDatesPage({
                 description="Ya no afectan al calendario. Puedes borrarlos para mantener la lista limpia."
               />
               <CardBody className="pt-0">
-                <ul className="divide-y divide-black/[0.07]">
+                <ul className="divide-y divide-ink/[0.07]">
                   {past.slice(-15).reverse().map((block) => (
                     <li
                       key={block.id}

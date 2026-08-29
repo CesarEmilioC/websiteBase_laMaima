@@ -1,63 +1,88 @@
 @import "tailwindcss";
 
 /* =============================================================================
-   Design tokens — La Maima
-   Lenguaje visual iOS/Apple adaptado a un hotel de naturaleza: superficies
-   claras (blanco + gris Apple), tipografía SF Pro / Inter con tracking
-   apretado, esquinas muy redondeadas y sombras difusas. La identidad se
-   mantiene en el verde bosque, que aquí es el color de acción.
+   Sistema de diseño — La Maima v2 (identidad azul oficial)
+   -----------------------------------------------------------------------------
+   Lenguaje: boutique elegante y sereno. Rectángulos, aire generoso, capas de
+   transparencia y una tipografía con serifa de alto contraste que hace eco al
+   wordmark del logotipo.
+
+   La paleta la entregó el cliente:
+     #345fc6  azul primario   -> `brand-600`, el color de acción (CTAs, enlaces)
+     #6086e1  azul claro      -> `brand-400`, acentos sobre fondo oscuro
+     #faf7f0  blanco cálido   -> `shell`, el fondo base de todo el sitio
+     #e8e0d1  arena           -> `sand`, las bandas alternas y los paneles
+
+   Regla de uso que pidió el cliente ("colores menos intensos, más
+   transparencias"): el azul PLENO vive solo en botones, enlaces y acentos. Las
+   áreas grandes van en blanco cálido y arena, y las capas intermedias (chips,
+   paneles sobre foto, cabecera) se resuelven con rgba + blur, nunca con un
+   bloque de color saturado.
    ============================================================================= */
 @theme {
-  /* --- Verde bosque: identidad y color primario de acción --- */
-  --color-forest-950: #0a1a11;
-  --color-forest-900: #10261a;
-  --color-forest-800: #193826;
-  --color-forest-700: #204c33;
-  --color-forest-600: #2b6644; /* botones, links, chips */
-  --color-forest-500: #37835a;
-  --color-forest-400: #6ba888;
-  --color-forest-300: #9bc7ae;
-  --color-forest-200: #c6e0d0;
-  --color-forest-100: #e4f1ea;
-  --color-forest-50: #f2f8f5;
+  /* --- Azul de marca: escala derivada de #345fc6 --------------------------- */
+  --color-brand-50: #eef2fc;
+  --color-brand-100: #dde5fa;
+  --color-brand-200: #bccef5;
+  --color-brand-300: #8fabee;
+  --color-brand-400: #6086e1; /* azul claro oficial */
+  --color-brand-500: #4a74d6;
+  --color-brand-600: #345fc6; /* AZUL PRIMARIO OFICIAL — acción */
+  --color-brand-700: #2b4ea6; /* hover de los botones primarios */
+  --color-brand-800: #24407f;
+  --color-brand-900: #1b3164;
+  --color-brand-950: #12203f;
 
-  /* --- Superficies claras (gris Apple para secciones alternas) --- */
-  --color-cream: #f5f5f7;
-  --color-cream-200: #ebebf0;
+  /* --- Azul marino profundo: bandas oscuras y pie de página ----------------
+     Derivado del azul primario, no del negro: sobre él el logotipo blanco y la
+     fotografía siguen leyéndose como parte de la misma familia de color. */
+  --color-navy: #101d34;
+  --color-navy-soft: #16263f;
 
-  /* --- Texto (escala de grises iOS) --- */
-  --color-ink: #1d1d1f;
-  --color-ink-soft: #424245;
-  --color-ink-muted: #6e6e73;
+  /* --- Neutros cálidos ----------------------------------------------------- */
+  --color-shell: #faf7f0; /* blanco cálido oficial: fondo base del sitio */
+  --color-sand: #e8e0d1; /* arena oficial: bandas alternas y paneles */
+  --color-sand-soft: #f2ece0; /* mezcla intermedia, para superficies amplias */
 
-  --color-whatsapp: #25d366;
-  --color-whatsapp-dark: #1da851;
+  /* --- Texto: grises azulados, para que convivan con el azul de marca ------ */
+  --color-ink: #1b2432; /* 14,6:1 sobre `shell` */
+  --color-ink-soft: #414c5e; /* 8,1:1 */
+  --color-ink-muted: #5f6a7d; /* 5,1:1 — sigue siendo AA en cuerpo de texto */
 
-  /* --- Tipografía: SF Pro en Apple, Inter en el resto --- */
+  /* --- Tipografía ---------------------------------------------------------
+     Dos familias con papeles claros:
+       `--font-display`  Playfair Display, serifa de alto contraste. Es la que
+                         hace eco al wordmark "LA MAIMA" del logotipo (misma
+                         familia didona, mismos remates planos). Solo titulares.
+       `--font-sans`     SF Pro en Apple / Inter en el resto. Cuerpo e interfaz.
+     ----------------------------------------------------------------------- */
   --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Display",
     "SF Pro Text", var(--font-inter), "Segoe UI", Roboto, Helvetica, Arial,
     sans-serif;
-  /* Alias de compatibilidad: ya no hay serifas en el sitio. */
-  --font-display: var(--font-sans);
+  --font-display: var(--font-playfair), "Playfair Display", "Iowan Old Style",
+    "Times New Roman", Georgia, serif;
 
-  /* --- Radios --- */
-  --radius-card: 1.375rem; /* 22px */
-  --radius-panel: 1.75rem; /* 28px */
-  --radius-tile: 0.875rem; /* 14px — "squircle" de iconos iOS */
+  /* --- Radios: rectángulos de esquina moderada -----------------------------
+     El cliente pidió fotos rectangulares o cuadradas y NADA de formas
+     irregulares. Los radios bajan respecto a la versión anterior (22/28 px):
+     un rectángulo con 12-16 px de radio se lee como rectángulo; uno con 28 px,
+     como pastilla. */
+  --radius-card: 0.875rem; /* 14px — tarjetas y fotos */
+  --radius-panel: 1.125rem; /* 18px — paneles grandes */
+  --radius-tile: 0.625rem; /* 10px — tiles de icono */
 
-  /* --- Sombras suaves y difusas (nada de bordes duros) --- */
-  --shadow-card: 0 1px 2px rgb(16 38 26 / 0.04),
-    0 10px 28px -14px rgb(16 38 26 / 0.22);
-  --shadow-lift: 0 2px 6px rgb(16 38 26 / 0.06),
-    0 24px 48px -20px rgb(16 38 26 / 0.3);
-  --shadow-panel: 0 1px 2px rgb(16 38 26 / 0.04),
-    0 18px 44px -24px rgb(16 38 26 / 0.26);
-  --shadow-float: 0 6px 16px rgb(0 0 0 / 0.14),
-    0 16px 36px -12px rgb(0 0 0 / 0.24);
-  --shadow-pill: 0 1px 2px rgb(16 38 26 / 0.12),
-    0 6px 16px -8px rgb(16 38 26 / 0.4);
+  /* --- Sombras: muy difusas y teñidas de azul marino ----------------------- */
+  --shadow-card: 0 1px 2px rgb(16 29 52 / 0.04),
+    0 10px 28px -16px rgb(16 29 52 / 0.2);
+  --shadow-lift: 0 2px 6px rgb(16 29 52 / 0.06),
+    0 24px 48px -22px rgb(16 29 52 / 0.28);
+  --shadow-panel: 0 1px 2px rgb(16 29 52 / 0.04),
+    0 18px 44px -26px rgb(16 29 52 / 0.24);
+  --shadow-float: 0 6px 16px rgb(16 29 52 / 0.16),
+    0 16px 36px -14px rgb(16 29 52 / 0.28);
+  --shadow-pill: 0 1px 2px rgb(16 29 52 / 0.12),
+    0 6px 16px -8px rgb(52 95 198 / 0.4);
 
-  /* Curva de animación de iOS */
   --ease-ios: cubic-bezier(0.32, 0.72, 0, 1);
 }
 
@@ -77,7 +102,9 @@
   }
 
   body {
-    background-color: #ffffff;
+    /* Blanco cálido oficial en TODO el sitio: es el lienzo, y las tarjetas
+       blancas puras que van encima ganan presencia justamente por contraste. */
+    background-color: var(--color-shell);
     color: var(--color-ink);
     font-family: var(--font-sans);
     overflow-x: clip;
@@ -98,17 +125,28 @@
     overflow-wrap: break-word;
   }
 
+  /* Titulares en la serifa de display.
+     El tracking queda casi neutro (-0,008em): una didona tiene astas finas y
+     mucho contraste, y el interletraje apretado que pedía la tipografía sans
+     anterior (-0,03em) le pegaba los remates unos con otros. El peso 400 es
+     deliberado: en Playfair la regular ya tiene el color de una semibold sans,
+     y subir a 600 la vuelve pesada en vez de elegante. */
   h1,
   h2,
-  h3,
-  h4 {
-    font-weight: 600;
-    letter-spacing: -0.022em;
+  h3 {
+    font-family: var(--font-display);
+    font-weight: 400;
+    letter-spacing: -0.008em;
     text-wrap: balance;
   }
 
-  h1 {
-    letter-spacing: -0.032em;
+  /* h4 se queda en la sans: son rótulos de interfaz (paneles, formularios del
+     admin), no titulares editoriales. */
+  h4 {
+    font-family: var(--font-sans);
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    text-wrap: balance;
   }
 
   p {
@@ -116,121 +154,212 @@
   }
 
   ::selection {
-    background-color: var(--color-forest-600);
+    background-color: var(--color-brand-600);
     color: #ffffff;
   }
 
   :focus-visible {
-    outline: 2px solid var(--color-forest-500);
+    outline: 2px solid var(--color-brand-600);
     outline-offset: 3px;
     border-radius: 8px;
   }
 }
 
 @layer utilities {
-  /* Etiqueta corta sobre los titulares. Estilo iOS: sin versalitas ni
-     tracking exagerado, solo peso y color. */
-  .eyebrow {
-    font-size: 0.8125rem;
-    line-height: 1.25;
-    font-weight: 600;
-    letter-spacing: -0.005em;
+  /* ---------------------------------------------------------------------
+     Ritmo vertical
+     ---------------------------------------------------------------------
+     UNA sola escala de espaciado para todas las secciones del sitio. Antes
+     cada página escribía su propia combinación de `pt-14 pb-20 sm:pt-16…` y
+     el ritmo se descuadraba de una a otra. Estas tres clases son el contrato:
+     una sección usa una de ellas y nada más.
+
+       .section-y     ritmo normal        72 / 96 / 120 px
+       .section-y-sm  bloques de apoyo    56 / 72 / 88 px
+       .section-y-lg  bloques destacados  88 / 120 / 152 px
+
+     El padding es SIMÉTRICO a propósito: al desaparecer las curvas SVG que se
+     montaban entre secciones ya no hay motivo para que el relleno inferior sea
+     más alto que el superior, y la simetría es justo lo que hace que dos
+     bandas seguidas se lean alineadas.
+     --------------------------------------------------------------------- */
+  .section-y {
+    padding-block: 4.5rem;
   }
 
-  /* Vidrio esmerilado del header y de los chips sobre foto.
+  .section-y-sm {
+    padding-block: 3.5rem;
+  }
+
+  .section-y-lg {
+    padding-block: 5.5rem;
+  }
+
+  @media (min-width: 640px) {
+    .section-y {
+      padding-block: 6rem;
+    }
+    .section-y-sm {
+      padding-block: 4.5rem;
+    }
+    .section-y-lg {
+      padding-block: 7.5rem;
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .section-y {
+      padding-block: 7.5rem;
+    }
+    .section-y-sm {
+      padding-block: 5.5rem;
+    }
+    .section-y-lg {
+      padding-block: 9.5rem;
+    }
+  }
+
+  /* Contenedor único de página: mismos márgenes laterales en todas las rutas.
+     20 px en móvil (no 16) para que el texto no roce el borde de la pantalla. */
+  .container-page {
+    margin-inline: auto;
+    width: 100%;
+    max-width: 80rem;
+    padding-inline: 1.25rem;
+  }
+
+  @media (min-width: 640px) {
+    .container-page {
+      padding-inline: 2rem;
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .container-page {
+      padding-inline: 3rem;
+    }
+  }
+
+  .container-narrow {
+    max-width: 56rem;
+  }
+
+  /* ---------------------------------------------------------------------
+     Etiquetas en versalitas
+     ---------------------------------------------------------------------
+     "Etiquetas pequeñas en MAYÚSCULAS con letter-spacing amplio" (petición
+     literal del cliente). Es el contrapunto de la serifa: donde el titular es
+     ancho y modulado, la etiqueta es estrecha, seca y muy espaciada.
+     --------------------------------------------------------------------- */
+  .eyebrow {
+    font-family: var(--font-sans);
+    font-size: 0.6875rem;
+    line-height: 1.4;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.2em;
+  }
+
+  @media (min-width: 640px) {
+    .eyebrow {
+      font-size: 0.75rem;
+    }
+  }
+
+  /* Variante para chips sobre foto: el espaciado se recorta un punto porque
+     va dentro de una pastilla y 0,2em desbordaba el relleno derecho. */
+  .eyebrow-chip {
+    letter-spacing: 0.16em;
+    padding-inline-end: calc(0.875rem + 0.16em);
+  }
+
+  /* ---------------------------------------------------------------------
+     Transparencias
+     ---------------------------------------------------------------------
      El prefijo -webkit- va PRIMERO a propósito: Lightning CSS (el compilador
      de Tailwind v4) colapsa la pareja y conserva la última declaración; si el
      estándar fuera primero, se publicaría solo la versión prefijada y Firefox
-     se quedaría sin desenfoque. */
+     se quedaría sin desenfoque.
+     --------------------------------------------------------------------- */
   .glass {
-    background-color: rgb(255 255 255 / 0.72);
-    -webkit-backdrop-filter: blur(20px) saturate(180%);
-    backdrop-filter: blur(20px) saturate(180%);
+    background-color: rgb(250 247 240 / 0.72);
+    -webkit-backdrop-filter: blur(20px) saturate(140%);
+    backdrop-filter: blur(20px) saturate(140%);
   }
 
   .glass-strong {
-    background-color: rgb(255 255 255 / 0.86);
-    -webkit-backdrop-filter: blur(24px) saturate(180%);
-    backdrop-filter: blur(24px) saturate(180%);
+    background-color: rgb(250 247 240 / 0.88);
+    -webkit-backdrop-filter: blur(24px) saturate(140%);
+    backdrop-filter: blur(24px) saturate(140%);
   }
 
-  .glass-dark {
-    background-color: rgb(10 26 17 / 0.42);
-    -webkit-backdrop-filter: blur(16px) saturate(160%);
-    backdrop-filter: blur(16px) saturate(160%);
+  /* Vidrio arena: paneles y notas sobre fondo claro. Es una transparencia, no
+     un bloque de arena opaco, así que la foto o el fondo que tenga detrás sigue
+     insinuándose. */
+  .glass-sand {
+    background-color: rgb(232 224 209 / 0.55);
+    -webkit-backdrop-filter: blur(12px);
+    backdrop-filter: blur(12px);
   }
 
-  /* Vidrio OSCURO verde bosque, exclusivo del header fijo. Va aparte de
-     `.glass`/`.glass-dark` (que visten los chips sobre foto de las tarjetas):
-     el header necesita mucha más opacidad para que el logo blanco y los links
-     se lean tanto sobre el hero fotográfico como sobre secciones de fondo
-     blanco. Mismo orden de prefijos que arriba: -webkit- primero. */
+  /* Vidrio AZUL MARINO del header fijo. Necesita bastante opacidad: el
+     logotipo blanco y los enlaces tienen que leerse tanto sobre la fotografía
+     de portada como sobre una sección de fondo claro. */
   .glass-header {
-    /* `saturate` va más bajo que en el vidrio claro (180%): sobre un cielo
-       azul, saturar de más teñía la barra de turquesa en vez de verde. */
-    background-color: rgb(20 40 28 / 0.78);
-    -webkit-backdrop-filter: blur(20px) saturate(150%);
-    backdrop-filter: blur(20px) saturate(150%);
+    background-color: rgb(16 29 52 / 0.72);
+    -webkit-backdrop-filter: blur(20px) saturate(130%);
+    backdrop-filter: blur(20px) saturate(130%);
   }
 
   .glass-header-strong {
-    background-color: rgb(20 40 28 / 0.9);
-    -webkit-backdrop-filter: blur(24px) saturate(150%);
-    backdrop-filter: blur(24px) saturate(150%);
+    background-color: rgb(16 29 52 / 0.9);
+    -webkit-backdrop-filter: blur(24px) saturate(130%);
+    backdrop-filter: blur(24px) saturate(130%);
   }
 
   /* ---------------------------------------------------------------------
      Fundidos (scrims) sobre fotografía
      ---------------------------------------------------------------------
-     El cliente pidió "una película negra traslúcida" sobre las fotos para que
-     se lean los textos. Un velo PLANO cumpliría, pero apaga la foto entera:
-     las de La Maima son luminosas (cielo azul, muros blancos, pasto al sol) y
-     es justo esa luz lo que vende el lugar.
+     Un velo PLANO cumpliría, pero apaga la foto entera: las de La Maima son
+     luminosas (cielo azul, muros blancos, pasto al sol) y es justo esa luz lo
+     que vende el lugar. La versión refinada es un DEGRADADO: densidad alta
+     solo donde de verdad hay texto y fundido total a transparente donde no.
 
-     La versión refinada, que es como lo resuelve iOS en las portadas de
-     Fotos/Música, es un DEGRADADO: densidad alta solo donde de verdad hay
-     texto y fundido total a transparente donde no lo hay. La foto se conserva
-     intacta en las tres cuartas partes superiores y el titular se lee incluso
-     sobre un muro blanco.
+     Los degradados llevan MUCHAS paradas a propósito. Un `linear-gradient` de
+     dos o tres paradas interpola el alfa en línea recta y el ojo detecta el
+     cambio de pendiente como una banda horizontal sucia sobre los cielos.
 
-     Los degradados llevan MUCHAS paradas a propósito. Un `linear-gradient`
-     de dos o tres paradas interpola el alfa en línea recta y el ojo detecta
-     el cambio de pendiente como una banda horizontal sucia sobre los cielos.
-     Estas paradas dibujan a mano una curva suave (tipo "smootherstep"), que
-     es lo que hace que el fundido resulte imperceptible.
+     El tinte ya no es verde-negro sino AZUL MARINO (16,29,52): sobre el cielo
+     y el follaje de las fotos empuja la imagen hacia la nueva paleta en vez de
+     pelearse con ella.
      --------------------------------------------------------------------- */
-
-  /* Portada de la home y bandas de encabezado de las páginas internas: el
-     texto va abajo, así que el negro entra desde abajo. La segunda capa es un
-     velo muy leve en el borde superior, para que la barra de vidrio del header
-     tenga contra qué recortarse sobre un cielo claro. */
   .photo-scrim {
     background:
       linear-gradient(
         to top,
-        rgb(6 18 11 / 0.82) 0%,
-        rgb(6 18 11 / 0.79) 7%,
-        rgb(6 18 11 / 0.73) 15%,
-        rgb(6 18 11 / 0.655) 23%,
-        rgb(6 18 11 / 0.565) 31%,
-        rgb(6 18 11 / 0.47) 39%,
-        rgb(6 18 11 / 0.375) 47%,
-        rgb(6 18 11 / 0.285) 55%,
-        rgb(6 18 11 / 0.2) 63%,
-        rgb(6 18 11 / 0.128) 71%,
-        rgb(6 18 11 / 0.07) 79%,
-        rgb(6 18 11 / 0.03) 87%,
-        rgb(6 18 11 / 0.008) 94%,
+        rgb(11 21 38 / 0.82) 0%,
+        rgb(11 21 38 / 0.79) 7%,
+        rgb(11 21 38 / 0.73) 15%,
+        rgb(11 21 38 / 0.655) 23%,
+        rgb(11 21 38 / 0.565) 31%,
+        rgb(11 21 38 / 0.47) 39%,
+        rgb(11 21 38 / 0.375) 47%,
+        rgb(11 21 38 / 0.285) 55%,
+        rgb(11 21 38 / 0.2) 63%,
+        rgb(11 21 38 / 0.128) 71%,
+        rgb(11 21 38 / 0.07) 79%,
+        rgb(11 21 38 / 0.03) 87%,
+        rgb(11 21 38 / 0.008) 94%,
         transparent 100%
       ),
       linear-gradient(
         to bottom,
-        rgb(6 18 11 / 0.3) 0%,
-        rgb(6 18 11 / 0.22) 4%,
-        rgb(6 18 11 / 0.14) 8%,
-        rgb(6 18 11 / 0.075) 12%,
-        rgb(6 18 11 / 0.03) 17%,
-        rgb(6 18 11 / 0.008) 22%,
+        rgb(11 21 38 / 0.32) 0%,
+        rgb(11 21 38 / 0.24) 4%,
+        rgb(11 21 38 / 0.155) 8%,
+        rgb(11 21 38 / 0.085) 12%,
+        rgb(11 21 38 / 0.035) 17%,
+        rgb(11 21 38 / 0.01) 22%,
         transparent 28%
       );
   }
@@ -239,26 +368,25 @@
      vidrio CLARO con texto oscuro, así que lo que lo borra no es un fondo
      claro sino la falta de separación: sobre un cielo blanco el chip y la foto
      tienen la misma luminosidad y el chip desaparece. Este fundido superior,
-     muy corto y muy suave, le devuelve el borde sin ensuciar la foto (a media
-     altura ya no queda nada). */
+     muy corto y muy suave, le devuelve el borde sin ensuciar la foto. */
   .photo-scrim-chip {
     background: linear-gradient(
       to bottom,
-      rgb(6 18 11 / 0.28) 0%,
-      rgb(6 18 11 / 0.235) 10%,
-      rgb(6 18 11 / 0.18) 20%,
-      rgb(6 18 11 / 0.125) 30%,
-      rgb(6 18 11 / 0.078) 40%,
-      rgb(6 18 11 / 0.042) 50%,
-      rgb(6 18 11 / 0.018) 60%,
-      rgb(6 18 11 / 0.004) 70%,
+      rgb(11 21 38 / 0.28) 0%,
+      rgb(11 21 38 / 0.235) 10%,
+      rgb(11 21 38 / 0.18) 20%,
+      rgb(11 21 38 / 0.125) 30%,
+      rgb(11 21 38 / 0.078) 40%,
+      rgb(11 21 38 / 0.042) 50%,
+      rgb(11 21 38 / 0.018) 60%,
+      rgb(11 21 38 / 0.004) 70%,
       transparent 78%
     );
   }
 
   /* Separador de 1px real (no se engorda en pantallas HiDPI) */
   .hairline {
-    border-color: rgb(0 0 0 / 0.08);
+    border-color: rgb(27 36 50 / 0.1);
   }
 
   /* Texto sobre fotografía. El degradado hace el trabajo grueso, pero la parte
@@ -269,46 +397,93 @@
      Sobre fondo oscuro no se ve; sobre uno claro sostiene el texto. */
   .on-photo {
     text-shadow:
-      0 1px 2px rgb(0 0 0 / 0.42),
-      0 2px 10px rgb(0 0 0 / 0.32),
-      0 8px 30px rgb(0 0 0 / 0.26);
-  }
-
-  /* Tipografía de titulares grandes al estilo Apple */
-  .tracking-display {
-    letter-spacing: -0.035em;
-  }
-
-  /* Titulares de sección: un punto más grandes y más apretados que antes, para
-     que el aire generoso alrededor tenga contra qué contrastar. */
-  .tracking-editorial {
-    letter-spacing: -0.042em;
+      0 1px 2px rgb(11 21 38 / 0.44),
+      0 2px 10px rgb(11 21 38 / 0.34),
+      0 8px 30px rgb(11 21 38 / 0.28);
   }
 
   /* ---------------------------------------------------------------------
-     Máscaras orgánicas
+     Interletraje de los titulares con serifa
      ---------------------------------------------------------------------
-     Se usan con MUCHA moderación (dos en todo el sitio). El lenguaje de base
-     sigue siendo el rectángulo de esquinas muy redondeadas de iOS: es
-     justamente el contraste con esas dos piezas irregulares lo que hace que
-     se lean como una decisión y no como un accidente.
-
-     `.mask-pebble` — guijarro de río / hoja: radios porcentuales distintos en
-     cada esquina y en cada eje. Va en la galería de "Sobre la reserva".
-     `.mask-arch` — portal: dos esquinas opuestas muy abiertas y las otras dos
-     con el radio normal de panel. Va en el mapa de contacto.
+     Se conservan los nombres de las utilidades anteriores, pero los valores
+     son otros: una didona NO admite el tracking negativo fuerte que pedía la
+     sans (-0,035em / -0,042em juntaba los remates). En los cuerpos grandes el
+     interletraje óptico ya sobra, así que basta con recogerlo un pelo.
      --------------------------------------------------------------------- */
-  .mask-pebble {
-    border-radius: 58% 42% 55% 45% / 45% 58% 42% 55%;
+  .tracking-display {
+    letter-spacing: -0.014em;
   }
 
-  .mask-arch {
-    border-radius: 1.75rem;
+  .tracking-editorial {
+    letter-spacing: -0.01em;
   }
 
-  @media (min-width: 640px) {
-    .mask-arch {
-      border-radius: 7rem 1.75rem 7rem 1.75rem;
+  /* Filete corto que acompaña a las etiquetas en versalitas. */
+  .rule-brand {
+    display: block;
+    height: 1px;
+    width: 2.5rem;
+    background-color: rgb(52 95 198 / 0.45);
+  }
+
+  /* ---------------------------------------------------------------------
+     Fondo de hojas flotando
+     ---------------------------------------------------------------------
+     Capa decorativa (ver `LeafField` en components/leaf-field.tsx): unas pocas
+     siluetas de hoja en SVG que se mecen muy despacio.
+
+     Reglas que la mantienen elegante y gratis en rendimiento:
+       - Solo se animan `transform` y `opacity`: el compositor las resuelve sin
+         volver a maquetar ni repintar nada.
+       - Cuatro a seis elementos como máximo, con opacidad muy baja y en azul o
+         arena (el verde ya no existe en la marca).
+       - Duraciones larguísimas (26-44 s) y desfases distintos: nunca se pillan
+         dos hojas haciendo el mismo gesto a la vez, que es lo que delata una
+         animación barata.
+       - Con `prefers-reduced-motion` se congelan en su posición inicial.
+     --------------------------------------------------------------------- */
+  .leaf-field {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    pointer-events: none;
+  }
+
+  /* Sin `will-change: transform` a propósito. Parece la optimización obvia,
+     pero promociona las cinco hojas a capas de composición PERMANENTES: sobre
+     la fotografía de portada eso es memoria de GPU reservada y trabajo de
+     composición extra justo mientras el navegador decide el LCP. Al ser una
+     animación de `transform` puro, Chrome ya promociona cada hoja por su
+     cuenta mientras la anima y la devuelve al flujo normal cuando no hace
+     falta, que es exactamente lo que interesa. */
+  .leaf {
+    position: absolute;
+    animation: leaf-drift var(--leaf-duration, 32s) ease-in-out
+      var(--leaf-delay, 0s) infinite alternate;
+  }
+
+  .leaf-alt {
+    animation-name: leaf-sway;
+  }
+
+  @keyframes leaf-drift {
+    from {
+      transform: translate3d(0, 0, 0) rotate(var(--leaf-from, -6deg));
+    }
+    to {
+      transform: translate3d(var(--leaf-x, 18px), var(--leaf-y, -26px), 0)
+        rotate(var(--leaf-to, 7deg));
+    }
+  }
+
+  @keyframes leaf-sway {
+    from {
+      transform: translate3d(0, 0, 0) rotate(var(--leaf-from, 4deg))
+        scale(1);
+    }
+    to {
+      transform: translate3d(var(--leaf-x, -22px), var(--leaf-y, 20px), 0)
+        rotate(var(--leaf-to, -8deg)) scale(1.06);
     }
   }
 
@@ -390,7 +565,7 @@
   }
 
   .legal-prose :where(a) {
-    color: var(--color-forest-700);
+    color: var(--color-brand-700);
     font-weight: 500;
     text-decoration: underline;
     text-underline-offset: 3px;
@@ -398,7 +573,7 @@
   }
 
   .legal-prose :where(a):hover {
-    color: var(--color-forest-600);
+    color: var(--color-brand-600);
   }
 
   .legal-prose :where(ul) {
@@ -416,10 +591,11 @@
   }
 
   .legal-prose :where(li)::marker {
-    color: var(--color-forest-500);
+    color: var(--color-brand-500);
   }
 
   .legal-prose :where(h3) {
+    font-family: var(--font-sans);
     font-size: 1.0625rem;
     font-weight: 600;
     color: var(--color-ink);
@@ -467,6 +643,13 @@
   *::after {
     animation-duration: 0.01ms !important;
     transition-duration: 0.01ms !important;
+  }
+
+  /* Las hojas se congelan en su posición inicial. `animation: none` (en vez de
+     heredar la duración de 0,01 ms de arriba) evita que salten al fotograma
+     final y se queden desplazadas. */
+  .leaf {
+    animation: none !important;
   }
 
   /* Red de seguridad: el observador ya evita poner `reveal-ready` cuando se

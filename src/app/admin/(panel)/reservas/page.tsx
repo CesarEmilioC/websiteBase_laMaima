@@ -173,17 +173,17 @@ export default async function BookingsAdminPage({
             />
           </div>
         ) : (
-          <ul className="divide-y divide-black/[0.07]">
+          <ul className="divide-y divide-ink/[0.07]">
             {bookings.map((booking) => {
               const nights = nightsBetween(booking.check_in, booking.check_out);
               return (
                 <li key={booking.id}>
                   <Link
                     href={`/admin/reservas/${booking.id}`}
-                    className="group flex flex-wrap items-center gap-x-4 gap-y-2 px-5 py-4 transition-colors hover:bg-black/[0.02] sm:px-6"
+                    className="group flex flex-wrap items-center gap-x-4 gap-y-2 px-5 py-4 transition-colors hover:bg-ink/[0.02] sm:px-6"
                   >
                     <div className="min-w-[13rem] flex-1">
-                      <p className="text-[1rem] font-semibold text-ink group-hover:text-forest-700">
+                      <p className="text-[1rem] font-semibold text-ink group-hover:text-brand-700">
                         {booking.guest_name}
                       </p>
                       <p className="mt-0.5 text-[0.8125rem] text-ink-muted">

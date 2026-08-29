@@ -114,8 +114,8 @@ export function ImageField({ name, initialUrl }: Props) {
     <div>
       <input type="hidden" name={name} value={url} />
 
-      <div className="flex flex-wrap items-start gap-3.5 rounded-card bg-black/[0.025] p-3 sm:flex-nowrap">
-        <div className="relative h-[120px] w-[120px] shrink-0 overflow-hidden rounded-xl bg-black/10">
+      <div className="flex flex-wrap items-start gap-3.5 rounded-card bg-ink/[0.025] p-3 sm:flex-nowrap">
+        <div className="relative h-[120px] w-[120px] shrink-0 overflow-hidden rounded-xl bg-ink/10">
           {url && !broken ? (
             // <img> y no next/image: las direcciones externas que se peguen
             // (Cloudinary u otro CDN) no están en la lista blanca de
@@ -150,10 +150,10 @@ export function ImageField({ name, initialUrl }: Props) {
               accept="image/jpeg,image/png,image/webp,image/avif"
               disabled={uploading}
               onChange={(event) => void upload(event.target.files)}
-              className="block w-full text-[0.8125rem] text-ink-muted file:mr-3 file:rounded-full file:border-0 file:bg-forest-600 file:px-4 file:py-2 file:text-[0.8125rem] file:font-semibold file:text-white hover:file:bg-forest-700"
+              className="block w-full text-[0.8125rem] text-ink-muted file:mr-3 file:rounded-full file:border-0 file:bg-brand-600 file:px-4 file:py-2 file:text-[0.8125rem] file:font-semibold file:text-white hover:file:bg-brand-700"
             />
             {uploading && (
-              <p className="mt-1.5 text-[0.75rem] font-medium text-forest-700">
+              <p className="mt-1.5 text-[0.75rem] font-medium text-brand-700">
                 Subiendo…
               </p>
             )}
@@ -176,7 +176,7 @@ export function ImageField({ name, initialUrl }: Props) {
             <button
               type="button"
               onClick={applyPasted}
-              className="shrink-0 rounded-2xl bg-black/[0.06] px-4 text-[0.8125rem] font-semibold text-ink transition-colors hover:bg-black/[0.1]"
+              className="shrink-0 rounded-2xl bg-ink/[0.06] px-4 text-[0.8125rem] font-semibold text-ink transition-colors hover:bg-ink/[0.1]"
             >
               Usar
             </button>

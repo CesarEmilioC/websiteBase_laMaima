@@ -20,8 +20,9 @@
  *     (y filtros antispam) que lo prefieren, y un correo sin versión plana
  *     puntúa peor en entregabilidad.
  *
- * La paleta es la del sitio: verde bosque #2b6644 como color de acción,
- * #0a1a11 para el pie, grises iOS para el texto.
+ * La paleta es la del sitio: azul primario #345fc6 como color de acción, azul
+ * marino #101d34 para el pie, blanco cálido de fondo y grises azulados para el
+ * texto (ver `COLORS` más abajo).
  */
 import { formatLongDateEs, nightsBetween } from "../dates";
 import { formatCOP, formatGuests } from "../format";
@@ -92,15 +93,27 @@ export function bookingReference(id: string): string {
   return id.replace(/-/g, "").slice(0, 8).toUpperCase();
 }
 
+/**
+ * Paleta del correo, en literales hexadecimales.
+ *
+ * Va duplicada respecto a `globals.css` a propósito: un correo se renderiza
+ * en Gmail, Outlook y compañía, donde no existen ni las custom properties de
+ * CSS ni la hoja de estilos del sitio. Los valores son los mismos tokens de
+ * la identidad (azul primario #345fc6, marino, blanco cálido y arena), así que
+ * si la paleta del sitio cambia, esta tabla hay que actualizarla a mano.
+ *
+ * Los nombres siguen siendo `brand*` y no `forest*`: el verde desapareció con
+ * el rediseño de identidad de 2026.
+ */
 const COLORS = {
-  forest: "#2b6644",
-  forestDark: "#0a1a11",
-  forestSoft: "#f2f8f5",
-  ink: "#1d1d1f",
-  inkSoft: "#424245",
-  inkMuted: "#6e6e73",
-  page: "#f5f5f7",
-  hairline: "#e5e5ea",
+  brand: "#345fc6",
+  brandDark: "#101d34",
+  brandSoft: "#eef2fc",
+  ink: "#1b2432",
+  inkSoft: "#414c5e",
+  inkMuted: "#5f6a7d",
+  page: "#faf7f0",
+  hairline: "#e8e0d1",
   white: "#ffffff",
   amber: "#fef3c7",
   amberInk: "#78350f",
@@ -122,7 +135,7 @@ function detailRow(label: string, value: string, last = false): string {
 }
 
 /** Botón sólido (una tabla, porque un <a> con padding se rompe en Outlook). */
-function button(href: string, label: string, color = COLORS.forest): string {
+function button(href: string, label: string, color = COLORS.brand): string {
   return `
             <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:0 auto;">
               <tr>
@@ -177,7 +190,7 @@ function shell({
             </td>
           </tr>
           <tr>
-            <td style="height:4px;line-height:4px;font-size:0;background-color:${COLORS.forest};">&nbsp;</td>
+            <td style="height:4px;line-height:4px;font-size:0;background-color:${COLORS.brand};">&nbsp;</td>
           </tr>
 
           <!-- Cuerpo ----------------------------------------------------- -->
@@ -189,7 +202,7 @@ ${body}
 
           <!-- Pie -------------------------------------------------------- -->
           <tr>
-            <td style="padding:26px 28px 30px 28px;background-color:${COLORS.forestDark};">
+            <td style="padding:26px 28px 30px 28px;background-color:${COLORS.brandDark};">
               <p style="margin:0 0 6px 0;font-family:${FONT};font-size:15px;line-height:22px;color:#ffffff;font-weight:600;">${escapeHtml(SITE.legalName)}</p>
               <p style="margin:0 0 3px 0;font-family:${FONT};font-size:13px;line-height:20px;color:rgba(245,245,247,0.66);">${escapeHtml(contact.addressLine)}</p>
               <p style="margin:0 0 14px 0;font-family:${FONT};font-size:13px;line-height:20px;color:rgba(245,245,247,0.66);">
@@ -247,14 +260,14 @@ export function renderBookingConfirmation({
   )}`;
 
   const body = `
-            <p style="margin:0 0 6px 0;font-family:${FONT};font-size:13px;line-height:20px;color:${COLORS.forest};font-weight:600;">Reserva ${escapeHtml(reference)}</p>
+            <p style="margin:0 0 6px 0;font-family:${FONT};font-size:13px;line-height:20px;color:${COLORS.brand};font-weight:600;">Reserva ${escapeHtml(reference)}</p>
             <h1 style="margin:0 0 14px 0;font-family:${FONT};font-size:27px;line-height:34px;letter-spacing:-0.6px;color:${COLORS.ink};font-weight:600;">Tu reserva está confirmada</h1>
 
             <p style="margin:0 0 14px 0;font-family:${FONT};font-size:16px;line-height:26px;color:${COLORS.inkSoft};">
               ${escapeHtml(firstName)}, te esperamos en <strong style="color:${COLORS.ink};">${escapeHtml(booking.accommodationName)}</strong>. Ya bloqueamos tus fechas: el bosque, los senderos y el silencio de Dapa quedan reservados para ti.
             </p>
 
-            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:${COLORS.forestSoft};border-radius:16px;margin:0 0 24px 0;">
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:${COLORS.brandSoft};border-radius:16px;margin:0 0 24px 0;">
               <tr>
                 <td style="padding:18px 20px;">
                   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
@@ -274,14 +287,14 @@ ${detailRow("Total", `${escapeHtml(formatCOP(booking.totalCop))} COP`, true)}
               ${escapeHtml(contact.addressLine)}. La subida a Dapa es de montaña: si llegas de noche, avísanos con tiempo y te guiamos.
             </p>
             <p style="margin:0 0 26px 0;font-family:${FONT};font-size:15px;line-height:24px;">
-              <a href="${escapeHtml(contact.maps.url)}" style="color:${COLORS.forest};font-weight:600;text-decoration:underline;">Abrir la ubicación en Google Maps</a>
+              <a href="${escapeHtml(contact.maps.url)}" style="color:${COLORS.brand};font-weight:600;text-decoration:underline;">Abrir la ubicación en Google Maps</a>
             </p>
 
 ${button(whatsappHref, "Escribirnos por WhatsApp")}
 
             <p style="margin:22px 0 0 0;font-family:${FONT};font-size:14px;line-height:22px;color:${COLORS.inkMuted};text-align:center;">
               ¿Necesitas cambiar o cancelar? Escríbenos al ${escapeHtml(contact.phoneDisplay)} con tu número de reserva.<br>
-              Consulta la <a href="${escapeHtml(SITE.url)}/legal/cancelacion" style="color:${COLORS.forest};text-decoration:underline;">política de cancelación</a>.
+              Consulta la <a href="${escapeHtml(SITE.url)}/legal/cancelacion" style="color:${COLORS.brand};text-decoration:underline;">política de cancelación</a>.
             </p>`;
 
   const text = [
@@ -351,23 +364,23 @@ export function renderBookingNotification({
     guestEmail
       ? detailRow(
           "Correo",
-          `<a href="mailto:${escapeHtml(guestEmail)}" style="color:${COLORS.forest};text-decoration:none;">${escapeHtml(guestEmail)}</a>`,
+          `<a href="mailto:${escapeHtml(guestEmail)}" style="color:${COLORS.brand};text-decoration:none;">${escapeHtml(guestEmail)}</a>`,
         )
       : detailRow("Correo", "—"),
     detailRow(
       "Teléfono",
       guestPhone
-        ? `<a href="https://wa.me/${escapeHtml(guestPhone.replace(/\D/g, ""))}" style="color:${COLORS.forest};text-decoration:none;">${escapeHtml(guestPhone)}</a>`
+        ? `<a href="https://wa.me/${escapeHtml(guestPhone.replace(/\D/g, ""))}" style="color:${COLORS.brand};text-decoration:none;">${escapeHtml(guestPhone)}</a>`
         : "—",
       true,
     ),
   ].join("");
 
   const body = `
-            <p style="margin:0 0 6px 0;font-family:${FONT};font-size:13px;line-height:20px;color:${COLORS.forest};font-weight:600;">Aviso interno · Reserva ${escapeHtml(reference)}</p>
+            <p style="margin:0 0 6px 0;font-family:${FONT};font-size:13px;line-height:20px;color:${COLORS.brand};font-weight:600;">Aviso interno · Reserva ${escapeHtml(reference)}</p>
             <h1 style="margin:0 0 18px 0;font-family:${FONT};font-size:25px;line-height:32px;letter-spacing:-0.5px;color:${COLORS.ink};font-weight:600;">Nueva reserva en ${escapeHtml(booking.accommodationName)}</h1>
 
-            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:${COLORS.forestSoft};border-radius:16px;margin:0 0 16px 0;">
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:${COLORS.brandSoft};border-radius:16px;margin:0 0 16px 0;">
               <tr>
                 <td style="padding:18px 20px;">
                   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">

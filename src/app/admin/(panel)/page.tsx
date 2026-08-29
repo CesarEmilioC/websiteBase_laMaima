@@ -111,7 +111,7 @@ export default async function AdminDashboardPage({
                 }
               />
             ) : (
-              <ul className="divide-y divide-black/[0.07]">
+              <ul className="divide-y divide-ink/[0.07]">
                 {upcoming.map((booking) => (
                   <BookingRow key={booking.id} booking={booking} />
                 ))}
@@ -130,7 +130,7 @@ export default async function AdminDashboardPage({
               {recent.length === 0 ? (
                 <EmptyState title="Todavía no hay reservas registradas" />
               ) : (
-                <ul className="divide-y divide-black/[0.07]">
+                <ul className="divide-y divide-ink/[0.07]">
                   {recent.map((booking) => (
                     <li key={booking.id} className="py-3">
                       <Link
@@ -138,7 +138,7 @@ export default async function AdminDashboardPage({
                         className="group flex items-start justify-between gap-3"
                       >
                         <div className="min-w-0">
-                          <p className="truncate text-[0.9375rem] font-semibold text-ink group-hover:text-forest-700">
+                          <p className="truncate text-[0.9375rem] font-semibold text-ink group-hover:text-brand-700">
                             {booking.guest_name}
                           </p>
                           <p className="mt-0.5 truncate text-[0.8125rem] text-ink-muted">
@@ -202,7 +202,7 @@ export default async function AdminDashboardPage({
               {blocks.slice(0, 10).map((block) => (
                 <li
                   key={block.id}
-                  className="rounded-full bg-black/[0.05] px-3.5 py-1.5 text-[0.8125rem] text-ink-soft"
+                  className="rounded-full bg-ink/[0.05] px-3.5 py-1.5 text-[0.8125rem] text-ink-soft"
                 >
                   <span className="font-semibold text-ink">
                     {block.accommodation_name ?? "Alojamiento"}
@@ -229,7 +229,7 @@ function BookingRow({ booking }: { booking: AdminBooking }) {
         className="group flex flex-wrap items-start justify-between gap-3"
       >
         <div className="min-w-0">
-          <p className="truncate text-[0.9375rem] font-semibold text-ink group-hover:text-forest-700">
+          <p className="truncate text-[0.9375rem] font-semibold text-ink group-hover:text-brand-700">
             {booking.accommodation_name ?? "Alojamiento"}
           </p>
           <p className="mt-0.5 text-[0.8125rem] text-ink-muted">

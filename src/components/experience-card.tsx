@@ -26,7 +26,7 @@ export function ExperienceCard({ experience, variant = "compact" }: Props) {
   return (
     <article className="group flex h-full flex-col overflow-hidden rounded-card bg-white shadow-card transition-[box-shadow,transform] duration-300 ease-ios hover:-translate-y-0.5 hover:shadow-lift">
       <div
-        className={`relative overflow-hidden bg-forest-100 ${full ? "aspect-[16/10]" : "aspect-[4/3]"}`}
+        className={`relative overflow-hidden bg-brand-100 ${full ? "aspect-[16/10]" : "aspect-[4/3]"}`}
       >
         <Image
           src={cover.url}
@@ -50,7 +50,7 @@ export function ExperienceCard({ experience, variant = "compact" }: Props) {
               aria-hidden="true"
               className="photo-scrim-chip pointer-events-none absolute inset-x-0 top-0 h-1/2"
             />
-            <span className="glass absolute left-3.5 top-3.5 rounded-full px-3 py-1.5 text-[0.8125rem] font-semibold text-ink ring-1 ring-inset ring-white/40">
+            <span className="glass eyebrow eyebrow-chip absolute left-3.5 top-3.5 rounded-full px-3 py-1.5 text-ink ring-1 ring-inset ring-white/50">
               {experience.price_note}
             </span>
           </>
@@ -62,7 +62,7 @@ export function ExperienceCard({ experience, variant = "compact" }: Props) {
             otros dos; reservar el alto de dos líneas alinea los chips y los
             textos de todas las tarjetas de la fila. */}
         <h3
-          className={`leading-tight tracking-[-0.025em] text-ink ${full ? "text-[1.75rem]" : "min-h-[2.5em] text-[1.375rem]"}`}
+          className={`leading-tight text-ink ${full ? "text-[1.75rem]" : "min-h-[2.5em] text-[1.375rem]"}`}
         >
           {experience.name}
         </h3>
@@ -72,7 +72,7 @@ export function ExperienceCard({ experience, variant = "compact" }: Props) {
             inline y otras saltando de línea. */}
         {experience.duration && (
           <p className="mt-2.5">
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-forest-600/10 px-2.5 py-1 text-[0.75rem] font-semibold text-forest-700">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-brand-600/10 px-2.5 py-1 text-[0.75rem] font-semibold text-brand-700">
               <ClockIcon className="h-3.5 w-3.5" />
               {experience.duration}
             </span>

@@ -278,7 +278,7 @@ export function BookingForm({
                 <button
                   type="button"
                   onClick={() => setTotal(String(suggested))}
-                  className="shrink-0 rounded-2xl bg-black/[0.06] px-4 text-[0.8125rem] font-semibold text-ink transition-colors hover:bg-black/[0.1]"
+                  className="shrink-0 rounded-2xl bg-ink/[0.06] px-4 text-[0.8125rem] font-semibold text-ink transition-colors hover:bg-ink/[0.1]"
                 >
                   Usar sugerido
                 </button>
