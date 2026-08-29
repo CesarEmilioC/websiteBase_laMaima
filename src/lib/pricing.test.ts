@@ -19,6 +19,7 @@ import {
   overlappingPlanPairs,
   planForNight,
   quote,
+  rateNotes,
   tierRows,
   type Holiday,
   type MinStayRule,
@@ -805,5 +806,89 @@ describe("resumen de estancias mínimas", () => {
       "Semana Santa: mínimo 3 noches",
       "Temporada 23 dic – 7 ene: mínimo 4 noches",
     ]);
+  });
+});
+
+/* ---------------------------------------------------------------------------
+ * Notas de la tarifa en puntos
+ *
+ * Lo que se prueba aquí no es texto bonito: es que cada dato salga del CAMPO
+ * que le corresponde (y no del párrafo que escribe el cliente a mano), porque
+ * de eso depende que la ficha siga diciendo la verdad cuando la administradora
+ * cambie un precio desde el panel.
+ * ------------------------------------------------------------------------- */
+describe("notas de la tarifa", () => {
+  it("saca el desayuno de los campos, no del texto libre", () => {
+    const [breakfast] = rateNotes(CASA_MAIMA);
+    expect(breakfast.kind).toBe("breakfast");
+    expect(breakfast.text).toBe(
+      "El desayuno no está incluido: $25.000 por persona.",
+    );
+
+    expect(rateNotes(MIRADOR)[0].text).toBe("Desayuno incluido en la tarifa.");
+  });
+
+  it("pone la excepción del descuento en la línea de matiz, no en la principal", () => {
+    const weekday = rateNotes(CASA_MAIMA).find(
+      (note) => note.kind === "weekday",
+    );
+    expect(weekday?.text).toBe("25 % de descuento de lunes a jueves.");
+    expect(weekday?.detail).toContain("14 de diciembre");
+  });
+
+  it("anuncia las dos tablas de Tres Casitas en vez de un descuento", () => {
+    const notes = rateNotes(TRES_CASITAS);
+    const weekday = notes.find((note) => note.kind === "weekday");
+    expect(weekday?.text).toBe(
+      "Tarifas propias de lunes a jueves y de fin de semana.",
+    );
+
+    // Y su huésped adicional tiene precio propio entre semana.
+    const extra = notes.find((note) => note.kind === "extra-guest");
+    expect(extra?.text).toBe("Huésped adicional: $75.000 por noche.");
+    expect(extra?.detail).toBe("$55.000 de lunes a jueves.");
+  });
+
+  it("omite el huésped adicional cuando la cabaña no lo cobra", () => {
+    expect(rateNotes(CASA_MAIMA).some((note) => note.kind === "extra-guest"))
+      .toBe(false);
+  });
+
+  it("añade una línea por temporada con estancia mínima", () => {
+    const minStay = rateNotes(MIRADOR).filter(
+      (note) => note.kind === "min-stay",
+    );
+    expect(minStay.map((note) => note.text)).toEqual([
+      "Puentes festivos: mínimo 2 noches.",
+      "Semana Santa: mínimo 3 noches.",
+      "Temporada 23 dic – 7 ene: mínimo 4 noches.",
+    ]);
+  });
+
+  it("no repite en prosa lo que los campos ya dijeron", () => {
+    // El `rate_note` real de Casa Maima: las dos frases ya son puntos.
+    const notes = rateNotes({
+      ...CASA_MAIMA,
+      rateNote:
+        "El desayuno no está incluido: $25.000 por persona. Descuento del 25% de lunes a jueves no festivos, salvo del 14 de diciembre al 15 de enero.",
+    });
+    expect(notes.some((note) => note.kind === "other")).toBe(false);
+  });
+
+  it("sí publica lo que el texto libre añade y los campos no cuentan", () => {
+    const notes = rateNotes({
+      ...CASA_MAIMA,
+      rateNote:
+        "Desayuno incluido. La leña de la fogata se cobra aparte en recepción.",
+    });
+    const extra = notes.filter((note) => note.kind === "other");
+    expect(extra).toHaveLength(1);
+    expect(extra[0].text).toBe(
+      "La leña de la fogata se cobra aparte en recepción.",
+    );
+  });
+
+  it("no dice nada de una cabaña sin tarifas publicadas", () => {
+    expect(rateNotes(CASA_UBA)).toEqual([]);
   });
 });

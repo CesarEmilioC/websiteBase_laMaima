@@ -8,6 +8,7 @@ import { Gallery } from "@/components/gallery";
 import { ArrowRightIcon, CheckIcon, UsersIcon } from "@/components/icons";
 import { JsonLd } from "@/components/json-ld";
 import { LeafField } from "@/components/leaf-field";
+import { RateNotes } from "@/components/rate-notes";
 import { SpecialPlans } from "@/components/special-plans";
 import { WhatsAppButton } from "@/components/whatsapp-button";
 import {
@@ -22,7 +23,7 @@ import { formatCOP, formatGuests } from "@/lib/format";
 import {
   breakfastLabel,
   lowestRate,
-  minStaySummary,
+  rateNotes,
   tierRows,
 } from "@/lib/pricing";
 import {
@@ -126,7 +127,9 @@ export default async function AccommodationDetailPage({ params }: Props) {
   // price_per_night_cop solo entra cuando la cabaña aún no tiene tabla.
   const from = lowestRate(accommodation.tiers, accommodation.price_per_night_cop);
   const breakfast = breakfastLabel(rates);
-  const minStays = minStaySummary(rates.minStayRules);
+  /* Las condiciones de la tarifa, ya en puntos y derivadas de los campos
+     (no del párrafo que escribe el cliente). Ver `rateNotes()`. */
+  const notes = rateNotes(rates);
 
   // Chips de la cabecera: lo que un huésped quiere saber antes de bajar a
   // leer la descripción entera.
@@ -379,22 +382,21 @@ export default async function AccommodationDetailPage({ params }: Props) {
                   </dl>
                 )}
 
-                {accommodation.rate_note && (
-                  <p className="mt-3 text-[0.8125rem] leading-relaxed text-ink-muted">
-                    {accommodation.rate_note}
-                  </p>
-                )}
-
-                {minStays.length > 0 && (
-                  <div className="mt-4 rounded-card bg-sand-soft px-4 py-3">
-                    <p className="text-[0.8125rem] font-semibold text-ink">
-                      Estancia mínima
+                {/* Condiciones de la tarifa, un dato por línea.
+                    -----------------------------------------------------------
+                    Antes esto eran dos bloques distintos —un párrafo corrido
+                    con el texto libre de `rate_note` y una caja aparte para la
+                    estancia mínima—, y el párrafo repetía en prosa lo que ya
+                    estaba en las columnas de la base de datos. Ahora es UNA
+                    lista derivada de los campos: desayuno, descuento entre
+                    semana con su excepción, huésped adicional y estancia
+                    mínima, cada cosa en su línea. Ver `rateNotes()`. */}
+                {notes.length > 0 && (
+                  <div className="mt-5 border-t border-ink/[0.07] pt-5">
+                    <p className="eyebrow text-ink-muted">
+                      Condiciones de la tarifa
                     </p>
-                    <ul className="mt-1.5 space-y-1 text-[0.8125rem] text-ink-muted">
-                      {minStays.map((line) => (
-                        <li key={line}>{line}</li>
-                      ))}
-                    </ul>
+                    <RateNotes notes={notes} className="mt-3.5" />
                   </div>
                 )}
 

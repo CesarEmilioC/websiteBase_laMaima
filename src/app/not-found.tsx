@@ -51,7 +51,7 @@ export default function NotFound() {
         </p>
         <h1 className="tracking-display mt-5 max-w-2xl text-[2.375rem] leading-[1.05] text-white sm:text-5xl">
           Esta página se perdió{" "}
-          <span className="italic text-white/85">en el bosque</span>
+          <span className="text-brand-200">en el bosque</span>
         </h1>
         <p className="mt-5 max-w-md text-[1.0625rem] leading-relaxed text-white/80">
           La dirección que buscas no existe o cambió de lugar. Te dejamos el

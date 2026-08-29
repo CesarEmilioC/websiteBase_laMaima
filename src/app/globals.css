@@ -1,11 +1,19 @@
 @import "tailwindcss";
 
 /* =============================================================================
-   Sistema de diseño — La Maima v2 (identidad azul oficial)
+   Sistema de diseño — La Maima v2.1 (identidad azul oficial)
    -----------------------------------------------------------------------------
    Lenguaje: boutique elegante y sereno. Rectángulos, aire generoso, capas de
-   transparencia y una tipografía con serifa de alto contraste que hace eco al
-   wordmark del logotipo.
+   transparencia y una tipografía SANS de sistema (SF Pro / Inter) compuesta
+   apretada, al estilo de las páginas de producto de Apple.
+
+   v2.1 — La serifa de display (Playfair) se retira por decisión del cliente:
+   los titulares vuelven a la sans que ya tenía el sitio, con pesos 600-700 y
+   tracking negativo. Lo que SÍ se conserva del rediseño azul: las etiquetas en
+   MAYÚSCULAS muy espaciadas (`.eyebrow`), la paleta entera y la estructura de
+   todas las secciones. El énfasis dentro de un titular, que antes lo hacía la
+   itálica de la serifa, ahora lo hace el COLOR (azul de marca sobre fondo
+   claro, azul claro sobre fondo oscuro).
 
    La paleta la entregó el cliente:
      #345fc6  azul primario   -> `brand-600`, el color de acción (CTAs, enlaces)
@@ -50,17 +58,20 @@
   --color-ink-muted: #5f6a7d; /* 5,1:1 — sigue siendo AA en cuerpo de texto */
 
   /* --- Tipografía ---------------------------------------------------------
-     Dos familias con papeles claros:
-       `--font-display`  Playfair Display, serifa de alto contraste. Es la que
-                         hace eco al wordmark "LA MAIMA" del logotipo (misma
-                         familia didona, mismos remates planos). Solo titulares.
-       `--font-sans`     SF Pro en Apple / Inter en el resto. Cuerpo e interfaz.
+     UNA sola familia en todo el sitio: la sans del sistema. SF Pro cuando el
+     dispositivo la tiene (iPhone, iPad, Mac) e Inter en el resto — mismo
+     dibujo neogrotesco y métricas casi idénticas, así que la página se ve
+     igual en las dos.
+
+     `--font-display` se conserva como ALIAS de `--font-sans` (no como segunda
+     familia): mantiene viva la utilidad `font-display` de Tailwind allí donde
+     se usa para marcar "esto es una cifra de titular", sin cargar una fuente
+     más. No hay serifas en el sitio.
      ----------------------------------------------------------------------- */
   --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Display",
     "SF Pro Text", var(--font-inter), "Segoe UI", Roboto, Helvetica, Arial,
     sans-serif;
-  --font-display: var(--font-playfair), "Playfair Display", "Iowan Old Style",
-    "Times New Roman", Georgia, serif;
+  --font-display: var(--font-sans);
 
   /* --- Radios: rectángulos de esquina moderada -----------------------------
      El cliente pidió fotos rectangulares o cuadradas y NADA de formas
@@ -125,28 +136,26 @@
     overflow-wrap: break-word;
   }
 
-  /* Titulares en la serifa de display.
-     El tracking queda casi neutro (-0,008em): una didona tiene astas finas y
-     mucho contraste, y el interletraje apretado que pedía la tipografía sans
-     anterior (-0,03em) le pegaba los remates unos con otros. El peso 400 es
-     deliberado: en Playfair la regular ya tiene el color de una semibold sans,
-     y subir a 600 la vuelve pesada en vez de elegante. */
+  /* Titulares en la sans, compuestos APRETADOS.
+     -------------------------------------------------------------------------
+     El peso 600 (semibold) y el tracking negativo son las dos señas del
+     registro iOS: a cuerpos grandes el interletraje por defecto de una
+     neogrotesca deja las palabras sueltas, y recogerlo es lo que convierte un
+     titular en un bloque compacto. El `h1` va un punto más apretado que el
+     resto porque siempre se compone al doble de cuerpo, y el ajuste óptico
+     crece con el tamaño. */
   h1,
   h2,
-  h3 {
-    font-family: var(--font-display);
-    font-weight: 400;
-    letter-spacing: -0.008em;
-    text-wrap: balance;
-  }
-
-  /* h4 se queda en la sans: son rótulos de interfaz (paneles, formularios del
-     admin), no titulares editoriales. */
+  h3,
   h4 {
     font-family: var(--font-sans);
     font-weight: 600;
-    letter-spacing: -0.02em;
+    letter-spacing: -0.022em;
     text-wrap: balance;
+  }
+
+  h1 {
+    letter-spacing: -0.032em;
   }
 
   p {
@@ -248,8 +257,10 @@
      Etiquetas en versalitas
      ---------------------------------------------------------------------
      "Etiquetas pequeñas en MAYÚSCULAS con letter-spacing amplio" (petición
-     literal del cliente). Es el contrapunto de la serifa: donde el titular es
-     ancho y modulado, la etiqueta es estrecha, seca y muy espaciada.
+     literal del cliente, y de lo que más le gustó del rediseño: se conserva
+     tal cual). Es el contrapunto del titular: donde este va grande y muy
+     recogido, la etiqueta va diminuta y muy abierta. Ese contraste de
+     interletraje —no un cambio de familia— es lo que da la jerarquía.
      --------------------------------------------------------------------- */
   .eyebrow {
     font-family: var(--font-sans);
@@ -403,19 +414,20 @@
   }
 
   /* ---------------------------------------------------------------------
-     Interletraje de los titulares con serifa
+     Interletraje de los titulares grandes
      ---------------------------------------------------------------------
-     Se conservan los nombres de las utilidades anteriores, pero los valores
-     son otros: una didona NO admite el tracking negativo fuerte que pedía la
-     sans (-0,035em / -0,042em juntaba los remates). En los cuerpos grandes el
-     interletraje óptico ya sobra, así que basta con recogerlo un pelo.
+     Vuelven a los valores de la sans (v2.1): son los que tenía el sitio antes
+     del paréntesis con serifa. `display` para los titulares a sangre sobre
+     foto (portada, bandas de encabezado, 404) y `editorial` para los de
+     sección, que van un punto más apretados todavía porque se componen
+     centrados y en dos o tres líneas.
      --------------------------------------------------------------------- */
   .tracking-display {
-    letter-spacing: -0.014em;
+    letter-spacing: -0.035em;
   }
 
   .tracking-editorial {
-    letter-spacing: -0.01em;
+    letter-spacing: -0.042em;
   }
 
   /* Filete corto que acompaña a las etiquetas en versalitas. */
@@ -432,14 +444,28 @@
      Capa decorativa (ver `LeafField` en components/leaf-field.tsx): unas pocas
      siluetas de hoja en SVG que se mecen muy despacio.
 
+     v2.1 — El movimiento era técnicamente correcto pero IMPERCEPTIBLE: con
+     20 px de recorrido en 30 segundos, mirar la pantalla cuatro segundos no
+     enseñaba nada. Se sube el dinamismo sin perder la calma:
+
+       · DOS animaciones superpuestas en elementos anidados, no una. El
+         contenedor exterior hace la DERIVA (un viaje largo de 90-150 px, en
+         30-58 s) y el interior el BALANCEO (giro de ±10-24° con un vaivén
+         corto, en 9-17 s). Componer dos ritmos distintos es lo que hace que
+         una hoja parezca flotar en el aire en vez de deslizarse por un raíl,
+         y de paso el periodo real de cada hoja pasa a ser el mínimo común
+         múltiplo de los dos: nunca se repite a la vista.
+       · Duraciones deliberadamente dispares (30, 37, 41, 47, 58 s) y desfases
+         negativos, para que ninguna pareja de hojas coincida en su gesto.
+       · Recorridos generosos pero SIEMPRE dentro de `overflow: hidden`, así
+         que ninguna hoja puede generar scroll horizontal.
+
      Reglas que la mantienen elegante y gratis en rendimiento:
        - Solo se animan `transform` y `opacity`: el compositor las resuelve sin
-         volver a maquetar ni repintar nada.
-       - Cuatro a seis elementos como máximo, con opacidad muy baja y en azul o
-         arena (el verde ya no existe en la marca).
-       - Duraciones larguísimas (26-44 s) y desfases distintos: nunca se pillan
-         dos hojas haciendo el mismo gesto a la vez, que es lo que delata una
-         animación barata.
+         volver a maquetar ni repintar nada. Dos capas animadas por hoja siguen
+         siendo trabajo de compositor puro, no de layout.
+       - Cinco elementos como máximo, con opacidad baja y en azul o arena (el
+         verde ya no existe en la marca).
        - Con `prefers-reduced-motion` se congelan en su posición inicial.
      --------------------------------------------------------------------- */
   .leaf-field {
@@ -458,32 +484,37 @@
      falta, que es exactamente lo que interesa. */
   .leaf {
     position: absolute;
-    animation: leaf-drift var(--leaf-duration, 32s) ease-in-out
+    animation: leaf-drift var(--leaf-duration, 42s) ease-in-out
       var(--leaf-delay, 0s) infinite alternate;
   }
 
-  .leaf-alt {
-    animation-name: leaf-sway;
+  /* Capa interior: el balanceo. Va en su propio elemento para poder llevar
+     duración propia; si compartiera elemento con la deriva, una animación
+     sobrescribiría el `transform` de la otra. */
+  .leaf-sway {
+    height: 100%;
+    width: 100%;
+    animation: leaf-sway var(--sway-duration, 13s) ease-in-out
+      var(--sway-delay, 0s) infinite alternate;
   }
 
   @keyframes leaf-drift {
     from {
-      transform: translate3d(0, 0, 0) rotate(var(--leaf-from, -6deg));
+      transform: translate3d(0, 0, 0);
     }
     to {
-      transform: translate3d(var(--leaf-x, 18px), var(--leaf-y, -26px), 0)
-        rotate(var(--leaf-to, 7deg));
+      transform: translate3d(var(--leaf-x, 90px), var(--leaf-y, -120px), 0);
     }
   }
 
   @keyframes leaf-sway {
     from {
-      transform: translate3d(0, 0, 0) rotate(var(--leaf-from, 4deg))
-        scale(1);
+      transform: rotate(var(--leaf-from, -10deg)) translate3d(0, 0, 0) scale(1);
     }
     to {
-      transform: translate3d(var(--leaf-x, -22px), var(--leaf-y, 20px), 0)
-        rotate(var(--leaf-to, -8deg)) scale(1.06);
+      transform: rotate(var(--leaf-to, 14deg))
+        translate3d(var(--sway-x, 14px), var(--sway-y, 10px), 0)
+        scale(var(--leaf-scale, 1.1));
     }
   }
 
@@ -530,6 +561,46 @@
 
   .no-scrollbar::-webkit-scrollbar {
     display: none;
+  }
+
+  /* ---------------------------------------------------------------------
+     Visor de galería a pantalla completa (lightbox)
+     ---------------------------------------------------------------------
+     Ver `src/components/gallery-lightbox.tsx`. Dos entradas separadas a
+     propósito: el VELO se funde (una escala del fondo entero se vería como un
+     tirón) y la FOTO además sube y crece un pelo, que es el gesto que la
+     hace parecer que sale de la miniatura.
+
+     Duraciones cortas (180/260 ms): un visor de fotos tiene que sentirse
+     instantáneo. Con `prefers-reduced-motion` la regla global de más abajo las
+     reduce a 0,01 ms y el visor simplemente aparece.
+     --------------------------------------------------------------------- */
+  .lightbox-veil {
+    animation: lightbox-veil-in 180ms ease-out both;
+  }
+
+  .lightbox-figure {
+    animation: lightbox-figure-in 260ms var(--ease-ios) both;
+  }
+
+  @keyframes lightbox-veil-in {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
+  @keyframes lightbox-figure-in {
+    from {
+      opacity: 0;
+      transform: translate3d(0, 12px, 0) scale(0.97);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
   }
 
   /* ---------------------------------------------------------------------
@@ -645,10 +716,11 @@
     transition-duration: 0.01ms !important;
   }
 
-  /* Las hojas se congelan en su posición inicial. `animation: none` (en vez de
-     heredar la duración de 0,01 ms de arriba) evita que salten al fotograma
-     final y se queden desplazadas. */
-  .leaf {
+  /* Las hojas se congelan en su posición inicial —las DOS capas, deriva y
+     balanceo—. `animation: none` (en vez de heredar la duración de 0,01 ms de
+     arriba) evita que salten al fotograma final y se queden desplazadas. */
+  .leaf,
+  .leaf-sway {
     animation: none !important;
   }
 

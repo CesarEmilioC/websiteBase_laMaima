@@ -309,3 +309,83 @@ export function CloseIcon({ className }: IconProps) {
     </svg>
   );
 }
+
+/** Cuatro esquinas hacia fuera: "ver a pantalla completa" (galería). */
+export function ExpandIcon({ className }: IconProps) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.7"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      focusable="false"
+      className={className}
+    >
+      <path d="M9 4H4v5M15 4h5v5M15 20h5v-5M9 20H4v-5" />
+    </svg>
+  );
+}
+
+/** Taza humeante: el desayuno, en las notas de tarifa. */
+export function CoffeeIcon({ className }: IconProps) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.7"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      focusable="false"
+      className={className}
+    >
+      <path d="M4 9h13v6a4 4 0 0 1-4 4H8a4 4 0 0 1-4-4V9Z" />
+      <path d="M17 10.5h1.5a2.5 2.5 0 0 1 0 5H17" />
+      <path d="M8 3.5v2M12 3.5v2" />
+    </svg>
+  );
+}
+
+/** Etiqueta de precio: el descuento de lunes a jueves. */
+export function TagIcon({ className }: IconProps) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.7"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      focusable="false"
+      className={className}
+    >
+      <path d="M12.6 3.5H20v7.4a2 2 0 0 1-.59 1.42l-7 7a2 2 0 0 1-2.83 0l-5-5a2 2 0 0 1 0-2.83l7-7a2 2 0 0 1 1.42-.59Z" />
+      <path d="M16.5 7.5h.01" />
+    </svg>
+  );
+}
+
+/** Círculo con "i": aclaraciones sueltas de la tarifa. */
+export function InfoIcon({ className }: IconProps) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.7"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      focusable="false"
+      className={className}
+    >
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 11v5.5M12 7.75h.01" />
+    </svg>
+  );
+}

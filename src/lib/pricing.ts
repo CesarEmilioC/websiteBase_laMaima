@@ -720,3 +720,179 @@ export function minStaySummary(rules: MinStayRule[]): string[] {
       `${family}: mínimo ${min} ${min === 1 ? "noche" : "noches"}`,
   );
 }
+
+/* ---------------------------------------------------------------------------
+ * Notas de la tarifa, en puntos
+ * ------------------------------------------------------------------------- */
+
+export type RateNoteKind =
+  | "breakfast"
+  | "weekday"
+  | "extra-guest"
+  | "min-stay"
+  | "other";
+
+/** Un dato de la tarifa, uno por línea. */
+export type RateNote = {
+  key: string;
+  kind: RateNoteKind;
+  /** El dato. Frase corta y cerrada. */
+  text: string;
+  /** Matiz o excepción, en segundo plano. */
+  detail?: string;
+};
+
+/**
+ * Temas que YA cuentan los puntos derivados de los campos estructurados.
+ *
+ * Sirven para no repetir en el texto libre lo que la lista ya dijo: ver
+ * `extraSentences()`.
+ */
+/**
+ * Marca interna para cortar el texto libre en frases.
+ *
+ * Se construye con `String.fromCharCode` en vez de escribir el carácter en el
+ * código: un carácter de control literal dentro de una cadena convierte el
+ * archivo en "binario" para media caja de herramientas (grep, diffs, revisión
+ * de código) y es invisible al leerlo.
+ */
+const SENTENCE_BREAK = String.fromCharCode(1);
+
+const NOTE_TOPICS: Record<Exclude<RateNoteKind, "other">, RegExp> = {
+  breakfast: /desayun/i,
+  weekday: /descuento|lunes a jueves|fin de semana|festiv/i,
+  "extra-guest": /adicional/i,
+  "min-stay": /estancia mínima|noches mínim/i,
+};
+
+/**
+ * Frases del texto libre (`rate_note`) que aportan algo que la lista no dice.
+ *
+ * El campo lo escribe el cliente a mano y hoy repite, en prosa, exactamente lo
+ * que ya está en las columnas ("El desayuno no está incluido: $25.000 por
+ * persona. Descuento del 25 % de lunes a jueves…"). Repetirlo debajo de los
+ * puntos sería leerlo dos veces, así que se descartan las frases cuyo tema ya
+ * tiene su punto; lo que quede —una aclaración que solo vive en el texto— sí se
+ * publica.
+ *
+ * DOS TRAMPAS en el troceado en frases, las dos resueltas por el patrón:
+ *
+ *   · No vale cortar en cada punto. En COP el punto es el separador de miles y
+ *     "$25.000 por persona" se partiría en "$25." y "000 por persona", que es
+ *     justo la frase huérfana que acabaría publicándose como aclaración. Se
+ *     exige que tras el punto venga un espacio y una MAYÚSCULA (o un signo de
+ *     apertura), que es como empieza una frase de verdad.
+ *   · No vale usar una mirada atrás (`/(?<=\.)\s+/`). Esto también corre en el
+ *     navegador, dentro del widget de reservas, y Safari no entendió las
+ *     miradas atrás hasta la 16.4: donde no las entiende, el patrón ni siquiera
+ *     compila y se lleva la página entera por delante. El truco es capturar el
+ *     signo y volver a ponerlo, con un carácter de control como separador
+ *     (nunca aparece en un texto escrito a mano).
+ */
+function extraSentences(
+  rateNote: string | null,
+  covered: Set<RateNoteKind>,
+): string[] {
+  if (!rateNote) return [];
+
+  const topics = Object.entries(NOTE_TOPICS) as [
+    Exclude<RateNoteKind, "other">,
+    RegExp,
+  ][];
+
+  return rateNote
+    .replace(/([.!?])\s+(?=[A-ZÁÉÍÓÚÜÑ¿¡"«(])/g, "$1" + SENTENCE_BREAK)
+    .split(SENTENCE_BREAK)
+    .map((sentence) => sentence.trim())
+    .filter(Boolean)
+    .filter(
+      (sentence) =>
+        !topics.some(([kind, topic]) => covered.has(kind) && topic.test(sentence)),
+    );
+}
+
+/**
+ * Las condiciones de la tarifa como LISTA DE PUNTOS, un dato por línea.
+ *
+ * En la ficha esto se leía como un párrafo corrido ("El desayuno no está
+ * incluido: $25.000 por persona. Descuento del 25 % de lunes a jueves no
+ * festivos, salvo del 14 de diciembre al 15 de enero."), y en un párrafo los
+ * datos se pierden: quien mira una cabaña busca UNA cosa —cuánto cuesta el
+ * desayuno, si le sale más barato entre semana— y no quiere leer una frase
+ * entera para encontrarla.
+ *
+ * Los puntos salen de los CAMPOS de la base de datos (`breakfast_included`,
+ * `breakfast_price_cop`, `weekday_discount_pct`, `extra_person_price_cop`, las
+ * reglas de estancia mínima), no de la prosa: así el día que la administradora
+ * cambie un precio desde el panel, el punto cambia con él aunque nadie
+ * reescriba el texto. `rate_note` solo aporta las frases que digan algo que las
+ * columnas no cuentan.
+ *
+ * Devuelve la lista vacía cuando no hay nada que decir (hoy, Casa Uba): quien
+ * la pinta no tiene que comprobar nada más.
+ */
+export function rateNotes(config: RateConfig): RateNote[] {
+  const notes: RateNote[] = [];
+
+  /* 1. Desayuno. Si el documento del cliente no dice nada, no se inventa: ni
+        "incluido" ni un precio. */
+  if (config.breakfastIncluded) {
+    notes.push({
+      key: "breakfast",
+      kind: "breakfast",
+      text: "Desayuno incluido en la tarifa.",
+    });
+  } else if (config.breakfastPriceCop !== null) {
+    notes.push({
+      key: "breakfast",
+      kind: "breakfast",
+      text: `El desayuno no está incluido: ${formatCOP(config.breakfastPriceCop)} por persona.`,
+    });
+  }
+
+  /* 2. Entre semana. Dos formas de decir lo mismo: casi todas las cabañas
+        descuentan un porcentaje, y Tres Casitas publica dos tablas. */
+  if (config.weekdayDiscountPct !== null) {
+    notes.push({
+      key: "weekday",
+      kind: "weekday",
+      text: `${config.weekdayDiscountPct} % de descuento de lunes a jueves.`,
+      detail:
+        "No aplica en festivos ni entre el 14 de diciembre y el 15 de enero.",
+    });
+  } else if (config.tiers.some((tier) => tier.day_type !== "any")) {
+    notes.push({
+      key: "weekday",
+      kind: "weekday",
+      text: "Tarifas propias de lunes a jueves y de fin de semana.",
+      detail: "Los festivos se cobran como fin de semana.",
+    });
+  }
+
+  /* 3. Huésped adicional, con su precio propio entre semana si lo tiene. */
+  if (config.extraPersonPriceCop !== null) {
+    notes.push({
+      key: "extra-guest",
+      kind: "extra-guest",
+      text: `Huésped adicional: ${formatCOP(config.extraPersonPriceCop)} por noche.`,
+      ...(config.extraPersonPriceWeekdayCop !== null
+        ? {
+            detail: `${formatCOP(config.extraPersonPriceWeekdayCop)} de lunes a jueves.`,
+          }
+        : {}),
+    });
+  }
+
+  /* 4. Estancia mínima: una línea por temporada. */
+  for (const line of minStaySummary(config.minStayRules)) {
+    notes.push({ key: `min-stay-${line}`, kind: "min-stay", text: `${line}.` });
+  }
+
+  /* 5. Lo que el texto libre añade y las columnas no cuentan. */
+  const covered = new Set(notes.map((note) => note.kind));
+  extraSentences(config.rateNote, covered).forEach((sentence, position) => {
+    notes.push({ key: `other-${position}`, kind: "other", text: sentence });
+  });
+
+  return notes;
+}

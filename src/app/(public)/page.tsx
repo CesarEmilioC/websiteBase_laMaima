@@ -51,29 +51,32 @@ export const metadata: Metadata = {
 };
 
 /**
- * Titular con las dos últimas palabras en itálica.
+ * Titular con las dos últimas palabras destacadas EN COLOR.
  *
  * El diseño anterior partía el titular en dos líneas y desplazaba la segunda
  * hacia la derecha. Ese gesto asimétrico pertenecía al lenguaje "orgánico" que
  * el rediseño retira: la referencia que eligió el cliente
  * (americantradehotel.com) compone en bloques rectos y alineados.
  *
- * La jerarquía se conserva, pero con un recurso puramente tipográfico: la
- * itálica de Playfair Display, que es donde una didona enseña su mejor dibujo.
- * Sin desplazamientos: todo cuelga del mismo eje izquierdo.
+ * v2.1 — El énfasis lo hacía la itálica de la serifa de display; al volver a la
+ * sans, la itálica de una neogrotesca es una inclinación mecánica que no aporta
+ * jerarquía (y en algunos sistemas ni siquiera existe como corte real: el
+ * navegador la falsea). El recurso pasa a ser el COLOR: la cola del titular en
+ * azul de marca sobre fondo claro, en azul claro sobre fondo oscuro. Se lee
+ * antes y de más lejos que una cursiva.
  *
  * Funciona con cualquier contenido —los titulares los edita el cliente desde el
- * panel—, así que por debajo de cuatro palabras se renderiza tal cual: poner
- * "naturaleza" en cursiva sería peor que no hacer nada.
+ * panel—, así que por debajo de cuatro palabras se renderiza tal cual: destacar
+ * "naturaleza" sola sería peor que no hacer nada.
  */
-function ItalicTail({ text, className }: { text: string; className: string }) {
+function AccentTail({ text, className }: { text: string; className: string }) {
   const words = text.trim().split(/\s+/);
   if (words.length < 4) return <>{text}</>;
 
   return (
     <>
       {words.slice(0, -2).join(" ")}{" "}
-      <em className={`italic ${className}`}>{words.slice(-2).join(" ")}</em>
+      <span className={className}>{words.slice(-2).join(" ")}</span>
     </>
   );
 }
@@ -131,7 +134,10 @@ export default async function HomePage() {
             <span className="eyebrow eyebrow-chip mb-6 flex w-fit items-center rounded-full bg-white/20 py-1.5 pl-3.5 text-white ring-1 ring-inset ring-white/30 backdrop-blur-md">
               {hero.eyebrow}
             </span>
-            <ItalicTail text={hero.title} className="text-white/90" />
+            {/* Sobre foto el azul de marca se apagaría: el acento va en el
+                azul CLARO de la paleta (#bccef5), que sobre el fundido oscuro
+                mantiene un contraste muy holgado y sigue leyéndose como azul. */}
+            <AccentTail text={hero.title} className="text-brand-200" />
           </h1>
 
           {/* Todo cuelga del mismo eje izquierdo que el titular: sin sangrías
@@ -178,7 +184,7 @@ export default async function HomePage() {
                 id="about-title"
                 className="tracking-editorial mt-4 text-[2.125rem] leading-[1.12] text-ink sm:text-[2.625rem] lg:text-[3rem]"
               >
-                <ItalicTail text={about.title} className="text-brand-700" />
+                <AccentTail text={about.title} className="text-brand-700" />
               </h2>
 
               <div className="mt-6 max-w-xl space-y-4 text-[1.0625rem] leading-relaxed text-ink-muted">
@@ -198,7 +204,7 @@ export default async function HomePage() {
                       <dt className="sr-only">{stat.label}</dt>
                       <dd>
                         <span aria-hidden="true" className="rule-brand" />
-                        <span className="mt-4 block font-display text-[2.25rem] leading-none text-brand-600 sm:text-[2.75rem]">
+                        <span className="mt-4 block text-[2.25rem] font-semibold leading-none tracking-[-0.03em] text-brand-600 sm:text-[2.75rem]">
                           {stat.value}
                         </span>
                         <span className="mt-2.5 block text-[0.8125rem] leading-snug text-ink-muted sm:text-sm">
@@ -252,7 +258,7 @@ export default async function HomePage() {
                   de líneas partía justo ahí y dejaba "cada" solo al final de
                   la primera línea. */}
               Seis casas y cabañas, cada&nbsp;una con su{" "}
-              <em className="italic text-brand-700">pedazo de montaña</em>
+              <span className="text-brand-700">pedazo de montaña</span>
             </h2>
             <p className="mt-5 text-[1.0625rem] leading-relaxed text-ink-muted">
               Todas independientes, con cocineta equipada y baño privado. Elige
@@ -317,7 +323,7 @@ export default async function HomePage() {
                   className="tracking-editorial mt-4 text-[2.125rem] leading-[1.12] text-white sm:text-[2.625rem] lg:text-[3rem]"
                 >
                   El bosque también es{" "}
-                  <em className="italic text-brand-300">parte del plan</em>
+                  <span className="text-brand-300">parte del plan</span>
                 </h2>
               </div>
               <p
@@ -365,16 +371,29 @@ export default async function HomePage() {
       {/* ================================================================== */}
       {/* Ubicación y contacto                                                */}
       {/* ================================================================== */}
-      {/* Esta sección le gusta al cliente tal y como está: se conserva su
-          estructura (columna de datos + mapa) y solo cambian paleta, ritmo
-          vertical y el recorte del mapa, que pasa de arco a rectángulo. */}
+      {/* Al cliente le gusta esta sección, pero pedía que ocupara MENOS alto
+          (v2.1). Dos cambios, ningún dato fuera:
+
+            · El mapa deja de ser una columna a toda altura (620 px mínimos en
+              escritorio) y pasa a una banda contenida de 340 px. Un mapa
+              embebido no gana nada por ser alto: lo que se mira es el punto y
+              el nombre de las vías de alrededor, y eso cabe de sobra.
+            · La nota "Elige tus fechas en línea" baja de la columna izquierda
+              a DEBAJO del mapa. Ahí gana ancho, así que sus dos botones caben
+              en una sola línea (en la columna estrecha se apilaban), y la
+              columna de datos se queda solo con lo que es información de
+              contacto.
+
+          El resultado es una sección equilibrada —dos columnas de alto
+          parecido— en vez de una columna larguísima al lado de un mapa
+          estirado para acompañarla. */}
       <section
         id="contacto"
         className="section-y bg-shell"
         aria-labelledby="contacto-title"
       >
         <div className="container-page">
-          <div className="grid gap-12 lg:grid-cols-12 lg:gap-14">
+          <div className="grid gap-10 lg:grid-cols-12 lg:gap-14">
             <div className="lg:col-span-5" data-reveal>
               <p className="eyebrow text-brand-700">Cómo llegar</p>
               <h2
@@ -382,9 +401,9 @@ export default async function HomePage() {
                 className="tracking-editorial mt-4 text-[2.125rem] leading-[1.12] text-ink sm:text-[2.5rem]"
               >
                 A 12 kilómetros de la vía a Dapa,{" "}
-                <em className="italic text-brand-700">
+                <span className="text-brand-700">
                   a menos de una hora de Cali
-                </em>
+                </span>
               </h2>
               <p className="mt-5 text-[1.0625rem] leading-relaxed text-ink-muted">
                 La subida es por carretera pavimentada y el último tramo está
@@ -467,12 +486,33 @@ export default async function HomePage() {
                   </div>
                 </li>
               </ul>
+            </div>
 
-              {/* Nota "¿quieres armar tu plan?": al cliente le gustan estas
-                  notas del preview. Ahora es un panel de vidrio arena, no un
-                  bloque de color plano. */}
-              <div className="glass-sand mt-6 rounded-panel p-6 ring-1 ring-inset ring-brand-600/10 sm:p-7">
-                <p className="text-[0.9375rem] leading-relaxed text-ink-soft">
+            {/* Columna del mapa: mapa arriba, nota debajo. */}
+            <div className="lg:col-span-7" data-reveal>
+              {/* El mapa es un rectángulo (se retiró la máscara de portal del
+                  diseño orgánico) y ahora una BANDA de alto contenido. El alto
+                  lo fija ESTE contenedor —no el iframe— para que el hueco
+                  exista desde el primer pintado y el mapa diferido no provoque
+                  salto de maqueta. */}
+              <div className="h-[260px] overflow-hidden rounded-panel bg-sand-soft shadow-panel sm:h-[300px] lg:h-[340px]">
+                <MapEmbed
+                  src={contact.maps.embedUrl}
+                  title="Ubicación de La Maima en Google Maps"
+                />
+              </div>
+
+              {/* Nota "Elige tus fechas en línea": al cliente le gustan estas
+                  notas del preview. Es un panel de vidrio arena, no un bloque
+                  de color plano.
+
+                  Aquí, en la columna ancha, los dos botones caben en una sola
+                  fila desde `sm` y ya no hay que volver a apilarlos en `lg`
+                  (que es lo que hacía falta cuando la nota vivía en la columna
+                  estrecha). `whitespace-nowrap` sigue garantizando que ninguna
+                  etiqueta se parta. */}
+              <div className="glass-sand mt-5 rounded-panel p-6 ring-1 ring-inset ring-brand-600/10 sm:flex sm:items-center sm:gap-7 sm:p-7">
+                <p className="text-[0.9375rem] leading-relaxed text-ink-soft sm:flex-1">
                   <strong className="font-semibold text-ink">
                     Elige tus fechas en línea.
                   </strong>{" "}
@@ -480,11 +520,7 @@ export default async function HomePage() {
                   real y el cálculo de tu estadía. La solicitud se confirma por
                   WhatsApp el mismo día.
                 </p>
-                {/* Desde `lg` esta columna es la estrecha (cinco de doce) y
-                    los dos botones ya no caben en una línea sin partir sus
-                    etiquetas: ahí vuelven a apilarse. `whitespace-nowrap` es
-                    la garantía de que ninguna etiqueta se rompa nunca. */}
-                <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center lg:flex-col lg:items-stretch">
+                <div className="mt-5 flex flex-col gap-3 sm:mt-0 sm:shrink-0">
                   <Link
                     href="/alojamientos"
                     className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-full bg-brand-600 px-6 py-3.5 text-[0.9375rem] font-semibold text-white shadow-pill transition-[background-color,transform] duration-200 ease-ios hover:bg-brand-700 active:scale-[0.98]"
@@ -503,21 +539,6 @@ export default async function HomePage() {
                   </a>
                 </div>
               </div>
-            </div>
-
-            {/* El mapa vuelve a ser un rectángulo: se retira la máscara de
-                portal (`mask-arch`) del diseño anterior. */}
-            <div
-              /* El alto lo fija ESTE contenedor (no el iframe) para que el
-                 hueco exista desde el primer pintado y el mapa diferido no
-                 provoque salto de maqueta. */
-              className="h-[380px] overflow-hidden rounded-panel bg-sand-soft shadow-panel sm:h-[480px] lg:col-span-7 lg:h-auto lg:min-h-[620px]"
-              data-reveal
-            >
-              <MapEmbed
-                src={contact.maps.embedUrl}
-                title="Ubicación de La Maima en Google Maps"
-              />
             </div>
           </div>
         </div>

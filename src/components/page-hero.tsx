@@ -12,14 +12,15 @@ type Props = {
   eyebrow?: string;
   title: string;
   /**
-   * Cola OPCIONAL del titular, que se compone en itálica de Playfair a
-   * continuación del título y en un blanco algo más bajo.
+   * Cola OPCIONAL del titular, que se compone a continuación del título en el
+   * azul claro de la paleta (v2.1; antes iba en itálica de la serifa de
+   * display, que ya no existe).
    *
    * Es un matiz de jerarquía, no un cambio de eje: va en la misma línea de
    * lectura, sin sangrado ni desplazamiento. Se pasa como prop (en vez de
    * cortar automáticamente las dos últimas palabras del título) porque los
-   * títulos los edita el cliente: un corte automático acabaría poniendo en
-   * itálica "y el" o "de la" en cuanto alguien reescriba la frase.
+   * títulos los edita el cliente: un corte automático acabaría destacando "y
+   * el" o "de la" en cuanto alguien reescriba la frase.
    */
   titleAccent?: string;
   description?: string;
@@ -148,7 +149,7 @@ export function PageHero({
           {titleAccent && (
             <>
               {" "}
-              <span className="italic text-white/85">{titleAccent}</span>
+              <span className="text-brand-200">{titleAccent}</span>
             </>
           )}
         </h1>

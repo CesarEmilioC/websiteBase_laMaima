@@ -33,6 +33,7 @@ import {
   UsersIcon,
   WhatsAppIcon,
 } from "@/components/icons";
+import { RateNotes } from "@/components/rate-notes";
 import {
   lastCheckOutFor,
   rangeIsFree,
@@ -53,6 +54,7 @@ import {
   breakfastLabel,
   lowestRate,
   quote,
+  rateNotes,
   type Quote,
   type RateConfig,
 } from "@/lib/pricing";
@@ -196,6 +198,9 @@ export function BookingWidget({
 
   const from = lowestRate(rates.tiers, rates.basePriceCop);
   const breakfast = breakfastLabel(rates);
+  /* `rates` no cambia en toda la vida del componente (llega del servidor), así
+     que las notas se calculan una vez y no en cada pulsación del calendario. */
+  const notes = useMemo(() => rateNotes(rates), [rates]);
 
   // Una estadía por debajo de la estancia mínima no se puede pedir: mejor
   // decirlo aquí que dejar que el equipo tenga que rechazarla por WhatsApp.
@@ -538,11 +543,18 @@ export function BookingWidget({
               </p>
             )}
 
-            {rates.rateNote && (
-              <p className="mt-3 text-[0.8125rem] leading-relaxed text-ink-muted">
-                {rates.rateNote}
-              </p>
-            )}
+            {/* Condiciones de la tarifa en puntos, el mismo criterio que en el
+                panel de la ficha (antes aquí iba el párrafo corrido de
+                `rate_note`). Se quitan las dos que este bloque ya cuenta por su
+                cuenta: el desayuno, que va arriba como pastilla, y la estancia
+                mínima, que el widget valida contra las fechas elegidas y avisa
+                en su propio aviso ámbar. */}
+            <RateNotes
+              notes={notes.filter(
+                (note) => note.kind !== "breakfast" && note.kind !== "min-stay",
+              )}
+              className="mt-4 border-t border-ink/[0.07] pt-4"
+            />
           </div>
 
           {/* Estancia mínima: bloquea la solicitud y explica por qué. -------- */}

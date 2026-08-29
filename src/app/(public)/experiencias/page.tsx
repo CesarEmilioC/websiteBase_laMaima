@@ -107,7 +107,7 @@ export default async function ExperiencesPage() {
           <div className="mx-auto max-w-3xl text-center" data-reveal>
             <h2 className="tracking-editorial text-[2.125rem] leading-[1.08] text-white sm:text-[2.75rem]">
               ¿Quieres armar{" "}
-              <span className="italic text-brand-300">tu plan</span>?
+              <span className="text-brand-300">tu plan</span>?
             </h2>
             <p className="mx-auto mt-5 max-w-xl text-[1.0625rem] leading-relaxed text-sand-soft/80">
               Cuéntanos cuántos vienen y qué fechas tienen en mente, y te
