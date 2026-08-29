@@ -78,6 +78,13 @@ export type RatePlan = {
   price_per_night_cop: number | null;
   /** Huéspedes que cubre el precio del paquete. `null` = todos. */
   guests_included: number | null;
+  /** Orden manual que pone el panel. Menor = manda. Por defecto 0. */
+  sort?: number;
+  /**
+   * `true` cuando el plan se creó para **todos** los alojamientos. Un plan
+   * hecho para esta cabaña en concreto le gana (ver `planForNight`).
+   */
+  appliesToAll?: boolean;
 };
 
 export type Holiday = {
@@ -211,14 +218,78 @@ function extraPersonPrice(config: RateConfig, dayType: DayType): number {
   return config.extraPersonPriceCop ?? 0;
 }
 
-/** Paquete activo que cubre esa noche (el primero de la lista gana). */
-export function planForNight(
-  plans: RatePlan[],
-  iso: string,
-): RatePlan | null {
-  return (
-    plans.find((plan) => plan.date_from <= iso && iso <= plan.date_to) ?? null
-  );
+/**
+ * REGLA DE PRECEDENCIA ENTRE PLANES (la que se explica en el panel).
+ *
+ * Nada impide que la administradora cree dos planes que se crucen en fechas
+ * —el panel avisa pero no lo bloquea, porque a veces es a propósito—, así que
+ * el motor necesita una regla fija para decidir cuál cobra. Gana UNO solo, en
+ * este orden:
+ *
+ *   1. **Alcance.** El plan hecho para ese alojamiento gana al plan de "todos
+ *      los alojamientos": lo particular manda sobre lo general.
+ *   2. **Orden.** A igual alcance, el número de orden más bajo (la columna
+ *      "Orden" del panel: menor = manda).
+ *   3. **Rango más corto.** A igual orden, el plan que cubre menos noches, por
+ *      ser el más específico en el tiempo (un fin de semana temático gana a una
+ *      temporada entera).
+ *   4. **Nombre.** Orden alfabético, solo para que el resultado nunca dependa
+ *      del azar ni del orden en que llegaron las filas.
+ *
+ * Devuelve un número negativo si `a` manda sobre `b` (mismo criterio que
+ * `Array.prototype.sort`).
+ */
+export function comparePlans(a: RatePlan, b: RatePlan): number {
+  const scope = Number(a.appliesToAll ?? false) - Number(b.appliesToAll ?? false);
+  if (scope !== 0) return scope;
+
+  const sort = (a.sort ?? 0) - (b.sort ?? 0);
+  if (sort !== 0) return sort;
+
+  const span = planSpan(a) - planSpan(b);
+  if (span !== 0) return span;
+
+  return a.name.localeCompare(b.name, "es");
+}
+
+/** Noches que cubre el plan, ambos extremos inclusive. */
+function planSpan(plan: RatePlan): number {
+  return nightsBetween(plan.date_from, plan.date_to) + 1;
+}
+
+/**
+ * Plan que cobra esa noche: de todos los que la cubren, el que gana según
+ * `comparePlans`.
+ */
+export function planForNight(plans: RatePlan[], iso: string): RatePlan | null {
+  let winner: RatePlan | null = null;
+  for (const plan of plans) {
+    if (plan.date_from > iso || iso > plan.date_to) continue;
+    if (!winner || comparePlans(plan, winner) < 0) winner = plan;
+  }
+  return winner;
+}
+
+/**
+ * Planes que se cruzan en fechas dentro de una misma lista.
+ *
+ * El panel lo usa para advertir ("estos dos planes se pisan del 12 al 14"), no
+ * para impedir nada: solaparlos es legítimo y la regla de arriba decide.
+ */
+export function overlappingPlanPairs<T extends RatePlan>(
+  plans: T[],
+): [T, T][] {
+  const pairs: [T, T][] = [];
+  for (let i = 0; i < plans.length; i += 1) {
+    for (let j = i + 1; j < plans.length; j += 1) {
+      const a = plans[i];
+      const b = plans[j];
+      if (a.date_from <= b.date_to && b.date_from <= a.date_to) {
+        pairs.push([a, b]);
+      }
+    }
+  }
+  return pairs;
 }
 
 /** Tarifa de una noche concreta, con su desglose. */

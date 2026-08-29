@@ -67,7 +67,7 @@ function joinedName(value: unknown): string | null {
  * ------------------------------------------------------------------------- */
 
 const ACCOMMODATION_COLUMNS =
-  "id, slug, name, short_description, description, capacity, price_per_night_cop, price_note, amenities, gallery, visible, sort_order, created_at, updated_at";
+  "id, slug, name, short_description, description, capacity, price_per_night_cop, price_note, amenities, gallery, visible, sort_order, created_at, updated_at, extra_person_price_cop, extra_person_price_weekday_cop, breakfast_included, breakfast_price_cop, weekday_discount_pct, rate_note";
 
 const EXPERIENCE_COLUMNS =
   "id, slug, name, short_description, description, duration, capacity, price_cop, price_note, gallery, visible, sort_order, created_at, updated_at";
@@ -103,6 +103,22 @@ function mapAccommodation(row: RawRow): AdminAccommodation {
     sort_order: Number(row.sort_order),
     created_at: String(row.created_at),
     updated_at: String(row.updated_at),
+    extra_person_price_cop:
+      row.extra_person_price_cop === null
+        ? null
+        : Number(row.extra_person_price_cop),
+    extra_person_price_weekday_cop:
+      row.extra_person_price_weekday_cop === null
+        ? null
+        : Number(row.extra_person_price_weekday_cop),
+    breakfast_included: Boolean(row.breakfast_included),
+    breakfast_price_cop:
+      row.breakfast_price_cop === null ? null : Number(row.breakfast_price_cop),
+    weekday_discount_pct:
+      row.weekday_discount_pct === null
+        ? null
+        : Number(row.weekday_discount_pct),
+    rate_note: (row.rate_note as string | null) ?? null,
   };
 }
 

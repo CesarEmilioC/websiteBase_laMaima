@@ -11,15 +11,19 @@ import { describe, expect, it } from "vitest";
 import { weekdayIndex } from "./dates";
 import {
   breakfastLabel,
+  comparePlans,
   isNoDiscountSeason,
   lowestRate,
   minStaySummary,
   nightDayType,
+  overlappingPlanPairs,
+  planForNight,
   quote,
   tierRows,
   type Holiday,
   type MinStayRule,
   type RateConfig,
+  type RatePlan,
   type RateTier,
 } from "./pricing";
 
@@ -559,6 +563,178 @@ describe("paquetes", () => {
     const result = quote(SAN_VALENTIN, "2027-02-13", "2027-02-15", 2);
     expect(result.planNames).toEqual(["San Valentín"]);
     expect(result.lines[0].detail).toContain("San Valentín");
+  });
+
+  it("fuera del rango del paquete se vuelve a la tabla por ocupación", () => {
+    // 2027-02-12 (viernes) es el día anterior al paquete.
+    expect(oneNight(SAN_VALENTIN, "2027-02-12", 2)).toBe(570000);
+    // 2027-02-15 (lunes) es el día siguiente: vuelve el 25 %.
+    expect(oneNight(SAN_VALENTIN, "2027-02-15", 2)).toBe(427500);
+    const result = quote(SAN_VALENTIN, "2027-02-15", "2027-02-16", 2);
+    expect(result.planNames).toEqual([]);
+  });
+
+  it("un plan sin precio propio solo pone nombre a la temporada", () => {
+    const sinPrecio: RateConfig = {
+      ...MIRADOR,
+      ratePlans: [
+        {
+          name: "Temporada de avistamiento",
+          description: null,
+          date_from: SAT,
+          date_to: SAT,
+          price_per_night_cop: null,
+          guests_included: null,
+        },
+      ],
+    };
+    // Se sigue cobrando la tabla…
+    expect(oneNight(sinPrecio, SAT, 2)).toBe(570000);
+    // …pero el nombre viaja hasta el desglose.
+    expect(quote(sinPrecio, SAT, SUN, 2).planNames).toEqual([
+      "Temporada de avistamiento",
+    ]);
+  });
+
+  it("sin huéspedes incluidos el precio del plan cubre a todo el grupo", () => {
+    const abierto: RateConfig = {
+      ...MIRADOR,
+      ratePlans: [
+        {
+          name: "Puente con cena",
+          description: null,
+          date_from: SAT,
+          date_to: SAT,
+          price_per_night_cop: 900000,
+          guests_included: null,
+        },
+      ],
+    };
+    expect(oneNight(abierto, SAT, 4)).toBe(900000);
+  });
+});
+
+/* ---------------------------------------------------------------------------
+ * Precedencia entre planes que se cruzan
+ * ------------------------------------------------------------------------- */
+
+describe("precedencia entre planes", () => {
+  function plan(overrides: Partial<RatePlan> & { name: string }): RatePlan {
+    return {
+      description: null,
+      date_from: "2027-02-13",
+      date_to: "2027-02-14",
+      price_per_night_cop: 800000,
+      guests_included: 2,
+      ...overrides,
+    };
+  }
+
+  const DEL_ALOJAMIENTO = plan({
+    name: "San Valentín en el Mirador",
+    price_per_night_cop: 900000,
+  });
+  const DE_TODOS = plan({
+    name: "San Valentín en toda la reserva",
+    price_per_night_cop: 800000,
+    appliesToAll: true,
+  });
+
+  it("1) el plan del alojamiento gana al de todos los alojamientos", () => {
+    // El de "todos" va primero en la lista y aun así pierde: manda el alcance,
+    // no el orden en que llegaron las filas.
+    expect(planForNight([DE_TODOS, DEL_ALOJAMIENTO], "2027-02-13")?.name).toBe(
+      DEL_ALOJAMIENTO.name,
+    );
+
+    const config: RateConfig = {
+      ...MIRADOR,
+      ratePlans: [DE_TODOS, DEL_ALOJAMIENTO],
+    };
+    expect(oneNight(config, "2027-02-13", 2)).toBe(900000);
+  });
+
+  it("2) a igual alcance gana el número de orden más bajo", () => {
+    const primero = plan({ name: "Cumpleaños", sort: 0, price_per_night_cop: 700000 });
+    const segundo = plan({ name: "Aniversario", sort: 5, price_per_night_cop: 990000 });
+
+    expect(planForNight([segundo, primero], "2027-02-13")?.name).toBe("Cumpleaños");
+
+    const config: RateConfig = { ...MIRADOR, ratePlans: [segundo, primero] };
+    expect(oneNight(config, "2027-02-13", 2)).toBe(700000);
+  });
+
+  it("3) a igual orden gana el plan de rango más corto", () => {
+    const temporada = plan({
+      name: "Temporada de febrero",
+      date_from: "2027-02-01",
+      date_to: "2027-02-28",
+      price_per_night_cop: 650000,
+    });
+    const finDeSemana = plan({
+      name: "Fin de semana temático",
+      date_from: "2027-02-13",
+      date_to: "2027-02-14",
+      price_per_night_cop: 880000,
+    });
+
+    expect(planForNight([temporada, finDeSemana], "2027-02-13")?.name).toBe(
+      "Fin de semana temático",
+    );
+    // Y en un día que solo cubre la temporada, manda la temporada.
+    expect(planForNight([temporada, finDeSemana], "2027-02-20")?.name).toBe(
+      "Temporada de febrero",
+    );
+  });
+
+  it("4) el último desempate es alfabético, para que no dependa del azar", () => {
+    const a = plan({ name: "Abril florecido" });
+    const z = plan({ name: "Zafra" });
+
+    expect(comparePlans(a, z)).toBeLessThan(0);
+    expect(planForNight([z, a], "2027-02-13")?.name).toBe("Abril florecido");
+  });
+
+  it("detecta los solapes para poder avisar en el panel", () => {
+    const enero = plan({
+      name: "Enero",
+      date_from: "2027-01-01",
+      date_to: "2027-01-15",
+    });
+    const febrero = plan({
+      name: "Febrero",
+      date_from: "2027-02-01",
+      date_to: "2027-02-28",
+    });
+    const puente = plan({
+      name: "Puente de febrero",
+      date_from: "2027-02-13",
+      date_to: "2027-02-15",
+    });
+
+    expect(overlappingPlanPairs([enero, febrero])).toEqual([]);
+
+    const pairs = overlappingPlanPairs([enero, febrero, puente]);
+    expect(pairs).toHaveLength(1);
+    expect(pairs[0].map((item) => item.name)).toEqual([
+      "Febrero",
+      "Puente de febrero",
+    ]);
+  });
+
+  it("un solo plan cubre la noche cuando el otro ya terminó", () => {
+    const viejo = plan({
+      name: "Plan viejo",
+      date_from: "2026-12-01",
+      date_to: "2026-12-31",
+    });
+    expect(planForNight([viejo, DEL_ALOJAMIENTO], "2027-02-13")?.name).toBe(
+      DEL_ALOJAMIENTO.name,
+    );
+    expect(planForNight([viejo, DEL_ALOJAMIENTO], "2026-12-05")?.name).toBe(
+      "Plan viejo",
+    );
+    expect(planForNight([viejo, DEL_ALOJAMIENTO], "2027-06-01")).toBeNull();
   });
 });
 

@@ -6,6 +6,8 @@
  * panel sí ve las filas ocultas.
  */
 
+import type { TierDayType } from "@/lib/pricing";
+
 export type GalleryImage = {
   url: string;
   alt: string;
@@ -26,6 +28,14 @@ export type AdminAccommodation = {
   sort_order: number;
   created_at: string;
   updated_at: string;
+
+  /* --- Modelo de tarifas por ocupación (se edita en /admin/tarifas) ------- */
+  extra_person_price_cop: number | null;
+  extra_person_price_weekday_cop: number | null;
+  breakfast_included: boolean;
+  breakfast_price_cop: number | null;
+  weekday_discount_pct: number | null;
+  rate_note: string | null;
 };
 
 export type AdminExperience = {
@@ -44,6 +54,25 @@ export type AdminExperience = {
   created_at: string;
   updated_at: string;
 };
+
+/* ---------------------------------------------------------------------------
+ * Tarifas
+ * ------------------------------------------------------------------------- */
+/* Las constantes de tarifas viven aquí y no en `@/lib/admin/rates` porque el
+ * editor de tramos es un componente de cliente: importarlas desde el módulo de
+ * consultas arrastraría `next/headers` al bundle del navegador. */
+
+export const TIER_DAY_TYPES = ["any", "weekend", "weekday"] as const;
+
+/** Etiquetas en español de los tipos de noche, para los <select> del panel. */
+export const TIER_DAY_TYPE_LABEL: Record<TierDayType, string> = {
+  any: "Todos los días",
+  weekend: "Fin de semana y festivos",
+  weekday: "Lunes a jueves",
+};
+
+export const MIN_STAY_RULE_TYPES = ["holiday_bridge", "date_range"] as const;
+export type MinStayRuleType = (typeof MIN_STAY_RULE_TYPES)[number];
 
 export const BOOKING_STATUSES = [
   "pending",

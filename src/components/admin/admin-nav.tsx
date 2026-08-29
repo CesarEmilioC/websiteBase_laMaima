@@ -11,13 +11,14 @@ import { usePathname } from "next/navigation";
 export type NavItem = {
   href: string;
   label: string;
-  icon: "home" | "bed" | "compass" | "calendar" | "lock" | "text";
+  icon: "home" | "bed" | "compass" | "tag" | "calendar" | "lock" | "text";
 };
 
 export const ADMIN_NAV: NavItem[] = [
   { href: "/admin", label: "Resumen", icon: "home" },
   { href: "/admin/alojamientos", label: "Alojamientos", icon: "bed" },
   { href: "/admin/experiencias", label: "Experiencias", icon: "compass" },
+  { href: "/admin/tarifas", label: "Tarifas", icon: "tag" },
   { href: "/admin/reservas", label: "Reservas", icon: "calendar" },
   { href: "/admin/bloqueos", label: "Bloqueos", icon: "lock" },
   { href: "/admin/contenido", label: "Contenido", icon: "text" },
@@ -27,6 +28,8 @@ const PATHS: Record<NavItem["icon"], string> = {
   home: "M4 10.5 12 4l8 6.5V19a1 1 0 0 1-1 1h-4v-5H9v5H5a1 1 0 0 1-1-1v-8.5Z",
   bed: "M3 17v-6h13a4 4 0 0 1 4 4v2M3 17v3M21 17v3M3 11V7M7 11a2 2 0 1 1 4 0",
   compass: "M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18Zm2.8-11.8-1.6 4.6-4.6 1.6 1.6-4.6 4.6-1.6Z",
+  // Etiqueta de precio: el icono de la sección de tarifas y planes.
+  tag: "M4 12.6V5a1 1 0 0 1 1-1h7.6a1 1 0 0 1 .7.3l6.4 6.4a1 1 0 0 1 0 1.4l-7.6 7.6a1 1 0 0 1-1.4 0L4.3 13.3a1 1 0 0 1-.3-.7ZM8.5 8.5h.01",
   calendar:
     "M4 8h16M7 4v3m10-3v3M5 20h14a1 1 0 0 0 1-1V7a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1Z",
   lock: "M7 11V8a5 5 0 0 1 10 0v3M6 11h12a1 1 0 0 1 1 1v7a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1v-7a1 1 0 0 1 1-1Z",
@@ -72,8 +75,8 @@ export function AdminNav() {
                   aria-current={active ? "page" : undefined}
                   className={`flex items-center gap-3 rounded-2xl px-3.5 py-2.5 text-[0.9375rem] font-medium transition-colors duration-200 ${
                     active
-                      ? "bg-forest-600 text-white shadow-pill"
-                      : "text-ink-soft hover:bg-black/[0.05] hover:text-ink"
+                      ? "bg-brand-600 text-white shadow-pill"
+                      : "text-ink-soft hover:bg-ink/[0.05] hover:text-ink"
                   }`}
                 >
                   <NavIcon icon={item.icon} />
@@ -100,8 +103,8 @@ export function AdminNav() {
                   aria-current={active ? "page" : undefined}
                   className={`flex items-center gap-2 whitespace-nowrap rounded-full px-4 py-2 text-[0.875rem] font-semibold transition-colors duration-200 ${
                     active
-                      ? "bg-forest-600 text-white shadow-pill"
-                      : "bg-black/[0.05] text-ink-soft"
+                      ? "bg-brand-600 text-white shadow-pill"
+                      : "bg-ink/[0.05] text-ink-soft"
                   }`}
                 >
                   <NavIcon icon={item.icon} />

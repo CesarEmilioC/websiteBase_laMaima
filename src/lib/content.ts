@@ -382,7 +382,7 @@ const getRatePlans = cache(
     const { data, error } = await supabase
       .from("rate_plans")
       .select(
-        "accommodation_id, name, description, date_from, date_to, price_per_night_cop, guests_included",
+        "accommodation_id, name, description, date_from, date_to, price_per_night_cop, guests_included, sort",
       )
       .eq("active", true)
       .gte("date_to", addDays(todayInBogota(), -1))
@@ -402,6 +402,10 @@ const getRatePlans = cache(
         date_to: row.date_to as string,
         price_per_night_cop: row.price_per_night_cop,
         guests_included: row.guests_included,
+        sort: row.sort ?? 0,
+        // Los planes sin alojamiento valen para todos, y por eso pierden
+        // contra uno hecho para esta cabaña (ver `comparePlans`).
+        appliesToAll: row.accommodation_id === null,
       },
     }));
   },
