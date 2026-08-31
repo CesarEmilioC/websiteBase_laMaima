@@ -30,12 +30,12 @@ export async function generateMetadata(): Promise<Metadata> {
   return pageMetadata({
     title: "Experiencias en la reserva natural",
     description:
-      "Senderos por bosque primario, secundario y terciario, piscina natural de río, fogata y avistamiento de aves en la reserva La Maima, Dapa (Yumbo).",
+      "Pasadía con almuerzo, clase de yoga, sendero al río Arroyohondo, pileta natural, fogata y avistamiento de aves en la reserva La Maima, Dapa (Yumbo).",
     path: "/experiencias",
     image: { url: hero.image, alt: hero.image_alt },
     socialTitle: "Experiencias · La Maima",
     socialDescription:
-      "Senderos, piscina de río, fogata y avistamiento de aves dentro de la reserva natural de La Maima.",
+      "Pasadía, yoga, sendero al río, pileta natural, fogata y cocina casera de campo dentro de la reserva natural de La Maima.",
   });
 }
 
@@ -71,8 +71,10 @@ export default async function ExperiencesPage() {
               de las tarjetas, y un salto de nivel rompe tanto el árbol de
               encabezados que lee un lector de pantalla como el esquema que
               deduce el buscador. */}
+          {/* "incluidas en la estadía" dejó de ser cierto: el pasadía y la
+              clase suelta de yoga se cobran aparte. */}
           <h2 id="listado-experiencias" className="sr-only">
-            Experiencias incluidas en la estadía
+            Experiencias de la reserva
           </h2>
 
           {experiences.length > 0 ? (

@@ -651,7 +651,7 @@ export function lowestRate(
 
 export type TierRow = {
   key: string;
-  /** "2 personas", "Hasta 8 personas", "2 personas · lunes a jueves"… */
+  /** "Hasta 2 personas", "Hasta 8 personas", "Hasta 2 personas · lunes a jueves"… */
   label: string;
   price: number;
 };
@@ -659,10 +659,13 @@ export type TierRow = {
 /**
  * La tabla de precios tal como se publica en la ficha.
  *
- * Un tramo cubre desde el tramo anterior hasta el suyo, así que el texto tiene
- * que decirlo: Casa Loma empieza en 2 personas y una sola paga lo mismo, luego
- * ese renglón es "Hasta 2 personas". Cuando el salto es de uno en uno —el caso
- * normal— se escribe el número seco, que es como lo publica el cliente.
+ * Cada renglón se escribe SIEMPRE como "Hasta N personas", lo pida el salto o
+ * no. Un tramo cubre desde el tramo anterior hasta el suyo —Casa Loma empieza
+ * en 2 personas y una sola paga lo mismo— pero incluso cuando los tramos van de
+ * uno en uno el precio es un techo de ocupación, no una cuota por cabeza: el
+ * cliente pidió expresamente que ninguna fila muestre el número seco ("2
+ * personas") ni un rango ("2-4 personas"), porque el huésped lo leía como
+ * "precio por persona". El sufijo de día de la semana no cambia.
  */
 export function tierRows(tiers: RateTier[]): TierRow[] {
   const hasTwoTables = tiers.some((tier) => tier.day_type !== "any");
@@ -674,18 +677,8 @@ export function tierRows(tiers: RateTier[]): TierRow[] {
       a.guests - b.guests,
   );
 
-  let previousGuests = 0;
-  let previousDayType: TierDayType | null = null;
-
   return sorted.map((tier) => {
-    if (tier.day_type !== previousDayType) previousGuests = 0;
-    const coversRange = tier.guests - previousGuests > 1;
-    previousGuests = tier.guests;
-    previousDayType = tier.day_type;
-
-    const occupancy = coversRange
-      ? `Hasta ${formatGuests(tier.guests)}`
-      : formatGuests(tier.guests);
+    const occupancy = `Hasta ${formatGuests(tier.guests)}`;
     const when =
       !hasTwoTables || tier.day_type === "any"
         ? ""

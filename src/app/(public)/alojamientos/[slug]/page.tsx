@@ -272,6 +272,18 @@ export default async function AccommodationDetailPage({ params }: Props) {
                   </li>
                 ))}
               </ul>
+              {/* Fuera del `<ul>` a propósito: dentro se leería como una
+                  pastilla más y las pastillas son datos, no enlaces. Va aquí,
+                  bajo los chips de política (check-in, pet friendly), porque es
+                  la letra pequeña que los completa. */}
+              <p className="mt-3 text-[0.8125rem] text-ink-muted">
+                <Link
+                  href="/legal/cancelacion"
+                  className="underline-offset-4 transition-colors duration-200 hover:text-brand-700 hover:underline"
+                >
+                  Política de cancelación y reprogramación
+                </Link>
+              </p>
             </div>
 
             <div className="sm:text-right">

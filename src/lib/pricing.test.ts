@@ -780,21 +780,24 @@ describe("tabla de precios de la ficha", () => {
     expect(tierRows(CASA_LOMA.tiers)[0].label).toBe("Hasta 2 personas");
   });
 
-  it("escribe el número seco cuando los tramos van de uno en uno", () => {
+  /* Decisión del cliente: TODAS las filas dicen "Hasta N personas", también
+     cuando los tramos van de uno en uno. El número seco ("2 personas") se leía
+     como una cuota por cabeza y no lo es. */
+  it("escribe 'Hasta' también cuando los tramos van de uno en uno", () => {
     expect(tierRows(MIRADOR.tiers).map((row) => row.label)).toEqual([
-      "1 persona",
-      "2 personas",
-      "3 personas",
-      "4 personas",
+      "Hasta 1 persona",
+      "Hasta 2 personas",
+      "Hasta 3 personas",
+      "Hasta 4 personas",
     ]);
   });
 
   it("distingue las dos tablas de Tres Casitas", () => {
     expect(tierRows(TRES_CASITAS.tiers).map((row) => row.label)).toEqual([
-      "1 persona · fin de semana",
-      "2 personas · fin de semana",
-      "1 persona · lunes a jueves",
-      "2 personas · lunes a jueves",
+      "Hasta 1 persona · fin de semana",
+      "Hasta 2 personas · fin de semana",
+      "Hasta 1 persona · lunes a jueves",
+      "Hasta 2 personas · lunes a jueves",
     ]);
   });
 });

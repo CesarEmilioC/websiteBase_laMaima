@@ -498,7 +498,14 @@ export default async function HomePage() {
                   lo fija ESTE contenedor —no el iframe— para que el hueco
                   exista desde el primer pintado y el mapa diferido no provoque
                   salto de maqueta. */}
-              <div className="h-[260px] overflow-hidden rounded-panel bg-sand-soft shadow-panel sm:h-[300px] lg:h-[340px]">
+              {/* El alto de escritorio está MEDIDO, no elegido a ojo: en 1280
+                  la columna de datos mide 657 px y la del mapa sumaba 529
+                  (340 + 20 de separación + 169 de la nota), así que sobraban
+                  128 px de aire al pie de esta columna y la sección se veía
+                  descuadrada. 468 px cierra la cuenta —468 + 20 + 169 = 657—
+                  sin tocar el alto total de la sección, que lo sigue marcando
+                  la columna izquierda. */}
+              <div className="h-[260px] overflow-hidden rounded-panel bg-sand-soft shadow-panel sm:h-[300px] lg:h-[468px]">
                 <MapEmbed
                   src={contact.maps.embedUrl}
                   title="Ubicación de La Maima en Google Maps"

@@ -119,31 +119,50 @@ on conflict (slug) do update set
 
 
 -- -----------------------------------------------------------------------------
--- Experiencias (4)
+-- Experiencias (8)
 -- -----------------------------------------------------------------------------
+-- Refleja el documento FINAL del cliente (31-ago-2026), cuya sección
+-- "Experiencias y reserva natural" sustituyó al antiguo placeholder
+-- "Actividades" y trajo el pasadía, la clase de yoga, el detalle del sendero al
+-- río, la pileta con su chorrera y la sección "Alimentación" completa. El
+-- avistamiento de flora y fauna NO está en el doc pero se conserva por decisión
+-- expresa del cliente. Aplicado en producción con la migración
+-- `seed_final_doc_experiences_and_dining`.
 insert into public.experiences
   (slug, name, short_description, description, duration,
    capacity, price_cop, price_note, gallery, visible, sort_order)
 values
 (
-  'senderos-por-la-reserva',
-  'Senderos por la reserva',
-  'Rutas de distinta exigencia por bosque primario, secundario y terciario, a su propio ritmo.',
-  'La reserva se recorre a pie por una red de senderos que atraviesa los tres estados del bosque: el terciario, el más joven, sembrado por la familia; el secundario, ya cerrado y en plena recuperación; y el primario, que nunca fue talado y donde los árboles llevan siglos en pie. Hay rutas cortas de media hora y caminatas de media mañana hasta los miradores altos. Se pueden hacer por cuenta propia o con acompañamiento, coordinándolo con anticipación.',
-  '30 minutos a 3 horas',
-  null, null, 'Incluida en la estadía',
-  '[{"url":"https://mauolzwhergekdvigmaf.supabase.co/storage/v1/object/public/gallery/sitio/senderos.jpg","alt":"Sendero entre los jardines de La Maima con vista al Valle del Cauca"}]'::jsonb,
+  'pasadia',
+  'Pasadía',
+  'Un día completo en la reserva: almuerzo, yoga, sendero al río, fuentes de agua y fogata.',
+  'Disponible los domingos y festivos, de 10:00 a. m. a 6:00 p. m. Incluye almuerzo y acceso a todas las actividades y experiencias de la reserva: clase de yoga, sendero al río, ingreso a las fuentes de agua —la pileta natural y la chorrera— y permanencia hasta la fogata. También el uso de las duchas del salón de yoga y de la zona del restaurante. No incluye el ingreso ni el uso de las cabañas.',
+  '10:00 a. m. a 6:00 p. m., domingos y festivos',
+  null, 110000, '$110.000 por persona',
+  '[{"url":"https://mauolzwhergekdvigmaf.supabase.co/storage/v1/object/public/gallery/experiencias/pasadia/1.jpg","alt":"Zona común de La Maima: pradera abierta entre árboles grandes, con el restaurante y las terrazas al fondo"}]'::jsonb,
   true, 1
 ),
 (
-  'fogata',
-  'Fogata',
-  'Leña, cielo despejado y el frío de la montaña: el cierre natural del día en Dapa.',
-  'A 1.800 metros sobre el nivel del mar la noche baja rápido y con ella el frío de Dapa, así que la fogata deja de ser un plan y se vuelve el sitio donde termina el día. Encendemos el fogón en la zona común, al aire libre, con las luces del Valle del Cauca de fondo y —si el cielo está despejado, que es casi siempre— un cielo estrellado sin contaminación lumínica. Ideal para grupos y familias. Se coordina con la administración el mismo día.',
-  '2 a 3 horas',
-  null, null, 'Bajo solicitud',
-  '[{"url":"https://mauolzwhergekdvigmaf.supabase.co/storage/v1/object/public/gallery/experiencias/fogata/1.jpg","alt":"Fogata encendida en la zona común de La Maima al anochecer"}]'::jsonb,
+  -- La foto es un SUSTITUTO: no hay ninguna imagen del salón de yoga en el
+  -- material del cliente. Pedirle a Sabina una foto real del espacio.
+  'clase-de-yoga',
+  'Clase de yoga',
+  'Yoga tradicional para sentir y mover el cuerpo a través de la respiración, en un espacio dispuesto para los huéspedes.',
+  'Incluida en la tarifa de hospedaje y en el pasadía. Se ofrece principalmente los domingos y festivos, en un espacio dispuesto para los huéspedes, con un máximo de 15 personas por clase. Es una clase de una hora y media a dos horas de yoga tradicional, para sentir y mover el cuerpo a través de la respiración. Para quienes solo quieren tomar la clase, el valor es de $40.000 por persona y no incluye el acceso al resto de la reserva.',
+  'De hora y media a dos horas',
+  15, 40000, 'Incluida · solo clase $40.000',
+  '[{"url":"https://mauolzwhergekdvigmaf.supabase.co/storage/v1/object/public/gallery/experiencias/clase-de-yoga/1.jpg","alt":"Rincón tranquilo de las zonas comunes de La Maima: banca de madera junto al jardín y una terraza cubierta"}]'::jsonb,
   true, 2
+),
+(
+  'senderos-por-la-reserva',
+  'Senderos por la reserva',
+  'Unos 45 minutos de bosque hasta un arroyo del río Arroyohondo, para bañarse entre grandes rocas.',
+  'Sendero por el bosque de aproximadamente 45 minutos que llega a un arroyo del río Arroyohondo, donde las personas pueden bañarse en el río natural entre grandes rocas. Más que una caminata, es una invitación a disfrutar y contemplar el bosque que rodea el camino: el viento, las hojas, la tierra, las mariposas y la vida natural del lugar. El sendero está construido en escalones delimitados por la guadua del bosque. La dificultad es moderada y requiere buen calzado; no es recomendable para personas con movilidad reducida.',
+  'Unos 45 minutos hasta el río',
+  null, null, 'Incluida en la estadía',
+  '[{"url":"https://mauolzwhergekdvigmaf.supabase.co/storage/v1/object/public/gallery/experiencias/senderos-por-la-reserva/1.jpg","alt":"Escalones de piedra y madera que suben por el jardín tropical de la reserva"}]'::jsonb,
+  true, 3
 ),
 (
   'piscina-de-rio',
@@ -152,8 +171,18 @@ values
   'La quebrada que baja de la montaña atraviesa la reserva y en un punto se abre entre piedras grandes formando un pozo natural. El agua es fría, clara y corre todo el año. Alrededor hay piedra plana para tenderse al sol y sombra de bosque cuando aprieta el mediodía. Está a pocos minutos a pie desde los alojamientos, por sendero señalizado. Recomendamos calzado con agarre y bajar acompañado.',
   'Libre durante el día',
   null, null, 'Incluida en la estadía',
-  '[{"url":"https://mauolzwhergekdvigmaf.supabase.co/storage/v1/object/public/gallery/sitio/rio.jpg","alt":"Piscina natural formada por la quebrada entre piedras dentro de la reserva"}]'::jsonb,
-  true, 3
+  '[{"url":"https://mauolzwhergekdvigmaf.supabase.co/storage/v1/object/public/gallery/experiencias/piscina-de-rio/1.jpg","alt":"Quebrada de aguas claras entre piedras, en medio del bosque de la reserva"}]'::jsonb,
+  true, 4
+),
+(
+  'pileta-natural-y-chorrera',
+  'Pileta natural y chorrera',
+  'Dos espacios de agua fría en las zonas comunes, para meditar, compartir o darse un chapuzón.',
+  'Ubicadas en las zonas comunes principales, la pileta y la chorrera son dos espacios de agua separados entre sí. Ideales para meditar en el agua fría, disfrutar con amigos y un trago, o simplemente darse un chapuzón.',
+  'Libre durante el día',
+  null, null, 'Incluida en la estadía',
+  '[{"url":"https://mauolzwhergekdvigmaf.supabase.co/storage/v1/object/public/gallery/experiencias/pileta-natural-y-chorrera/1.jpg","alt":"Pileta natural de piedra con la chorrera cayendo al espejo de agua, en las zonas comunes de La Maima"},{"url":"https://mauolzwhergekdvigmaf.supabase.co/storage/v1/object/public/gallery/experiencias/pileta-natural-y-chorrera/2.jpg","alt":"Vista abierta de la pileta natural rodeada de pradera y árboles altos"}]'::jsonb,
+  true, 5
 ),
 (
   'avistamiento-de-flora-y-fauna',
@@ -162,8 +191,31 @@ values
   'La Maima empezó como un proyecto de recuperación hace treinta años, y el resultado se ve a simple vista: hoy la reserva alberga tucanes, pavas, colibríes de varias especies, guatines y una comunidad creciente de orquídeas, bromelias y helechos arbóreos. Las primeras horas de la mañana son las mejores para el avistamiento, sobre todo en los bordes de bosque y cerca del agua. Traiga binóculos; nosotros le indicamos dónde buscar.',
   'Mejor entre 6:00 y 9:00 a. m.',
   null, null, 'Incluida en la estadía',
-  '[{"url":"https://mauolzwhergekdvigmaf.supabase.co/storage/v1/object/public/gallery/sitio/bosque.jpg","alt":"Dosel del bosque nativo en las montañas de Dapa, hábitat de la fauna de la reserva"}]'::jsonb,
-  true, 4
+  '[{"url":"https://mauolzwhergekdvigmaf.supabase.co/storage/v1/object/public/gallery/experiencias/avistamiento-de-flora-y-fauna/1.jpg","alt":"Tucán esmeralda posado en una rama del bosque de La Maima"}]'::jsonb,
+  true, 6
+),
+(
+  'fogata',
+  'Fogata',
+  'Leña, cielo despejado y el frío de la montaña: el cierre natural del día en Dapa.',
+  'Se enciende en las noches, alrededor de las 6:00 – 7:00 p. m.: un espacio para reunirse y compartir al final del día, y La Maima regala los marshmallows. A 1.800 metros sobre el nivel del mar la noche baja rápido y con ella el frío de Dapa, así que el fogón de la zona común se vuelve el sitio donde termina el día, con las luces del Valle del Cauca de fondo y —si el cielo está despejado, que es casi siempre— un cielo estrellado sin contaminación lumínica. Se coordina con la administración el mismo día.',
+  'Se enciende entre 6:00 y 7:00 p. m.',
+  null, null, 'Bajo solicitud',
+  '[{"url":"https://mauolzwhergekdvigmaf.supabase.co/storage/v1/object/public/gallery/experiencias/fogata/1.jpg","alt":"Fogata encendida al anochecer, rodeada de troncos que sirven de asiento"}]'::jsonb,
+  true, 7
+),
+(
+  -- La "Alimentación" del doc entra como ficha para que sea visible donde el
+  -- huésped la busca (y editable por el cliente desde /admin/experiencias),
+  -- no solo enterrada en los términos y condiciones.
+  'gastronomia',
+  'Cocina casera de campo',
+  'Comida como en casa: sencilla, abundante y preparada fresca cada día con productos del campo.',
+  'Cocina casera de campo, preparada fresca cada día. En La Maima la comida es como en casa: sencilla, abundante y hecha con productos frescos. No manejamos pedidos a la carta —cada día preparamos un plato pensado para todos, aunque tenemos estandarizados cuatro platos— y los domingos y festivos nuestro clásico es el sancocho. Los almuerzos están disponibles los fines de semana, y entre semana para grupos de más de 6 personas. El desayuno está incluido en la estadía en todas las cabañas salvo Casa Maima: es un desayuno servido a la mesa, que inicia con fruta de temporada y jugo de naranja, y sigue con huevos al gusto, pan y arepa, café o chocolate, mantequilla, mermelada y queso cuajada. Si tienes alguna restricción alimentaria o alergia, cuéntanos al reservar y hacemos lo posible por acomodarla.',
+  'Desayuno de 8:00 a 9:30 a. m.',
+  null, null, 'Desayuno incluido',
+  '[{"url":"https://mauolzwhergekdvigmaf.supabase.co/storage/v1/object/public/gallery/experiencias/gastronomia/1.jpg","alt":"Comedor de La Maima bajo la pérgola al atardecer, con mesas de mosaico y sillas de madera"},{"url":"https://mauolzwhergekdvigmaf.supabase.co/storage/v1/object/public/gallery/experiencias/gastronomia/2.jpg","alt":"Zona del restaurante de La Maima con luces cálidas colgantes y vista al bosque"}]'::jsonb,
+  true, 8
 )
 on conflict (slug) do update set
   name              = excluded.name,

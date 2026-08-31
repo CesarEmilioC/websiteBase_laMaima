@@ -614,6 +614,21 @@ export function BookingWidget({
               {phoneDisplay}
             </a>
           </p>
+          {/* La política existe desde el lote de legales pero solo se llegaba a
+              ella por el pie de página. Aquí, pegada al botón que envía la
+              solicitud, es donde el huésped decide: anticipo del 10 %,
+              reprogramación con 24 horas y no-show. Enlace discreto, mismo tono
+              que las notas de arriba; `<a>` plano como el del teléfono. */}
+          <p className="mt-3 text-center text-[0.8125rem] leading-relaxed text-ink-muted">
+            Al reservar aceptas la{" "}
+            <a
+              href="/legal/cancelacion"
+              className="font-semibold text-brand-700 underline-offset-4 transition-colors duration-200 hover:underline"
+            >
+              política de cancelación
+            </a>
+            .
+          </p>
         </div>
       </div>
     </Shell>
