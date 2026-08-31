@@ -62,9 +62,25 @@ export function AccommodationRow({ accommodation, locale, index }: Props) {
       }`}
       data-reveal
     >
-      {/* Foto: rectángulo puro, sin máscaras. */}
-      <div
-        className={`relative h-56 overflow-hidden rounded-card bg-brand-100 sm:h-64 lg:col-span-7 lg:h-[268px] ${
+      {/* Foto: rectángulo puro, sin máscaras.
+          ------------------------------------------------------------------
+          LA FOTO ES UN ENLACE a la ficha. Es lo primero que intenta tocar
+          cualquiera que llega a una fila del zigzag —una fotografía grande al
+          lado de un nombre se lee como un botón—, y hasta ahora no pasaba
+          nada: había que apuntar al titular o a "Ver detalles".
+
+          Se enlaza SOLO la foto, no la fila entera. Dentro del bloque de texto
+          ya hay dos enlaces con destinos distintos ("Reservar" va al ancla del
+          widget, "Ver detalles" a la ficha) y anidarlos dentro de otro enlace
+          es HTML inválido además de una trampa para el teclado.
+
+          El `aria-label` es obligatorio: sin él, el nombre accesible saldría
+          del texto alternativo de la fotografía, que describe la imagen y no
+          el destino. Con él, un lector de pantalla anuncia "Ver Casa Maima". */}
+      <Link
+        href={href}
+        aria-label={t.home.accommodations.photoAria(accommodation.name)}
+        className={`group relative block h-56 overflow-hidden rounded-card bg-brand-100 outline-none ring-brand-600 ring-offset-4 ring-offset-white focus-visible:ring-2 sm:h-64 lg:col-span-7 lg:h-[268px] ${
           photoRight ? "lg:order-2" : ""
         }`}
       >
@@ -80,9 +96,14 @@ export function AccommodationRow({ accommodation, locale, index }: Props) {
           /* Ninguna de las seis es el LCP: prioridad baja explícita para que
              no compitan con la fotografía de portada. */
           fetchPriority="low"
-          className="object-cover"
+          /* Acercamiento MUY leve al pasar el ratón: lo justo para que la foto
+             se declare como algo que se puede pulsar. Es `transform`, que el
+             compositor resuelve sin repintar, y Tailwind ya envuelve `hover:`
+             en `@media (hover: hover)`, así que en un móvil no se dispara al
+             rozar la pantalla. */
+          className="object-cover transition-transform duration-[600ms] ease-ios group-hover:scale-[1.035]"
         />
-      </div>
+      </Link>
 
       {/* Texto */}
       <div className={`lg:col-span-5 ${photoRight ? "lg:order-1 lg:pr-4" : "lg:pl-4"}`}>

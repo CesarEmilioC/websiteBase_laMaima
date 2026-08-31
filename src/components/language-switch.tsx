@@ -107,11 +107,15 @@ export function LanguageSwitch({
             <span className="block h-3 w-[1.125rem] overflow-hidden rounded-[2px] ring-1 ring-inset ring-black/15">
               <Flag className="h-full w-full" idSuffix={`${idSuffix}-${option}`} />
             </span>
-            {/* El código de dos letras se esconde en móvil: en 390 px la isla
-                del nav tiene que caber con el logotipo y el hamburguesa, y la
-                bandera sola ya identifica el idioma dentro de un segmentado de
-                dos posiciones. */}
-            <span className="hidden sm:inline">{t.locale.short[option]}</span>
+            {/* El código de dos letras se ve SIEMPRE.
+                ----------------------------------------------------------
+                Antes se escondía por debajo de `sm` para que la isla del nav
+                cupiera en 390 px con el logotipo y el hamburguesa. Ya no hace
+                falta: en móvil el conmutador vive dentro del menú, donde el
+                sitio sobra, y ahí una bandera suelta se lee peor que
+                "🇬🇧 EN" — sobre todo la del Reino Unido, que a 18 px de ancho
+                mucha gente no distingue de cualquier otra tricolor. */}
+            <span>{t.locale.short[option]}</span>
           </Link>
         );
       })}

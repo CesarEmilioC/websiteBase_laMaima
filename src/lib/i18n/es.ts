@@ -24,6 +24,9 @@ export const es = {
   locale: {
     /** Etiqueta accesible del grupo de banderas. */
     group: "Idioma del sitio",
+    /** Rótulo VISIBLE, para donde el conmutador va acompañado de texto
+        (hoy: la ficha de idioma del menú móvil). */
+    label: "Idioma",
     switchTo: {
       es: "Cambiar a español",
       en: "Cambiar a inglés",
@@ -87,6 +90,13 @@ export const es = {
       empty:
         "Estamos actualizando la información de nuestros alojamientos. Escríbenos por WhatsApp y te contamos la disponibilidad.",
       cta: "Ver los seis y reservar",
+      /* Nombre accesible del enlace que envuelve la FOTO de cada fila del
+         zigzag. El titular de al lado ya enlaza a la misma ficha con el nombre
+         de la casa como texto, así que sin una etiqueta propia un lector de
+         pantalla anunciaría dos enlaces al mismo sitio y solo uno con nombre
+         (la foto se anunciaría por su texto alternativo, que describe la
+         fotografía, no el destino). */
+      photoAria: (name: string) => `Ver ${name}`,
     },
     about: {
       cta: "Ver alojamientos y fechas",

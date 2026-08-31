@@ -23,6 +23,12 @@ import { usePathname } from "next/navigation";
  *
  * Se vuelve a escanear al cambiar de ruta porque la navegación del App Router
  * reemplaza el árbol sin desmontar el layout.
+ *
+ * Este mismo componente se encarga además de PAUSAR los campos de hojas que no
+ * están en pantalla (ver más abajo). Van juntos a propósito: son el único
+ * JavaScript de "atmósfera" del sitio, comparten el ciclo de vida y el disparo
+ * por ruta, y tenerlos en dos componentes obligaría a montar dos veces lo
+ * mismo en el layout.
  */
 export function RevealObserver() {
   const pathname = usePathname();
@@ -62,7 +68,47 @@ export function RevealObserver() {
       observer.observe(target);
     }
 
-    return () => observer.disconnect();
+    /* ---------------------------------------------------------------------
+       Campos de hojas: solo se anima el que se ve
+       ---------------------------------------------------------------------
+       Las hojas decorativas (`LeafField`) se animan con CSS, y una animación
+       de CSS sigue costando exactamente lo mismo cuando su sección está tres
+       pantallas más abajo: el navegador no puede adivinar que da igual.
+
+       En la portada hay DOS campos —el del encabezado y el de la banda de
+       experiencias— y, midiendo con CDP el desplazamiento del carrusel de
+       experiencias, el campo del encabezado (invisible en ese momento, muy por
+       encima) era responsable de 73 de los 191 ms de recálculo de estilo.
+       Pausar lo que no se ve es dinero encontrado.
+
+       El margen del 25 % arranca las hojas un poco antes de que la sección
+       asome, para que nunca se vea el instante en que el movimiento empieza.
+       Este observador NO desobserva: un campo puede entrar y salir de pantalla
+       muchas veces, y la pausa tiene que seguir al visitante en las dos
+       direcciones. Sin JavaScript la clase no llega a existir y las hojas se
+       animan siempre, que es el comportamiento correcto por defecto. */
+    const fields = document.querySelectorAll<HTMLElement>(".leaf-field");
+    let leafObserver: IntersectionObserver | null = null;
+
+    if (fields.length > 0) {
+      leafObserver = new IntersectionObserver(
+        (entries) => {
+          for (const entry of entries) {
+            entry.target.classList.toggle(
+              "leaf-field-idle",
+              !entry.isIntersecting,
+            );
+          }
+        },
+        { rootMargin: "25% 0px 25% 0px" },
+      );
+      for (const field of fields) leafObserver.observe(field);
+    }
+
+    return () => {
+      observer.disconnect();
+      leafObserver?.disconnect();
+    };
   }, [pathname]);
 
   return null;

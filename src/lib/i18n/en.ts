@@ -12,6 +12,7 @@ export const en: Dictionary = {
   /* --- Language switch ----------------------------------------------------- */
   locale: {
     group: "Site language",
+    label: "Language",
     switchTo: {
       es: "Switch to Spanish",
       en: "Switch to English",
@@ -73,6 +74,7 @@ export const en: Dictionary = {
       empty:
         "We are updating our accommodation details. Send us a WhatsApp message and we will tell you what is available.",
       cta: "See all six and book",
+      photoAria: (name: string) => `View ${name}`,
     },
     about: {
       cta: "See stays and dates",

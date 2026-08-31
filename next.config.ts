@@ -66,13 +66,22 @@ const nextConfig: NextConfig = {
      * 15.5: cualquier `quality` que no esté en esta lista se rechaza (para que
      * nadie pueda pedir mil variantes distintas de la misma foto por URL).
      *
+     *   90 — SOLO el visor de galería a pantalla completa. Ahí la fotografía
+     *        se ve al ancho entero de la ventana y con el ojo puesto en ella:
+     *        el follaje, que es lo que más abunda en este material, es
+     *        justamente el patrón que peor encaja un JPEG a 75 (el ruido de
+     *        alta frecuencia se emborrona en manchas). Es una imagen que el
+     *        visitante ha pedido ver, no algo que se le sirve de paso, así que
+     *        el peso extra está justificado. Los originales del bucket están a
+     *        2400 px con calidad 82-85: pedir 90 al optimizador no inventa
+     *        detalle, pero deja de destruir el que hay.
      *   75 — por defecto. La portada, las bandas de encabezado y la galería de
      *        la ficha, que son las imágenes que marcan el LCP de su página.
      *   68 — fotografía que SIEMPRE queda por debajo del pliegue (zigzag de la
      *        portada, tarjetas, franja de Instagram, galería de "Sobre la
      *        reserva"). Pesa un tercio menos y a ese tamaño no se distingue.
      */
-    qualities: [68, 75],
+    qualities: [68, 75, 90],
     remotePatterns: [
       // Supabase Storage: origen de TODAS las fotos del sitio (galerías de
       // alojamientos y experiencias, portada y banderas de sección). El cliente

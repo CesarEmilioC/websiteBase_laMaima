@@ -28,6 +28,40 @@ type Props = {
 const SWIPE_THRESHOLD = 48;
 
 /**
+ * Calidad del optimizador DENTRO del visor.
+ *
+ * En el resto del sitio la fotografía va a 68 o 75 porque se ve pequeña y
+ * recortada dentro de una tarjeta. Aquí no: ocupa el ancho entero de la
+ * ventana y el visitante la está mirando a propósito. El material de La Maima
+ * es casi todo follaje —hojas, helechos, dosel— y ese es exactamente el patrón
+ * de alta frecuencia que un JPEG a 75 convierte en manchas.
+ *
+ * 90 es el punto donde el detalle fino deja de perderse sin que el archivo se
+ * dispare (por encima el peso sube mucho más rápido que la calidad visible).
+ * Los originales del bucket están a 2400 px con calidad 82-85, así que este
+ * número no inventa detalle: simplemente deja de destruir el que ya hay.
+ *
+ * Debe estar declarado en `images.qualities` de `next.config.ts` o el
+ * optimizador rechaza la petición.
+ */
+const VIEWER_QUALITY = 90;
+
+/**
+ * `sizes` del visor.
+ *
+ * La foto se pinta con `object-contain` dentro de una caja que ocupa toda la
+ * ventana (menos el aire de la barra y el pie), así que el ancho que hay que
+ * declarar es el de la VENTANA ENTERA. Con `100vw` el navegador elige del
+ * `srcset` la variante inmediatamente superior al ancho del viewport por su
+ * densidad de píxeles: en un portátil de 1280 pide la de 1920, y en un móvil
+ * de 390 con DPR 3 la de 1200. Cualquier medida más pequeña (la caja real, el
+ * `max-w-6xl`) haría que el navegador se conformara con una variante menor y
+ * la ampliara: es la causa habitual de que un visor "se vea peor" que la
+ * miniatura desde la que se abrió.
+ */
+const VIEWER_SIZES = "100vw";
+
+/**
  * Visor de galería a pantalla completa.
  *
  * Se monta SOLO cuando el visitante toca una foto (ver `gallery-viewer.tsx`,
@@ -300,7 +334,12 @@ export function GalleryLightbox({
           <div className="relative h-full w-full max-w-6xl">
             {/* Anterior y siguiente, invisibles: el navegador las descarga ya
                 optimizadas al tamaño real, y pasar de foto no espera a la red.
-                `pointer-events-none` para que no roben el clic. */}
+                `pointer-events-none` para que no roben el clic.
+
+                Van con la MISMA calidad y el mismo `sizes` que la actual a
+                propósito: si difirieran, la dirección optimizada sería otra y
+                al pasar de foto el navegador tendría que volver a descargar la
+                variante buena — la precarga no serviría de nada. */}
             {total > 1 && (
               <>
                 <Image
@@ -311,7 +350,8 @@ export function GalleryLightbox({
                   fill
                   loading="eager"
                   fetchPriority="low"
-                  sizes="100vw"
+                  sizes={VIEWER_SIZES}
+                  quality={VIEWER_QUALITY}
                   className="pointer-events-none object-contain opacity-0"
                 />
                 <Image
@@ -322,7 +362,8 @@ export function GalleryLightbox({
                   fill
                   loading="eager"
                   fetchPriority="low"
-                  sizes="100vw"
+                  sizes={VIEWER_SIZES}
+                  quality={VIEWER_QUALITY}
                   className="pointer-events-none object-contain opacity-0"
                 />
               </>
@@ -334,7 +375,8 @@ export function GalleryLightbox({
               alt={caption}
               fill
               priority
-              sizes="100vw"
+              sizes={VIEWER_SIZES}
+              quality={VIEWER_QUALITY}
               /* Marca para `hitsPhoto()`: de las tres imágenes apiladas, esta
                  es la que se ve. */
               data-current=""

@@ -17,13 +17,31 @@
  *     vaivén corto, en 9-17 s. Al ir a otro ritmo que la deriva, la hoja no
  *     repite nunca el mismo gesto en la misma posición.
  *
- * COSTE EN RENDIMIENTO: prácticamente cero, igual que antes.
+ * COSTE EN RENDIMIENTO — LECCIÓN APRENDIDA (2026-08-31).
+ *
+ * La versión anterior de este comentario afirmaba que el coste era "cero
+ * porque solo se anima `transform`". Era falso, y se demostró midiendo: los
+ * `@keyframes` compartidos recibían el recorrido de cada hoja con variables
+ * CSS en línea (`translate3d(var(--leaf-x), …)`), y Chrome NO acelera en el
+ * compositor una animación con `var()` en los fotogramas clave. Las veinte
+ * animaciones del sitio (5 hojas × 2 capas × 2 campos) recalculaban estilo en
+ * el hilo principal sesenta veces por segundo, también las de secciones que
+ * quedaban fuera de pantalla, y ese trabajo era lo que trababa el carrusel de
+ * experiencias.
+ *
+ * Ahora:
  *  - Es un server component: no viaja ni un byte de JavaScript.
  *  - Cinco hojas como máximo, SVG en línea (ni una petición de red).
- *  - Las dos animaciones tocan SOLO `transform`, así que el navegador las
- *    resuelve en el compositor: no hay reflow ni repintado en ningún fotograma.
+ *  - Cada hoja recoge una pareja de `@keyframes` con valores LITERALES
+ *    (`.leaf-1` … `.leaf-5` en `globals.css`), que sí se pueden componer.
+ *  - El campo que no se ve se PAUSA (clase `.leaf-field-idle`, la pone el
+ *    observador del layout público).
  *  - Ninguna hoja tiene `filter`, `box-shadow` ni `backdrop-filter`, que son
  *    los que de verdad cuestan.
+ *
+ * Los parámetros de movimiento (recorrido, duración, desfase) viven en
+ * `globals.css`; aquí quedan solo la colocación, el tamaño y el giro base. Las
+ * dos listas van EN EL MISMO ORDEN.
  *
  * ACCESIBILIDAD: `aria-hidden` (no aporta información) y, con
  * `prefers-reduced-motion: reduce`, `globals.css` congela las DOS capas en su
@@ -37,93 +55,20 @@
 type Tone = "light" | "dark";
 
 /**
- * Cada hoja lleva su propia posición, tamaño, giro base y —sobre todo— sus
- * propias duraciones y desfases.
+ * Colocación, tamaño y giro base de cada hoja.
  *
- * Las duraciones de deriva son números primos entre sí (31, 41, 37, 53, 47 s) y
- * las de balanceo también (11, 17, 9, 13, 15 s): el periodo real de una hoja es
- * el mínimo común múltiplo de los dos, o sea horas. Nunca se ven dos hojas
- * haciendo el mismo gesto a la vez, que es lo que delata una animación barata.
- *
- * Los desfases son negativos para que al cargar la página el conjunto ya esté
- * "en marcha" y a medio recorrido, no todas arrancando desde el mismo sitio.
+ * El movimiento (recorrido, duración y desfase) NO está aquí: vive en
+ * `globals.css` como `.leaf-1` … `.leaf-5` con sus `@keyframes` literales, que
+ * es la única forma de que Chrome pueda llevarlos al compositor. El índice de
+ * esta lista es el que elige la pareja de animaciones, así que las dos listas
+ * tienen que mantenerse EN EL MISMO ORDEN.
  */
 const LEAVES = [
-  {
-    className: "left-[5%] top-[16%] h-14 w-14 sm:h-20 sm:w-20",
-    rotate: -24,
-    duration: "31s",
-    delay: "-4s",
-    x: "128px",
-    y: "-104px",
-    swayDuration: "11s",
-    swayDelay: "-3s",
-    from: "-14deg",
-    to: "16deg",
-    swayX: "16px",
-    swayY: "12px",
-    scale: 1.12,
-  },
-  {
-    className: "right-[7%] top-[10%] h-16 w-16 sm:h-24 sm:w-24",
-    rotate: 38,
-    duration: "41s",
-    delay: "-17s",
-    x: "-150px",
-    y: "118px",
-    swayDuration: "17s",
-    swayDelay: "-6s",
-    from: "12deg",
-    to: "-20deg",
-    swayX: "-14px",
-    swayY: "10px",
-    scale: 1.08,
-  },
-  {
-    className: "left-[17%] bottom-[14%] h-12 w-12 sm:h-16 sm:w-16",
-    rotate: 12,
-    duration: "37s",
-    delay: "-25s",
-    x: "112px",
-    y: "96px",
-    swayDuration: "9s",
-    swayDelay: "-2s",
-    from: "18deg",
-    to: "-14deg",
-    swayX: "12px",
-    swayY: "-10px",
-    scale: 1.14,
-  },
-  {
-    className: "right-[15%] bottom-[20%] h-16 w-16 sm:h-28 sm:w-28",
-    rotate: -52,
-    duration: "53s",
-    delay: "-9s",
-    x: "-104px",
-    y: "-132px",
-    swayDuration: "13s",
-    swayDelay: "-8s",
-    from: "-10deg",
-    to: "22deg",
-    swayX: "-18px",
-    swayY: "14px",
-    scale: 1.09,
-  },
-  {
-    className: "left-[45%] top-[32%] hidden h-14 w-14 lg:block",
-    rotate: 68,
-    duration: "47s",
-    delay: "-31s",
-    x: "136px",
-    y: "88px",
-    swayDuration: "15s",
-    swayDelay: "-11s",
-    from: "16deg",
-    to: "-18deg",
-    swayX: "14px",
-    swayY: "-12px",
-    scale: 1.11,
-  },
+  { className: "left-[5%] top-[16%] h-14 w-14 sm:h-20 sm:w-20", rotate: -24 },
+  { className: "right-[7%] top-[10%] h-16 w-16 sm:h-24 sm:w-24", rotate: 38 },
+  { className: "left-[17%] bottom-[14%] h-12 w-12 sm:h-16 sm:w-16", rotate: 12 },
+  { className: "right-[15%] bottom-[20%] h-16 w-16 sm:h-28 sm:w-28", rotate: -52 },
+  { className: "left-[45%] top-[32%] hidden h-14 w-14 lg:block", rotate: 68 },
 ] as const;
 
 type Props = {
@@ -160,34 +105,19 @@ export function LeafField({ tone = "light", className = "" }: Props) {
       {LEAVES.map((leaf, index) => (
         <div
           key={index}
-          className={`leaf absolute ${leaf.className}`}
-          style={
-            {
-              "--leaf-duration": leaf.duration,
-              "--leaf-delay": leaf.delay,
-              "--leaf-x": leaf.x,
-              "--leaf-y": leaf.y,
-            } as React.CSSProperties
-          }
+          /* `leaf-N` trae el recorrido, la duración y el desfase desde
+             `globals.css`. Los nombres se escriben enteros (`leaf-1`, no
+             `leaf-${n}` interpolado dentro de una plantilla que Tailwind
+             tuviera que rastrear) porque la clase es propia, no utilitaria:
+             aquí la interpolación es segura. */
+          className={`leaf leaf-${index + 1} absolute ${leaf.className}`}
         >
           {/* Capa del balanceo: gira y se mece a un ritmo distinto del de la
               deriva del contenedor. Son dos elementos y no uno porque una
               segunda animación sobre el mismo elemento sobrescribiría el
-              `transform` de la primera. */}
-          <div
-            className="leaf-sway"
-            style={
-              {
-                "--sway-duration": leaf.swayDuration,
-                "--sway-delay": leaf.swayDelay,
-                "--leaf-from": leaf.from,
-                "--leaf-to": leaf.to,
-                "--sway-x": leaf.swayX,
-                "--sway-y": leaf.swayY,
-                "--leaf-scale": leaf.scale,
-              } as React.CSSProperties
-            }
-          >
+              `transform` de la primera. La regla `.leaf-N > .leaf-sway` le da
+              su propia pareja de fotogramas. */}
+          <div className="leaf-sway">
             {/* El giro base va en un envoltorio propio para que las animaciones
                 puedan sumar el suyo sin sobrescribirlo. */}
             <svg

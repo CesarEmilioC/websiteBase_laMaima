@@ -41,7 +41,15 @@ export async function NotFoundPage({ locale }: { locale: Locale }) {
             la capa de hojas queda entre el velo y el contenido. */}
         <LeafField tone="light" className="-z-10" />
 
-        <Link href={localePath(locale, "/")} aria-label={t.nav.homeAria}>
+        {/* `inline-flex` + `min-h-11`: el logotipo mide 36 px de alto y sin
+            esto el objetivo táctil se quedaba en esos 36. Aquí el logotipo es
+            la única salida visible junto a los dos botones, así que conviene
+            que se pueda tocar con holgura. */}
+        <Link
+          href={localePath(locale, "/")}
+          aria-label={t.nav.homeAria}
+          className="inline-flex min-h-11 items-center"
+        >
           <Image
             src="/logo-lamaima-blanco.png"
             alt="La Maima — Hotel Campestre"

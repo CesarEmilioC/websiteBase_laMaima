@@ -475,17 +475,47 @@
     pointer-events: none;
   }
 
+  /* -----------------------------------------------------------------------
+     POR QUÉ LOS PARÁMETROS DE MOVIMIENTO VIVEN AQUÍ Y NO EN EL COMPONENTE
+     -----------------------------------------------------------------------
+     La versión anterior tenía UNOS SOLOS `@keyframes` y le pasaba a cada hoja
+     su recorrido con variables CSS en línea:
+
+         @keyframes leaf-drift { to { transform: translate3d(var(--leaf-x), …) } }
+
+     Es elegante y estaba MAL medido. Chrome no puede llevar al compositor una
+     animación cuyos fotogramas clave contienen `var()`: no sabe interpolar sin
+     resolver la variable, así que la resuelve en el HILO PRINCIPAL y recalcula
+     el estilo de la hoja en CADA fotograma, para siempre y en toda la página.
+     Con cinco hojas × dos capas × dos campos (portada y experiencias) son
+     VEINTE animaciones haciendo trabajo de hilo principal sesenta veces por
+     segundo, y ese trabajo cae justo encima del desplazamiento del carrusel de
+     experiencias: era la causa real de que el carrusel "se trabara".
+
+     Medido con CDP (móvil emulado, CPU a 4×, barrido de 110 fotogramas del
+     carril): 191 ms de recálculo de estilo con las hojas animadas, 8 ms con
+     ellas apagadas — el 96 %. Reescribir los fotogramas con valores LITERALES
+     baja ese número un 37 % por sí solo, y el resto lo quita pausar el campo
+     que no se ve (ver `.leaf-field-idle`).
+
+     El precio es tener las cifras aquí y la colocación en `leaf-field.tsx`.
+     Es el reparto correcto: la posición y el tamaño son maquetación, el
+     recorrido y el ritmo son animación. Las dos listas van EN EL MISMO ORDEN y
+     cada hoja recoge su pareja con la clase `.leaf-N`.
+     ----------------------------------------------------------------------- */
+
   /* Sin `will-change: transform` a propósito. Parece la optimización obvia,
-     pero promociona las cinco hojas a capas de composición PERMANENTES: sobre
-     la fotografía de portada eso es memoria de GPU reservada y trabajo de
-     composición extra justo mientras el navegador decide el LCP. Al ser una
-     animación de `transform` puro, Chrome ya promociona cada hoja por su
-     cuenta mientras la anima y la devuelve al flujo normal cuando no hace
-     falta, que es exactamente lo que interesa. */
+     pero promociona las hojas a capas de composición PERMANENTES: sobre la
+     fotografía de portada eso es memoria de GPU reservada y trabajo de
+     composición extra justo mientras el navegador decide el LCP. Con los
+     fotogramas ya literales, Chrome promociona cada hoja por su cuenta
+     mientras la anima y la devuelve al flujo normal cuando no hace falta, que
+     es exactamente lo que interesa. */
   .leaf {
     position: absolute;
-    animation: leaf-drift var(--leaf-duration, 42s) ease-in-out
-      var(--leaf-delay, 0s) infinite alternate;
+    animation-timing-function: ease-in-out;
+    animation-iteration-count: infinite;
+    animation-direction: alternate;
   }
 
   /* Capa interior: el balanceo. Va en su propio elemento para poder llevar
@@ -494,27 +524,167 @@
   .leaf-sway {
     height: 100%;
     width: 100%;
-    animation: leaf-sway var(--sway-duration, 13s) ease-in-out
-      var(--sway-delay, 0s) infinite alternate;
+    animation-timing-function: ease-in-out;
+    animation-iteration-count: infinite;
+    animation-direction: alternate;
   }
 
-  @keyframes leaf-drift {
+  /* Campo de hojas FUERA DE PANTALLA: las animaciones se pausan.
+     ---------------------------------------------------------------------
+     Una animación de hilo principal sigue costando lo mismo aunque su
+     sección esté a tres pantallas de distancia — el navegador no tiene forma
+     de saber que da igual. En la portada eso significaba que las cinco hojas
+     del encabezado seguían recalculando estilo mientras el visitante hacía
+     rodar el carrusel de experiencias, muy por debajo: ellas solas eran 73 de
+     los 191 ms medidos.
+
+     La clase la pone y la quita el observador del layout público (ver
+     `reveal-observer.tsx`). Sin JavaScript la clase no existe nunca y las
+     hojas se animan siempre, que es el comportamiento correcto por defecto.
+     `animation-play-state` conserva la posición: al volver, la hoja sigue
+     desde donde estaba y no da un salto. */
+  .leaf-field-idle .leaf,
+  .leaf-field-idle .leaf-sway {
+    animation-play-state: paused;
+  }
+
+  /* --- Las cinco hojas, en el mismo orden que `LEAVES` en el componente ---
+     Duraciones primas entre sí (31/41/37/53/47 s de deriva, 11/17/9/13/15 s de
+     balanceo) para que el periodo real de cada hoja sea el mínimo común
+     múltiplo de las dos y no se repita nunca a la vista. Desfases negativos:
+     al cargar la página el conjunto ya está en marcha, no arrancando. */
+  .leaf-1 {
+    animation-name: leaf-drift-1;
+    animation-duration: 31s;
+    animation-delay: -4s;
+  }
+  .leaf-1 > .leaf-sway {
+    animation-name: leaf-sway-1;
+    animation-duration: 11s;
+    animation-delay: -3s;
+  }
+  .leaf-2 {
+    animation-name: leaf-drift-2;
+    animation-duration: 41s;
+    animation-delay: -17s;
+  }
+  .leaf-2 > .leaf-sway {
+    animation-name: leaf-sway-2;
+    animation-duration: 17s;
+    animation-delay: -6s;
+  }
+  .leaf-3 {
+    animation-name: leaf-drift-3;
+    animation-duration: 37s;
+    animation-delay: -25s;
+  }
+  .leaf-3 > .leaf-sway {
+    animation-name: leaf-sway-3;
+    animation-duration: 9s;
+    animation-delay: -2s;
+  }
+  .leaf-4 {
+    animation-name: leaf-drift-4;
+    animation-duration: 53s;
+    animation-delay: -9s;
+  }
+  .leaf-4 > .leaf-sway {
+    animation-name: leaf-sway-4;
+    animation-duration: 13s;
+    animation-delay: -8s;
+  }
+  .leaf-5 {
+    animation-name: leaf-drift-5;
+    animation-duration: 47s;
+    animation-delay: -31s;
+  }
+  .leaf-5 > .leaf-sway {
+    animation-name: leaf-sway-5;
+    animation-duration: 15s;
+    animation-delay: -11s;
+  }
+
+  /* Deriva: el viaje largo. */
+  @keyframes leaf-drift-1 {
     from {
       transform: translate3d(0, 0, 0);
     }
     to {
-      transform: translate3d(var(--leaf-x, 90px), var(--leaf-y, -120px), 0);
+      transform: translate3d(128px, -104px, 0);
+    }
+  }
+  @keyframes leaf-drift-2 {
+    from {
+      transform: translate3d(0, 0, 0);
+    }
+    to {
+      transform: translate3d(-150px, 118px, 0);
+    }
+  }
+  @keyframes leaf-drift-3 {
+    from {
+      transform: translate3d(0, 0, 0);
+    }
+    to {
+      transform: translate3d(112px, 96px, 0);
+    }
+  }
+  @keyframes leaf-drift-4 {
+    from {
+      transform: translate3d(0, 0, 0);
+    }
+    to {
+      transform: translate3d(-104px, -132px, 0);
+    }
+  }
+  @keyframes leaf-drift-5 {
+    from {
+      transform: translate3d(0, 0, 0);
+    }
+    to {
+      transform: translate3d(136px, 88px, 0);
     }
   }
 
-  @keyframes leaf-sway {
+  /* Balanceo: el giro corto, a otro ritmo que la deriva. */
+  @keyframes leaf-sway-1 {
     from {
-      transform: rotate(var(--leaf-from, -10deg)) translate3d(0, 0, 0) scale(1);
+      transform: rotate(-14deg) translate3d(0, 0, 0) scale(1);
     }
     to {
-      transform: rotate(var(--leaf-to, 14deg))
-        translate3d(var(--sway-x, 14px), var(--sway-y, 10px), 0)
-        scale(var(--leaf-scale, 1.1));
+      transform: rotate(16deg) translate3d(16px, 12px, 0) scale(1.12);
+    }
+  }
+  @keyframes leaf-sway-2 {
+    from {
+      transform: rotate(12deg) translate3d(0, 0, 0) scale(1);
+    }
+    to {
+      transform: rotate(-20deg) translate3d(-14px, 10px, 0) scale(1.08);
+    }
+  }
+  @keyframes leaf-sway-3 {
+    from {
+      transform: rotate(18deg) translate3d(0, 0, 0) scale(1);
+    }
+    to {
+      transform: rotate(-14deg) translate3d(12px, -10px, 0) scale(1.14);
+    }
+  }
+  @keyframes leaf-sway-4 {
+    from {
+      transform: rotate(-10deg) translate3d(0, 0, 0) scale(1);
+    }
+    to {
+      transform: rotate(22deg) translate3d(-18px, 14px, 0) scale(1.09);
+    }
+  }
+  @keyframes leaf-sway-5 {
+    from {
+      transform: rotate(16deg) translate3d(0, 0, 0) scale(1);
+    }
+    to {
+      transform: rotate(-18deg) translate3d(14px, -12px, 0) scale(1.11);
     }
   }
 

@@ -52,19 +52,41 @@ type Props = {
  * cuanto la página se mueve, porque debajo puede pasar cualquier cosa.
  *
  * ---------------------------------------------------------------------------
- * ANCHOS
+ * ANCHOS, Y POR QUÉ "RESERVAR" SE VE TAMBIÉN EN MÓVIL
  * ---------------------------------------------------------------------------
  * En 1280 tienen que caber: logotipo (140), cuatro enlaces, el conmutador de
- * idioma (~100) y el botón "Reservar" (~120). La navegación va centrada con
- * `flex-1` y los dos extremos son `shrink-0`, así que el que cede espacio es
- * siempre el bloque central, que es el que puede. Los enlaces bajan de
- * `pl-4 pr-4` a `px-3.5` respecto a la barra anterior: son ~24 px recuperados
- * que se van al conmutador sin que la navegación se note más apretada.
+ * idioma (~100) y el botón "Reservar". La navegación va centrada con `flex-1`
+ * y los dos extremos son `shrink-0`, así que el que cede espacio es siempre el
+ * bloque central, que es el que puede.
  *
- * En móvil el conmutador se queda EN LA ISLA, junto al hamburguesa, y no dentro
- * del menú: cambiar de idioma es lo primero que busca quien entra y no debería
- * costar dos toques ni obligar a abrir un panel a pantalla completa. A 390 px
- * cabe porque ahí las banderas van solas, sin el código de dos letras.
+ * EL BOTÓN DE RESERVAR ES LA RAZÓN DE SER DEL SITIO, así que no puede
+ * desaparecer en el tamaño por el que entra la mayoría. Antes, por debajo de
+ * `lg`, la isla llevaba logotipo + banderas + hamburguesa y ninguna llamada a
+ * reservar: había que abrir el menú para encontrarla.
+ *
+ * El problema era de aritmética, y se midió con CDP antes de decidir. A 360 px
+ * la isla mide 320 y las tres piezas de entonces ocupaban 270: quedaban 50 px
+ * libres, y una pastilla legible con "Reservar" necesita 115.
+ *
+ * De las salidas posibles se eligió MOVER EL CONMUTADOR DE IDIOMA AL MENÚ. Las
+ * banderas liberan 82 px, que es justo lo que hacía falta, y la jerarquía
+ * queda donde debe: el idioma se elige UNA VEZ —y encima el sitio lo recuerda
+ * en una cookie y respeta el del navegador al entrar por la raíz—, mientras
+ * que reservar es lo que el visitante puede querer hacer en cualquier momento
+ * y desde cualquier página. Dentro del menú, además, el conmutador mejora: deja
+ * de ser dos banderas diminutas y pasa a ser una ficha con su rótulo y los
+ * códigos ES/EN visibles.
+ *
+ * Se descartó recortar el logotipo a un monograma (no existe ese recorte entre
+ * los logotipos oficiales del cliente, y no es material que se deba inventar)
+ * y se descartó un botón de solo icono (un calendario suelto no dice
+ * "reservar"; lo dice la palabra).
+ *
+ * La pastilla mide 44 px de alto —lo mismo que el hamburguesa, y el mínimo
+ * táctil recomendado— dentro de una isla de 56, así que la barra NO engorda.
+ * A lo ancho crece por pasos (`px-3.5` → `sm:px-5` → `lg:px-6` → `xl:px-7`):
+ * en escritorio, donde sobra sitio, gana la presencia horizontal que pedía el
+ * cliente sin tocar la altura.
  */
 export function SiteHeader({
   locale,
@@ -150,7 +172,13 @@ export function SiteHeader({
             <Link
               href={home}
               aria-label={t.nav.homeAria}
-              className="relative z-50 flex shrink-0 items-center rounded-lg transition-opacity duration-200 ease-ios hover:opacity-85"
+              /* `h-11` = 44 px, como el botón de reservar y el hamburguesa. El
+                 logotipo solo mide 26-30 px de alto y sin esto el objetivo
+                 táctil se quedaba en esos 26: el enlace a la portada es de los
+                 que más se tocan en un móvil y no puede ser el más difícil de
+                 acertar de la barra. El logotipo no cambia de tamaño — la caja
+                 crece a su alrededor y sigue centrada. */
+              className="relative z-50 flex h-11 shrink-0 items-center rounded-lg transition-opacity duration-200 ease-ios hover:opacity-85"
             >
               <Image
                 src="/logo-lamaima-blanco.png"
@@ -198,26 +226,36 @@ export function SiteHeader({
               </ul>
             </nav>
 
-            {/* Extremo derecho: idioma, CTA y hamburguesa */}
+            {/* Extremo derecho: idioma (solo escritorio), CTA y hamburguesa */}
             <div className="ml-auto flex shrink-0 items-center gap-2 lg:ml-0">
-              <LanguageSwitch locale={locale} idSuffix="nav" />
+              {/* El conmutador va dentro de un envoltorio y no con una clase
+                  suya: `hidden` y `flex` compiten por la misma propiedad y en
+                  Tailwind gana la que salga después EN LA HOJA, no en el
+                  atributo. Un envoltorio quita toda ambigüedad. */}
+              <div className="hidden lg:block">
+                <LanguageSwitch locale={locale} idSuffix="nav" />
+              </div>
 
               {/* Pastilla blanca con texto azul: sobre el vidrio marino es la
                   opción de mayor contraste y la que mejor lee como acción
-                  primaria. Oculta por debajo de `lg`, donde manda el botón
-                  flotante de WhatsApp.
+                  primaria. SE VE EN TODOS LOS TAMAÑOS (ver la nota de arriba).
 
                   Lleva al LISTADO DE ALOJAMIENTOS, que es donde vive el motor de
                   reservas (calendario real + cálculo de la estadía), no a
                   WhatsApp: reservar es la experiencia central del sitio y el
                   chat sigue a un toque en el botón flotante, que el cliente pidió
                   mantener en todos los tamaños. Al ser un `next/link`, además,
-                  Next precarga la ruta en cuanto el botón entra en pantalla. */}
+                  Next precarga la ruta en cuanto el botón entra en pantalla.
+
+                  `h-11` = 44 px, el mismo alto que el hamburguesa de al lado:
+                  los dos objetivos táctiles quedan alineados y ninguno baja del
+                  mínimo recomendado. El relleno lateral crece por pasos con la
+                  pantalla; el alto NUNCA cambia. */}
               <Link
                 href={bookHref}
-                className="hidden shrink-0 items-center gap-2 whitespace-nowrap rounded-full bg-white px-4 py-2 text-[0.875rem] font-semibold text-brand-700 shadow-pill transition-[background-color,transform] duration-200 ease-ios hover:bg-brand-50 active:scale-[0.97] lg:inline-flex"
+                className="inline-flex h-11 shrink-0 items-center gap-2 whitespace-nowrap rounded-full bg-white px-3.5 text-[0.875rem] font-semibold text-brand-700 shadow-pill transition-[background-color,transform] duration-200 ease-ios hover:bg-brand-50 active:scale-[0.97] sm:px-5 lg:px-6 xl:px-7"
               >
-                <CalendarIcon className="h-4 w-4" />
+                <CalendarIcon className="h-4 w-4 shrink-0" />
                 {t.nav.book}
               </Link>
 
@@ -293,6 +331,21 @@ export function SiteHeader({
               );
             })}
           </ul>
+
+          {/* Idioma.
+              ------------------------------------------------------------
+              Vive aquí desde que la isla necesitó el sitio para el botón de
+              reservar. Va INMEDIATAMENTE debajo de los enlaces —lo primero que
+              se ve al abrir— y no escondido en el pie: quien entra buscando
+              inglés lo encuentra en el primer golpe de vista.
+
+              Con el rótulo delante y los códigos ES/EN al lado de cada
+              bandera, se lee mejor que las dos banderas sueltas de la barra:
+              ahí no cabía el texto. */}
+          <div className="mt-4 flex items-center justify-between gap-4 rounded-panel bg-white px-5 py-4 shadow-card">
+            <p className="eyebrow text-brand-700">{t.locale.label}</p>
+            <LanguageSwitch locale={locale} tone="onLight" idSuffix="menu" />
+          </div>
 
           <div className="mt-4 rounded-panel bg-white p-5 shadow-card">
             <p className="eyebrow text-brand-700">{t.nav.whereWeAre}</p>
