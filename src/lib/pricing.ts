@@ -30,7 +30,8 @@
  * el render del servidor, el widget del navegador y los tests.
  */
 import { addDays, nightsBetween, weekdayIndex } from "./dates";
-import { formatCOP, formatGuests } from "./format";
+import { formatCOP, formatGuests, formatNights } from "./format";
+import { DEFAULT_LOCALE, type Locale } from "./i18n/config";
 
 /* ---------------------------------------------------------------------------
  * Tipos
@@ -392,6 +393,7 @@ export function minStayFor(
   config: RateConfig,
   checkIn: string,
   checkOut: string,
+  locale: Locale = DEFAULT_LOCALE,
 ): MinStayIssue | null {
   const nights = nightsOf(checkIn, checkOut);
   if (nights.length === 0) return null;
@@ -406,14 +408,31 @@ export function minStayFor(
 
   if (!worst || nights.length >= worst.min_nights) return null;
 
-  const noun = worst.min_nights === 1 ? "noche" : "noches";
+  /* `label` llega YA traducido desde `@/lib/content` (columna `label_en` de
+     `min_stay_rules`), así que aquí solo se compone la frase. */
+  const required = formatNights(worst.min_nights, locale);
+
+  if (locale === "en") {
+    return {
+      label: worst.label,
+      requiredNights: worst.min_nights,
+      message:
+        worst.rule_type === "holiday_bridge"
+          ? `Over long holiday weekends the minimum stay is ${required}.`
+          : /* El rótulo NO se pasa a minúscula en inglés: "Easter Week" y
+               "Christmas season" son nombres propios de temporada y
+               "during easter week" se leería como un descuido. */
+            `During ${worst.label} the minimum stay is ${required}.`,
+    };
+  }
+
   return {
     label: worst.label,
     requiredNights: worst.min_nights,
     message:
       worst.rule_type === "holiday_bridge"
-        ? `En puentes festivos la estancia mínima es de ${worst.min_nights} ${noun}.`
-        : `En ${lowerFirst(worst.label)} la estancia mínima es de ${worst.min_nights} ${noun}.`,
+        ? `En puentes festivos la estancia mínima es de ${required}.`
+        : `En ${lowerFirst(worst.label)} la estancia mínima es de ${required}.`,
   };
 }
 
@@ -473,7 +492,7 @@ export type Quote = {
  * "3 noches × $570.000 · 1 noche entre semana × $427.500" se lee mucho mejor
  * que cuatro renglones con fechas.
  */
-function buildLines(nightly: NightRate[]): QuoteLine[] {
+function buildLines(nightly: NightRate[], locale: Locale): QuoteLine[] {
   const groups = new Map<string, QuoteLine>();
 
   for (const night of nightly) {
@@ -483,7 +502,7 @@ function buildLines(nightly: NightRate[]): QuoteLine[] {
     if (existing) {
       existing.nights += 1;
       existing.subtotalCop += unit;
-      existing.label = `${existing.nights} noches × ${formatCOP(unit)}`;
+      existing.label = `${formatNights(existing.nights, locale)} × ${formatCOP(unit)}`;
       continue;
     }
     groups.set(key, {
@@ -493,31 +512,49 @@ function buildLines(nightly: NightRate[]): QuoteLine[] {
       dayType: night.dayType,
       discountPct: night.discountPct,
       planName: night.planName,
-      label: `1 noche × ${formatCOP(unit)}`,
-      detail: lineDetail(night),
+      label: `${formatNights(1, locale)} × ${formatCOP(unit)}`,
+      detail: lineDetail(night, locale),
     });
   }
 
   return [...groups.values()];
 }
 
-function lineDetail(night: NightRate): string | null {
+function lineDetail(night: NightRate, locale: Locale): string | null {
   const parts: string[] = [];
+  const english = locale === "en";
+
   if (night.planName) parts.push(night.planName);
+
   if (night.discountPct > 0) {
-    parts.push(`lunes a jueves · ${night.discountPct} % de descuento`);
-  } else if (night.dayType === "weekday" && !night.planName) {
-    parts.push("lunes a jueves");
-  } else if (!night.planName) {
-    parts.push("fin de semana o festivo");
-  }
-  if (night.extraGuests > 0) {
     parts.push(
-      night.extraGuests === 1
-        ? `incluye 1 huésped adicional (${formatCOP(night.extraCop)})`
-        : `incluye ${night.extraGuests} huéspedes adicionales (${formatCOP(night.extraCop)})`,
+      english
+        ? `Monday to Thursday · ${night.discountPct} % off`
+        : `lunes a jueves · ${night.discountPct} % de descuento`,
     );
+  } else if (night.dayType === "weekday" && !night.planName) {
+    parts.push(english ? "Monday to Thursday" : "lunes a jueves");
+  } else if (!night.planName) {
+    parts.push(english ? "weekend or public holiday" : "fin de semana o festivo");
   }
+
+  if (night.extraGuests > 0) {
+    const amount = formatCOP(night.extraCop);
+    if (english) {
+      parts.push(
+        night.extraGuests === 1
+          ? `includes 1 extra guest (${amount})`
+          : `includes ${night.extraGuests} extra guests (${amount})`,
+      );
+    } else {
+      parts.push(
+        night.extraGuests === 1
+          ? `incluye 1 huésped adicional (${amount})`
+          : `incluye ${night.extraGuests} huéspedes adicionales (${amount})`,
+      );
+    }
+  }
+
   if (parts.length === 0) return null;
   const [first, ...rest] = parts;
   return [first.charAt(0).toUpperCase() + first.slice(1), ...rest].join(" · ");
@@ -530,7 +567,15 @@ function lineDetail(night: NightRate): string | null {
  * que prometer un desayuno que quizá no está incluido. Hoy pasa con Tres
  * Casitas, cuya ficha no menciona el desayuno.
  */
-export function breakfastLabel(config: RateConfig): string | null {
+export function breakfastLabel(
+  config: RateConfig,
+  locale: Locale = DEFAULT_LOCALE,
+): string | null {
+  if (locale === "en") {
+    if (config.breakfastIncluded) return "Breakfast included";
+    if (config.breakfastPriceCop === null) return null;
+    return `Breakfast extra: ${formatCOP(config.breakfastPriceCop)} per person`;
+  }
   if (config.breakfastIncluded) return "Desayuno incluido";
   if (config.breakfastPriceCop === null) return null;
   return `Desayuno aparte: ${formatCOP(config.breakfastPriceCop)} por persona`;
@@ -540,8 +585,9 @@ function breakfastInfo(
   config: RateConfig,
   guests: number,
   nights: number,
+  locale: Locale,
 ): BreakfastInfo | null {
-  const label = breakfastLabel(config);
+  const label = breakfastLabel(config, locale);
   if (label === null) return null;
 
   if (config.breakfastIncluded) {
@@ -572,6 +618,7 @@ export function quote(
   checkIn: string,
   checkOut: string,
   guests: number,
+  locale: Locale = DEFAULT_LOCALE,
 ): Quote {
   const holidaySet = new Set(config.holidays.map((holiday) => holiday.date));
   const nights = nightsOf(checkIn, checkOut);
@@ -596,15 +643,15 @@ export function quote(
     nights: nights.length,
     guests,
     nightly,
-    lines: buildLines(nightly),
+    lines: buildLines(nightly, locale),
     totalCop,
     averageNightCop: nights.length
       ? Math.round(totalCop / nights.length)
       : 0,
     extraGuests,
     extraTotalCop,
-    breakfast: breakfastInfo(config, guests, nights.length),
-    minStay: minStayFor(config, checkIn, checkOut),
+    breakfast: breakfastInfo(config, guests, nights.length, locale),
+    minStay: minStayFor(config, checkIn, checkOut, locale),
     planNames,
     overCapacity: guests > config.capacity,
   };
@@ -667,9 +714,13 @@ export type TierRow = {
  * personas") ni un rango ("2-4 personas"), porque el huésped lo leía como
  * "precio por persona". El sufijo de día de la semana no cambia.
  */
-export function tierRows(tiers: RateTier[]): TierRow[] {
+export function tierRows(
+  tiers: RateTier[],
+  locale: Locale = DEFAULT_LOCALE,
+): TierRow[] {
   const hasTwoTables = tiers.some((tier) => tier.day_type !== "any");
   const order: TierDayType[] = ["any", "weekend", "weekday"];
+  const english = locale === "en";
 
   const sorted = [...tiers].sort(
     (a, b) =>
@@ -678,13 +729,22 @@ export function tierRows(tiers: RateTier[]): TierRow[] {
   );
 
   return sorted.map((tier) => {
-    const occupancy = `Hasta ${formatGuests(tier.guests)}`;
+    /* "Hasta 4 personas" / "Up to 4 guests": el techo de ocupación, nunca una
+       cuota por cabeza (ver la nota de arriba). */
+    const occupancy = english
+      ? `Up to ${formatGuests(tier.guests, "en")}`
+      : `Hasta ${formatGuests(tier.guests, "es")}`;
+
     const when =
       !hasTwoTables || tier.day_type === "any"
         ? ""
         : tier.day_type === "weekday"
-          ? " · lunes a jueves"
-          : " · fin de semana";
+          ? english
+            ? " · Monday to Thursday"
+            : " · lunes a jueves"
+          : english
+            ? " · weekend"
+            : " · fin de semana";
 
     return {
       key: `${tier.day_type}-${tier.guests}`,
@@ -698,7 +758,10 @@ export function tierRows(tiers: RateTier[]): TierRow[] {
  * Resumen de las estancias mínimas para la ficha del alojamiento, sin repetir
  * la misma temporada dos veces (2027 y 2028 dicen lo mismo).
  */
-export function minStaySummary(rules: MinStayRule[]): string[] {
+export function minStaySummary(
+  rules: MinStayRule[],
+  locale: Locale = DEFAULT_LOCALE,
+): string[] {
   const seen = new Map<string, number>();
   for (const rule of rules) {
     // "Semana Santa 2027" y "Semana Santa 2028" comparten resumen.
@@ -708,9 +771,10 @@ export function minStaySummary(rules: MinStayRule[]): string[] {
       seen.set(family, rule.min_nights);
     }
   }
-  return [...seen.entries()].map(
-    ([family, min]) =>
-      `${family}: mínimo ${min} ${min === 1 ? "noche" : "noches"}`,
+  return [...seen.entries()].map(([family, min]) =>
+    locale === "en"
+      ? `${family}: minimum ${formatNights(min, "en")}`
+      : `${family}: mínimo ${formatNights(min, "es")}`,
   );
 }
 
@@ -751,11 +815,22 @@ export type RateNote = {
  */
 const SENTENCE_BREAK = String.fromCharCode(1);
 
-const NOTE_TOPICS: Record<Exclude<RateNoteKind, "other">, RegExp> = {
-  breakfast: /desayun/i,
-  weekday: /descuento|lunes a jueves|fin de semana|festiv/i,
-  "extra-guest": /adicional/i,
-  "min-stay": /estancia mínima|noches mínim/i,
+const NOTE_TOPICS: Record<
+  Locale,
+  Record<Exclude<RateNoteKind, "other">, RegExp>
+> = {
+  es: {
+    breakfast: /desayun/i,
+    weekday: /descuento|lunes a jueves|fin de semana|festiv/i,
+    "extra-guest": /adicional/i,
+    "min-stay": /estancia mínima|noches mínim/i,
+  },
+  en: {
+    breakfast: /breakfast/i,
+    weekday: /discount|monday to thursday|weekend|holiday|% off/i,
+    "extra-guest": /extra guest|additional guest/i,
+    "min-stay": /minimum stay|minimum of \d+ nights/i,
+  },
 };
 
 /**
@@ -785,10 +860,11 @@ const NOTE_TOPICS: Record<Exclude<RateNoteKind, "other">, RegExp> = {
 function extraSentences(
   rateNote: string | null,
   covered: Set<RateNoteKind>,
+  locale: Locale,
 ): string[] {
   if (!rateNote) return [];
 
-  const topics = Object.entries(NOTE_TOPICS) as [
+  const topics = Object.entries(NOTE_TOPICS[locale]) as [
     Exclude<RateNoteKind, "other">,
     RegExp,
   ][];
@@ -824,8 +900,12 @@ function extraSentences(
  * Devuelve la lista vacía cuando no hay nada que decir (hoy, Casa Uba): quien
  * la pinta no tiene que comprobar nada más.
  */
-export function rateNotes(config: RateConfig): RateNote[] {
+export function rateNotes(
+  config: RateConfig,
+  locale: Locale = DEFAULT_LOCALE,
+): RateNote[] {
   const notes: RateNote[] = [];
+  const english = locale === "en";
 
   /* 1. Desayuno. Si el documento del cliente no dice nada, no se inventa: ni
         "incluido" ni un precio. */
@@ -833,13 +913,18 @@ export function rateNotes(config: RateConfig): RateNote[] {
     notes.push({
       key: "breakfast",
       kind: "breakfast",
-      text: "Desayuno incluido en la tarifa.",
+      text: english
+        ? "Breakfast is included in the rate."
+        : "Desayuno incluido en la tarifa.",
     });
   } else if (config.breakfastPriceCop !== null) {
+    const price = formatCOP(config.breakfastPriceCop);
     notes.push({
       key: "breakfast",
       kind: "breakfast",
-      text: `El desayuno no está incluido: ${formatCOP(config.breakfastPriceCop)} por persona.`,
+      text: english
+        ? `Breakfast is not included: ${price} per person.`
+        : `El desayuno no está incluido: ${price} por persona.`,
     });
   }
 
@@ -849,43 +934,60 @@ export function rateNotes(config: RateConfig): RateNote[] {
     notes.push({
       key: "weekday",
       kind: "weekday",
-      text: `${config.weekdayDiscountPct} % de descuento de lunes a jueves.`,
-      detail:
-        "No aplica en festivos ni entre el 14 de diciembre y el 15 de enero.",
+      text: english
+        ? `${config.weekdayDiscountPct} % off from Monday to Thursday.`
+        : `${config.weekdayDiscountPct} % de descuento de lunes a jueves.`,
+      detail: english
+        ? "Not valid on public holidays or between 14 December and 15 January."
+        : "No aplica en festivos ni entre el 14 de diciembre y el 15 de enero.",
     });
   } else if (config.tiers.some((tier) => tier.day_type !== "any")) {
     notes.push({
       key: "weekday",
       kind: "weekday",
-      text: "Tarifas propias de lunes a jueves y de fin de semana.",
-      detail: "Los festivos se cobran como fin de semana.",
+      text: english
+        ? "Separate rates for Monday to Thursday and for the weekend."
+        : "Tarifas propias de lunes a jueves y de fin de semana.",
+      detail: english
+        ? "Public holidays are charged at the weekend rate."
+        : "Los festivos se cobran como fin de semana.",
     });
   }
 
   /* 3. Huésped adicional, con su precio propio entre semana si lo tiene. */
   if (config.extraPersonPriceCop !== null) {
+    const price = formatCOP(config.extraPersonPriceCop);
     notes.push({
       key: "extra-guest",
       kind: "extra-guest",
-      text: `Huésped adicional: ${formatCOP(config.extraPersonPriceCop)} por noche.`,
+      text: english
+        ? `Extra guest: ${price} per night.`
+        : `Huésped adicional: ${price} por noche.`,
       ...(config.extraPersonPriceWeekdayCop !== null
         ? {
-            detail: `${formatCOP(config.extraPersonPriceWeekdayCop)} de lunes a jueves.`,
+            detail: english
+              ? `${formatCOP(config.extraPersonPriceWeekdayCop)} from Monday to Thursday.`
+              : `${formatCOP(config.extraPersonPriceWeekdayCop)} de lunes a jueves.`,
           }
         : {}),
     });
   }
 
   /* 4. Estancia mínima: una línea por temporada. */
-  for (const line of minStaySummary(config.minStayRules)) {
+  for (const line of minStaySummary(config.minStayRules, locale)) {
     notes.push({ key: `min-stay-${line}`, kind: "min-stay", text: `${line}.` });
   }
 
-  /* 5. Lo que el texto libre añade y las columnas no cuentan. */
+  /* 5. Lo que el texto libre añade y las columnas no cuentan. `config.rateNote`
+        llega ya en el idioma que toca (columna `rate_note_en`), y los temas que
+        se descartan por repetidos tienen su propio juego de patrones por
+        idioma; ver `NOTE_TOPICS`. */
   const covered = new Set(notes.map((note) => note.kind));
-  extraSentences(config.rateNote, covered).forEach((sentence, position) => {
-    notes.push({ key: `other-${position}`, kind: "other", text: sentence });
-  });
+  extraSentences(config.rateNote, covered, locale).forEach(
+    (sentence, position) => {
+      notes.push({ key: `other-${position}`, kind: "other", text: sentence });
+    },
+  );
 
   return notes;
 }

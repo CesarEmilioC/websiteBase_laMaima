@@ -68,6 +68,13 @@ export async function saveExperienceAction(
       }),
       price_note: optionalText(formData, "price_note", 160),
       gallery: galleryList(formData, "gallery"),
+      /* Versión inglesa (subsección plegable del formulario). Aquí el nombre SÍ
+         se traduce: es descriptivo, no una marca. */
+      name_en: optionalText(formData, "name_en", 120),
+      short_description_en: optionalText(formData, "short_description_en", 400),
+      description_en: optionalText(formData, "description_en", 6000),
+      duration_en: optionalText(formData, "duration_en", 80),
+      price_note_en: optionalText(formData, "price_note_en", 160),
       visible: checkbox(formData, "visible"),
       sort_order: requiredInt(formData, "sort_order", "Orden", {
         min: 0,

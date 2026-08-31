@@ -2,6 +2,8 @@ import Image from "next/image";
 import Link from "next/link";
 
 import { LeafField } from "@/components/leaf-field";
+import { dict } from "@/lib/i18n";
+import type { Locale } from "@/lib/i18n/config";
 
 type Crumb = {
   href: string;
@@ -9,6 +11,7 @@ type Crumb = {
 };
 
 type Props = {
+  locale: Locale;
   eyebrow?: string;
   title: string;
   /**
@@ -50,6 +53,7 @@ type Props = {
  * posterior en el DOM) y, encima, el texto en flujo normal.
  */
 export function PageHero({
+  locale,
   eyebrow,
   title,
   titleAccent,
@@ -59,6 +63,8 @@ export function PageHero({
   breadcrumbs,
   children,
 }: Props) {
+  const t = dict(locale);
+
   return (
     <section className="relative isolate flex min-h-[58vh] items-end overflow-hidden pt-28 sm:min-h-[64vh] sm:pt-32">
       <Image
@@ -93,7 +99,7 @@ export function PageHero({
 
       <div className="on-photo container-page w-full pb-16 sm:pb-20 lg:pb-24">
         {breadcrumbs && breadcrumbs.length > 0 && (
-          <nav aria-label="Ruta de navegación" className="mb-5">
+          <nav aria-label={t.nav.breadcrumb} className="mb-5">
             {/* La miga de pan es lo más alto de la banda: ahí el degradado casi
                 no llega y puede caer sobre cielo o nubes. Va más opaca que el
                 resto del texto secundario a propósito. */}

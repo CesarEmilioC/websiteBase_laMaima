@@ -13,50 +13,93 @@
  * usarse tanto en componentes de servidor como en el navegador.
  */
 
-const MONTHS_SHORT = [
-  "ene",
-  "feb",
-  "mar",
-  "abr",
-  "may",
-  "jun",
-  "jul",
-  "ago",
-  "sep",
-  "oct",
-  "nov",
-  "dic",
-];
+import { DEFAULT_LOCALE, type Locale } from "./i18n/config";
 
-const MONTHS_LONG = [
-  "enero",
-  "febrero",
-  "marzo",
-  "abril",
-  "mayo",
-  "junio",
-  "julio",
-  "agosto",
-  "septiembre",
-  "octubre",
-  "noviembre",
-  "diciembre",
-];
+const MONTHS_SHORT: Record<Locale, string[]> = {
+  es: [
+    "ene",
+    "feb",
+    "mar",
+    "abr",
+    "may",
+    "jun",
+    "jul",
+    "ago",
+    "sep",
+    "oct",
+    "nov",
+    "dic",
+  ],
+  en: [
+    "Jan",
+    "Feb",
+    "Mar",
+    "Apr",
+    "May",
+    "Jun",
+    "Jul",
+    "Aug",
+    "Sep",
+    "Oct",
+    "Nov",
+    "Dec",
+  ],
+};
+
+const MONTHS_LONG: Record<Locale, string[]> = {
+  es: [
+    "enero",
+    "febrero",
+    "marzo",
+    "abril",
+    "mayo",
+    "junio",
+    "julio",
+    "agosto",
+    "septiembre",
+    "octubre",
+    "noviembre",
+    "diciembre",
+  ],
+  en: [
+    "January",
+    "February",
+    "March",
+    "April",
+    "May",
+    "June",
+    "July",
+    "August",
+    "September",
+    "October",
+    "November",
+    "December",
+  ],
+};
 
 /**
- * Cabecera del calendario, con la semana empezando en LUNES (convención en
- * Colombia y en el resto de Hispanoamérica; `Date.getUTCDay()` empieza en
- * domingo, por eso `weekdayIndex()` desplaza el índice).
+ * Cabecera del calendario, con la semana empezando en LUNES.
+ *
+ * En español es la convención de Colombia y de toda Hispanoamérica. En INGLÉS
+ * se conserva el lunes a propósito, aunque en Estados Unidos la semana empiece
+ * en domingo: el calendario del widget marca noches de "lunes a jueves" con
+ * tarifa reducida y de "fin de semana" con tarifa plena, y esa lectura —el
+ * bloque barato a la izquierda, el caro a la derecha— se pierde si el domingo
+ * se muda a la primera columna. Además evita mantener dos rejillas distintas
+ * (`weekdayIndex()` es común a las dos) y dos juegos de capturas.
  */
-export const WEEKDAYS_SHORT_ES = [
-  "lun",
-  "mar",
-  "mié",
-  "jue",
-  "vie",
-  "sáb",
-  "dom",
-];
+const WEEKDAYS_SHORT: Record<Locale, string[]> = {
+  es: ["lun", "mar", "mié", "jue", "vie", "sáb", "dom"],
+  en: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
+};
+
+/** Compatibilidad: el panel de administración es monolingüe (español). */
+export const WEEKDAYS_SHORT_ES = WEEKDAYS_SHORT.es;
+
+/** Cabecera del calendario en el idioma pedido. */
+export function weekdaysShort(locale: Locale = DEFAULT_LOCALE): string[] {
+  return WEEKDAYS_SHORT[locale];
+}
 
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -73,22 +116,40 @@ export function isIsoDate(value: string): boolean {
   );
 }
 
-/** "2026-08-12" -> "12 ago 2026" */
-export function formatDateEs(iso: string): string {
+/**
+ * "2026-08-12" -> "12 ago 2026" · "12 Aug 2026"
+ *
+ * El inglés conserva el orden día-mes-año en vez de pasar a "Aug 12, 2026": el
+ * establecimiento y sus huéspedes están en Colombia, las fechas se comparan con
+ * las del pasaporte y las de la aerolínea, y mezclar los dos órdenes en el mismo
+ * viaje es la forma más rápida de que alguien llegue un día tarde. El mes va
+ * siempre en letras justamente para que no quepa la duda.
+ */
+export function formatDate(iso: string, locale: Locale = DEFAULT_LOCALE): string {
   if (!ISO_DATE.test(iso)) return iso;
   const [y, m, d] = iso.split("-");
-  return `${Number(d)} ${MONTHS_SHORT[Number(m) - 1]} ${y}`;
+  return `${Number(d)} ${MONTHS_SHORT[locale][Number(m) - 1]} ${y}`;
 }
 
-/** "2026-08-12" -> "12 de agosto de 2026" (para textos de cara al huésped). */
-export function formatLongDateEs(iso: string): string {
+/** "2026-08-12" -> "12 de agosto de 2026" · "12 August 2026". */
+export function formatLongDate(
+  iso: string,
+  locale: Locale = DEFAULT_LOCALE,
+): string {
   if (!ISO_DATE.test(iso)) return iso;
   const [y, m, d] = iso.split("-");
-  return `${Number(d)} de ${MONTHS_LONG[Number(m) - 1]} de ${y}`;
+  const month = MONTHS_LONG[locale][Number(m) - 1];
+  return locale === "en"
+    ? `${Number(d)} ${month} ${y}`
+    : `${Number(d)} de ${month} de ${y}`;
 }
 
 /** "12 ago – 15 ago 2026" (omite el mes repetido y el año del primer extremo). */
-export function formatRangeEs(startIso: string, endIso: string): string {
+export function formatRange(
+  startIso: string,
+  endIso: string,
+  locale: Locale = DEFAULT_LOCALE,
+): string {
   if (!ISO_DATE.test(startIso) || !ISO_DATE.test(endIso)) {
     return `${startIso} – ${endIso}`;
   }
@@ -97,8 +158,26 @@ export function formatRangeEs(startIso: string, endIso: string): string {
   const left =
     sy === ey && sm === em
       ? `${Number(sd)}`
-      : `${Number(sd)} ${MONTHS_SHORT[Number(sm) - 1]}`;
-  return `${left} – ${formatDateEs(endIso)}`;
+      : `${Number(sd)} ${MONTHS_SHORT[locale][Number(sm) - 1]}`;
+  return `${left} – ${formatDate(endIso, locale)}`;
+}
+
+/* Atajos en español para el PANEL de administración, que es monolingüe: así no
+   hay que pasarle el idioma a cada llamada de una pantalla que nunca cambia. */
+
+/** "2026-08-12" -> "12 ago 2026" */
+export function formatDateEs(iso: string): string {
+  return formatDate(iso, "es");
+}
+
+/** "2026-08-12" -> "12 de agosto de 2026" */
+export function formatLongDateEs(iso: string): string {
+  return formatLongDate(iso, "es");
+}
+
+/** "12 ago – 15 ago 2026" */
+export function formatRangeEs(startIso: string, endIso: string): string {
+  return formatRange(startIso, endIso, "es");
 }
 
 /** Fecha de hoy en la zona horaria de Colombia (UTC-5, sin horario de verano). */
@@ -169,7 +248,7 @@ export function formatTimestampEs(value: string | null): string {
   // Se muestra en hora de Colombia (UTC-5).
   const bogota = new Date(date.getTime() - 5 * 60 * 60 * 1000);
   const day = bogota.getUTCDate();
-  const month = MONTHS_SHORT[bogota.getUTCMonth()];
+  const month = MONTHS_SHORT.es[bogota.getUTCMonth()];
   const year = bogota.getUTCFullYear();
   const hh = String(bogota.getUTCHours()).padStart(2, "0");
   const mm = String(bogota.getUTCMinutes()).padStart(2, "0");
@@ -206,10 +285,18 @@ export function compareMonths(a: YearMonth, b: YearMonth): number {
   return a.year * 12 + a.month - (b.year * 12 + b.month);
 }
 
-/** "Septiembre 2026" (con la inicial en mayúscula, como en los títulos). */
-export function monthTitleEs({ year, month }: YearMonth): string {
-  const name = MONTHS_LONG[month - 1] ?? "";
+/** "Septiembre 2026" / "September 2026" (con la inicial en mayúscula). */
+export function monthTitle(
+  { year, month }: YearMonth,
+  locale: Locale = DEFAULT_LOCALE,
+): string {
+  const name = MONTHS_LONG[locale][month - 1] ?? "";
   return `${name.charAt(0).toUpperCase()}${name.slice(1)} ${year}`;
+}
+
+/** Atajo en español para el panel. */
+export function monthTitleEs(target: YearMonth): string {
+  return monthTitle(target, "es");
 }
 
 /** Fecha ISO de un día concreto de un mes. */

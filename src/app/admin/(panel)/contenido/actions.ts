@@ -54,27 +54,47 @@ function collectStrings(value: unknown, into: string[] = []): string[] {
 async function upsertContent(
   key: string,
   patch: Record<string, unknown>,
+  /**
+   * Espejo inglés: SOLO las claves de texto que el formulario traduce. Las
+   * claves con valor vacío se BORRAN del espejo en vez de guardarse en blanco,
+   * porque en `site_content` una cadena vacía y una clave ausente significan
+   * cosas distintas: la ausente hereda el español (que es lo que queremos
+   * cuando alguien vacía el campo) y la vacía publicaría un hueco.
+   */
+  patchEn: Record<string, unknown> = {},
 ): Promise<void> {
   const { supabase } = await requireAdmin();
 
   const { data: current, error: readError } = await supabase
     .from("site_content")
-    .select("value")
+    .select("value, value_en")
     .eq("key", key)
     .maybeSingle();
 
   if (readError) throw new Error(readError.message);
 
-  const base =
-    typeof current?.value === "object" && current?.value !== null
-      ? (current.value as Record<string, unknown>)
+  const asRecord = (value: unknown): Record<string, unknown> =>
+    typeof value === "object" && value !== null
+      ? (value as Record<string, unknown>)
       : {};
 
+  const base = asRecord(current?.value);
   const merged = { ...base, ...patch };
+
+  const mergedEn = { ...asRecord(current?.value_en) };
+  for (const [field, value] of Object.entries(patchEn)) {
+    const empty =
+      value === null ||
+      value === undefined ||
+      (typeof value === "string" && !value.trim()) ||
+      (Array.isArray(value) && value.length === 0);
+    if (empty) delete mergedEn[field];
+    else mergedEn[field] = value;
+  }
 
   const { error } = await supabase
     .from("site_content")
-    .upsert({ key, value: merged }, { onConflict: "key" });
+    .upsert({ key, value: merged, value_en: mergedEn }, { onConflict: "key" });
 
   if (error) throw new Error(error.message);
 
@@ -84,7 +104,10 @@ async function upsertContent(
   // `cleanupRemovedGalleryImages` vuelve a comprobar después —ya con el
   // guardado hecho— que ninguna otra fila de la base la siga usando antes de
   // borrar un solo objeto del bucket.
-  const stillUsed = new Set(collectStrings(merged));
+  const stillUsed = new Set([
+    ...collectStrings(merged),
+    ...collectStrings(mergedEn),
+  ]);
   const orphans = collectStrings(base).filter((url) => !stillUsed.has(url));
 
   if (orphans.length > 0) {
@@ -93,6 +116,19 @@ async function upsertContent(
 
   revalidatePath(PATH);
   revalidatePublicSite();
+}
+
+/**
+ * Sub-objeto inglés de una cabecera: solo el texto alternativo, o `null` si el
+ * campo viene vacío (para que `upsertContent` borre la clave y la versión
+ * inglesa herede la española).
+ */
+function altOnly(
+  form: FormData,
+  field: string,
+): { image_alt: string } | null {
+  const value = optionalText(form, field, 300);
+  return value ? { image_alt: value } : null;
 }
 
 /** Texto libre multilínea -> arreglo de párrafos (separados por línea vacía). */
@@ -117,6 +153,14 @@ export async function saveHeroAction(
       cta_href: optionalText(formData, "cta_href", 200) ?? "/alojamientos",
       image: optionalText(formData, "image", 500) ?? "",
       image_alt: optionalText(formData, "image_alt", 300) ?? "",
+    }, {
+      /* La FOTO no se repite en el espejo ingles: es la misma imagen en las dos
+         versiones y duplicarla solo abriria la puerta a que se desincronicen. */
+      eyebrow: optionalText(formData, "eyebrow_en", 120),
+      title: optionalText(formData, "title_en", 160),
+      subtitle: optionalText(formData, "subtitle_en", 400),
+      cta_label: optionalText(formData, "cta_label_en", 60),
+      image_alt: optionalText(formData, "image_alt_en", 300),
     });
     return okState("Portada actualizada. El sitio ya muestra el cambio.");
   });
@@ -127,6 +171,13 @@ export async function saveAboutAction(
   formData: FormData,
 ): Promise<ActionState> {
   return runAction(async () => {
+    const statsEn = [0, 1, 2]
+      .map((index) => ({
+        value: optionalText(formData, `stat_${index}_value`, 20) ?? "",
+        label: optionalText(formData, `stat_${index}_label_en`, 60) ?? "",
+      }))
+      .filter((stat) => stat.value && stat.label);
+
     const stats = [0, 1, 2]
       .map((index) => ({
         value: optionalText(formData, `stat_${index}_value`, 20) ?? "",
@@ -144,6 +195,15 @@ export async function saveAboutAction(
       image: optionalText(formData, "image", 500) ?? "",
       image_alt: optionalText(formData, "image_alt", 300) ?? "",
       stats,
+    }, {
+      eyebrow: optionalText(formData, "eyebrow_en", 120),
+      title: optionalText(formData, "title_en", 200),
+      paragraphs: toParagraphs(optionalText(formData, "paragraphs_en", 6000)),
+      image_alt: optionalText(formData, "image_alt_en", 300),
+      /* Las cifras (30, 6, 3) son las mismas; lo que cambia es su rotulo. Se
+         guarda la tripleta ENTERA o ninguna: media tabla traducida se lee peor
+         que la española completa. */
+      stats: statsEn.length === stats.length ? statsEn : [],
     });
     return okState("Sección “Sobre la reserva” actualizada.");
   });
@@ -157,6 +217,8 @@ export async function saveSeoAction(
     await upsertContent("seo", {
       image: optionalText(formData, "image", 500) ?? "",
       image_alt: optionalText(formData, "image_alt", 300) ?? "",
+    }, {
+      image_alt: optionalText(formData, "image_alt_en", 300),
     });
     return okState("Imagen para redes sociales actualizada.");
   });
@@ -199,6 +261,14 @@ export async function saveListingHeroesAction(
         image: optionalText(formData, "experiencias_image", 500) ?? "",
         image_alt: optionalText(formData, "experiencias_image_alt", 300) ?? "",
       },
+    }, {
+      /* La fusión con el español es PROFUNDA (ver `mergeContent()` en
+         `lib/content.ts`), así que basta con mandar el texto alternativo: la
+         foto se hereda de la fila española y no puede desincronizarse.
+         `altOnly()` devuelve `null` cuando el campo viene vacío, y una clave
+         nula se borra del espejo en vez de guardarse a medias. */
+      alojamientos: altOnly(formData, "alojamientos_image_alt_en"),
+      experiencias: altOnly(formData, "experiencias_image_alt_en"),
     });
     return okState("Cabeceras de Alojamientos y Experiencias actualizadas.");
   });

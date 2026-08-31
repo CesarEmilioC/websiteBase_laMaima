@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useActionState, useMemo, useState } from "react";
 
 import { saveOccupancyRatesAction } from "./actions";
+import { EnglishSection } from "@/components/admin/english-section";
 import { SubmitButton } from "@/components/admin/submit-button";
 import {
   Banner,
@@ -374,6 +375,28 @@ export function OccupancyForm({
               defaultValue={accommodation.rate_note ?? ""}
             />
           </Field>
+
+          <div className="sm:col-span-2">
+            {/* Las condiciones de la tarifa que ve el huésped se DERIVAN de los
+                campos de arriba (desayuno, descuento, huésped adicional), y
+                esos números no tienen idioma. Lo único que se traduce es esta
+                nota escrita a mano; ver `rateNotes()` en `lib/pricing.ts`. */}
+            <EnglishSection hint="Solo la nota larga se traduce: el resto de las condiciones se generan solas a partir de los campos de arriba, en los dos idiomas.">
+              <Field
+                label="Nota larga de la tarifa (inglés)"
+                htmlFor="rate_note_en"
+                hint="Si la dejas vacía, la ficha en inglés muestra la nota española."
+              >
+                <Textarea
+                  id="rate_note_en"
+                  name="rate_note_en"
+                  rows={3}
+                  maxLength={600}
+                  defaultValue={accommodation.rate_note_en ?? ""}
+                />
+              </Field>
+            </EnglishSection>
+          </div>
         </CardBody>
       </Card>
 

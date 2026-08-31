@@ -3,7 +3,9 @@ import Link from "next/link";
 
 import { FacebookIcon, InstagramIcon, MapPinIcon, PhoneIcon } from "./icons";
 import { getContactInfo } from "@/lib/content";
-import { LEGAL_LINKS, NAV_LINKS, SITE } from "@/lib/site";
+import { dict } from "@/lib/i18n";
+import type { Locale } from "@/lib/i18n/config";
+import { legalLinks, navLinks, SITE } from "@/lib/site";
 
 /**
  * Pie de página sobre azul marino.
@@ -13,9 +15,10 @@ import { LEGAL_LINKS, NAV_LINKS, SITE } from "@/lib/site";
  * en vertical y en blanco. En el nav ese subtítulo mediría cuatro píxeles; aquí
  * hay altura de sobra y es donde conviene firmar con la marca entera.
  */
-export async function SiteFooter() {
+export async function SiteFooter({ locale }: { locale: Locale }) {
   const year = new Date().getFullYear();
   const contact = await getContactInfo();
+  const t = dict(locale);
 
   return (
     <footer className="bg-navy text-sand-soft">
@@ -34,9 +37,7 @@ export async function SiteFooter() {
               className="h-20 w-auto sm:h-24"
             />
             <p className="mt-7 max-w-sm text-[0.9375rem] leading-relaxed text-sand-soft/60">
-              Reserva natural y hotel campestre en las montañas de Dapa. Treinta
-              años de bosque en rehabilitación, seis casas y cabañas
-              independientes y el Valle del Cauca a los pies.
+              {t.footer.blurb}
             </p>
 
             <div className="mt-7 flex items-center gap-3">
@@ -44,7 +45,7 @@ export async function SiteFooter() {
                 href={contact.social.instagram}
                 target="_blank"
                 rel="noopener noreferrer"
-                aria-label={`Instagram de La Maima (${contact.social.instagramHandle})`}
+                aria-label={t.footer.instagramAria(contact.social.instagramHandle)}
                 className="inline-flex h-11 w-11 items-center justify-center rounded-tile bg-white/10 text-sand-soft/85 transition-[background-color,transform] duration-200 ease-ios hover:bg-white/20 hover:text-white active:scale-95"
               >
                 <InstagramIcon className="h-[1.15rem] w-[1.15rem]" />
@@ -53,7 +54,7 @@ export async function SiteFooter() {
                 href={contact.social.facebook}
                 target="_blank"
                 rel="noopener noreferrer"
-                aria-label={`Facebook de La Maima (${contact.social.facebookHandle})`}
+                aria-label={t.footer.facebookAria(contact.social.facebookHandle)}
                 className="inline-flex h-11 w-11 items-center justify-center rounded-tile bg-white/10 text-sand-soft/85 transition-[background-color,transform] duration-200 ease-ios hover:bg-white/20 hover:text-white active:scale-95"
               >
                 <FacebookIcon className="h-[1.15rem] w-[1.15rem]" />
@@ -62,10 +63,10 @@ export async function SiteFooter() {
           </div>
 
           {/* Navegación */}
-          <nav aria-label="Pie de página" className="md:col-span-3">
-            <h2 className="eyebrow text-brand-300">Navegación</h2>
+          <nav aria-label={t.footer.nav} className="md:col-span-3">
+            <h2 className="eyebrow text-brand-300">{t.footer.navHeading}</h2>
             <ul className="mt-5 space-y-3.5">
-              {NAV_LINKS.map((link) => (
+              {navLinks(locale).map((link) => (
                 <li key={link.href}>
                   <Link
                     href={link.href}
@@ -80,7 +81,7 @@ export async function SiteFooter() {
 
           {/* Contacto */}
           <div className="md:col-span-4">
-            <h2 className="eyebrow text-brand-300">Contacto</h2>
+            <h2 className="eyebrow text-brand-300">{t.footer.contactHeading}</h2>
             <ul className="mt-5 space-y-4 text-[0.9375rem]">
               <li>
                 <a
@@ -98,7 +99,7 @@ export async function SiteFooter() {
                     {/* /60 y no /45: a 45 % de opacidad sobre el azul marino
                         este renglón no llegaba a la razón de contraste 4,5:1
                         (lo detectó la auditoría de accesibilidad). */}
-                    <span className="text-sand-soft/60">Ver en Google Maps</span>
+                    <span className="text-sand-soft/60">{t.footer.seeOnMaps}</span>
                   </span>
                 </a>
               </li>
@@ -119,9 +120,9 @@ export async function SiteFooter() {
           {/* Fila legal. Va en el pie y no en la navegación principal: son
               documentos de consulta, no destinos de la visita. Además es donde
               los busca quien evalúa el comercio (pasarela de pagos incluida). */}
-          <nav aria-label="Información legal">
+          <nav aria-label={t.footer.legalNav}>
             <ul className="flex flex-wrap items-center gap-x-4 gap-y-2 text-[0.8125rem]">
-              {LEGAL_LINKS.map((link, index) => (
+              {legalLinks(locale).map((link, index) => (
                 <li key={link.href} className="flex items-center gap-4">
                   {index > 0 && (
                     <span aria-hidden="true" className="text-sand-soft/25">
@@ -140,10 +141,8 @@ export async function SiteFooter() {
           </nav>
 
           <div className="mt-5 flex flex-col gap-2 text-[0.8125rem] text-sand-soft/55 sm:flex-row sm:items-center sm:justify-between">
-            <p>
-              © {year} {SITE.legalName}. Todos los derechos reservados.
-            </p>
-            <p>Reservas y consultas por WhatsApp {contact.phoneDisplay}</p>
+            <p>{t.footer.rights(year, SITE.legalName)}</p>
+            <p>{t.footer.bookings(contact.phoneDisplay)}</p>
           </div>
         </div>
       </div>

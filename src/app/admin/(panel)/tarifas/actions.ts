@@ -217,6 +217,8 @@ export async function saveOccupancyRatesAction(
         breakfast_price_cop: breakfastIncluded ? null : breakfastPrice,
         weekday_discount_pct: weekdayDiscount,
         rate_note: optionalText(formData, "rate_note", 600),
+        /* Su gemela inglesa. Vacía = la ficha en inglés muestra la española. */
+        rate_note_en: optionalText(formData, "rate_note_en", 600),
       })
       .eq("id", id);
 

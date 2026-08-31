@@ -7,10 +7,31 @@
  *
  * Cada consulta va envuelta en `cache()` de React: dentro de un mismo render,
  * varias llamadas a `getAccommodations()` reutilizan el mismo resultado.
+ *
+ * ---------------------------------------------------------------------------
+ * BILINGÜE: DÓNDE SE RESUELVE EL IDIOMA
+ * ---------------------------------------------------------------------------
+ * Aquí, y solo aquí. Las tablas guardan el texto español en sus columnas de
+ * siempre y el inglés en columnas gemelas `*_en`; estas funciones reciben el
+ * idioma, eligen la columna que toca y devuelven SIEMPRE la misma forma de
+ * objeto (`name`, `short_description`, `amenities`…). La consecuencia es que
+ * ningún componente sabe que el sitio es bilingüe: recibe un `Accommodation` y
+ * lo pinta.
+ *
+ * Donde falte la traducción se cae al español. Es lo correcto para un sitio que
+ * se edita a mano desde un panel: una ficha a medio traducir se lee, mientras
+ * que un hueco en blanco parece una página rota.
+ *
+ * `site_content` no usa columnas gemelas sino una columna `value_en` con un
+ * OBJETO ESPEJO del que ya existe. Solo necesita llevar las claves de TEXTO
+ * (titular, párrafos, rótulos); todo lo que no traiga —las fotos, las
+ * direcciones, los números— se hereda del español, así que cambiar una imagen
+ * desde el panel la cambia en los dos idiomas sin tocar nada más.
  */
 import { cache } from "react";
 import { createPublicClient } from "./supabase/public";
 import { addDays, todayInBogota } from "./dates";
+import { DEFAULT_LOCALE, type Locale } from "./i18n/config";
 import type {
   Holiday,
   MinStayRule,
@@ -195,33 +216,64 @@ export type NotFoundContent = {
 // los textos por defecto antes que romper el despliegue. Los listados sí se
 // devuelven vacíos (una tarjeta inventada sería peor que ninguna).
 
-const FALLBACK_HERO: HomeHero = {
-  eyebrow: "Reserva natural y hotel campestre",
-  title: "La naturaleza a tu alcance",
-  subtitle:
-    "Seis casas y cabañas en medio de 30 años de bosque rehabilitado, a menos de una hora de Cali.",
-  cta_label: "Ver alojamientos",
-  cta_href: "/alojamientos",
-  image: media("sitio/hero.jpg"),
-  image_alt:
-    "Cabaña de La Maima frente a la ladera de bosque nativo en las montañas de Dapa",
+const FALLBACK_HERO: Record<Locale, HomeHero> = {
+  es: {
+    eyebrow: "Reserva natural y hotel campestre",
+    title: "La naturaleza a tu alcance",
+    subtitle:
+      "Seis casas y cabañas en medio de 30 años de bosque rehabilitado, a menos de una hora de Cali.",
+    cta_label: "Ver alojamientos",
+    cta_href: "/alojamientos",
+    image: media("sitio/hero.jpg"),
+    image_alt:
+      "Cabaña de La Maima frente a la ladera de bosque nativo en las montañas de Dapa",
+  },
+  en: {
+    eyebrow: "Nature reserve and country hotel",
+    title: "Nature within your reach",
+    subtitle:
+      "Six houses and cabins set in 30 years of restored forest, less than an hour from Cali.",
+    cta_label: "See our stays",
+    cta_href: "/alojamientos",
+    image: media("sitio/hero.jpg"),
+    image_alt:
+      "A cabin at La Maima facing the native forest hillside in the mountains of Dapa",
+  },
 };
 
-const FALLBACK_ABOUT: HomeAbout = {
-  eyebrow: "Sobre la reserva",
-  title: "Treinta años devolviéndole el bosque a la montaña",
-  paragraphs: [
-    "La Maima nació como un proyecto familiar de rehabilitación en las montañas de Dapa. Tres décadas después, la reserva combina bosque primario, secundario y terciario en la misma ladera.",
-    "Sobre ese bosque construimos seis casas y cabañas independientes, cada una con cocineta y baño privado.",
-  ],
-  image: media("sitio/sobre-la-reserva.jpg"),
-  image_alt: "Jardines de La Maima con vista abierta al Valle del Cauca",
-  gallery: [],
-  stats: [
-    { value: "30", label: "años de rehabilitación" },
-    { value: "6", label: "casas y cabañas" },
-    { value: "3", label: "tipos de bosque" },
-  ],
+const FALLBACK_ABOUT: Record<Locale, HomeAbout> = {
+  es: {
+    eyebrow: "Sobre la reserva",
+    title: "Treinta años devolviéndole el bosque a la montaña",
+    paragraphs: [
+      "La Maima nació como un proyecto familiar de rehabilitación en las montañas de Dapa. Tres décadas después, la reserva combina bosque primario, secundario y terciario en la misma ladera.",
+      "Sobre ese bosque construimos seis casas y cabañas independientes, cada una con cocineta y baño privado.",
+    ],
+    image: media("sitio/sobre-la-reserva.jpg"),
+    image_alt: "Jardines de La Maima con vista abierta al Valle del Cauca",
+    gallery: [],
+    stats: [
+      { value: "30", label: "años de rehabilitación" },
+      { value: "6", label: "casas y cabañas" },
+      { value: "3", label: "tipos de bosque" },
+    ],
+  },
+  en: {
+    eyebrow: "About the reserve",
+    title: "Thirty years giving the forest back to the mountain",
+    paragraphs: [
+      "La Maima began as a family restoration project in the mountains of Dapa. Three decades later, primary, secondary and tertiary forest grow side by side on the same hillside.",
+      "On top of that forest we built six independent houses and cabins, each with its own kitchenette and private bathroom.",
+    ],
+    image: media("sitio/sobre-la-reserva.jpg"),
+    image_alt: "The gardens at La Maima looking out over the Cauca Valley",
+    gallery: [],
+    stats: [
+      { value: "30", label: "years of restoration" },
+      { value: "6", label: "houses and cabins" },
+      { value: "3", label: "types of forest" },
+    ],
+  },
 };
 
 /** Fotos de cabecera que llevaban fijas en cada página antes del panel. */
@@ -294,6 +346,25 @@ function toStringList(value: unknown): string[] {
   return value.filter((item): item is string => typeof item === "string");
 }
 
+/**
+ * Elige la columna del idioma pedido y cae al español si la traducción está
+ * vacía o no existe todavía.
+ *
+ * Se comprueba `trim()` y no solo `null`: el panel guarda cadena vacía cuando
+ * la administradora borra el contenido de un campo, y una ficha con el título
+ * en blanco es peor que una sin traducir.
+ */
+function pick(
+  locale: Locale,
+  english: string | null | undefined,
+  spanish: string | null,
+): string | null {
+  if (locale === "en" && typeof english === "string" && english.trim()) {
+    return english;
+  }
+  return spanish;
+}
+
 /** Texto no vacío de una clave del jsonb, o el valor por defecto. */
 function textOr(
   source: Record<string, unknown> | null,
@@ -345,11 +416,18 @@ function normalizeSocialHandle(
  * Consultas
  * ------------------------------------------------------------------------- */
 
+/**
+ * `name` NO tiene columna inglesa: "Casa Maima", "Mirador" o "Tres Casitas" son
+ * nombres propios de las casas y traducirlos ("The Viewpoint") rompería la
+ * correspondencia con lo que dicen los letreros, Airbnb y el equipo por
+ * WhatsApp. Las experiencias sí la tienen, porque ahí el nombre es descriptivo
+ * ("Clase de yoga" → "Yoga class").
+ */
 const ACCOMMODATION_COLUMNS =
-  "id, slug, name, short_description, description, capacity, price_per_night_cop, price_note, amenities, gallery, sort_order, extra_person_price_cop, extra_person_price_weekday_cop, breakfast_included, breakfast_price_cop, weekday_discount_pct, rate_note";
+  "id, slug, name, short_description, short_description_en, description, description_en, capacity, price_per_night_cop, price_note, price_note_en, amenities, amenities_en, gallery, sort_order, extra_person_price_cop, extra_person_price_weekday_cop, breakfast_included, breakfast_price_cop, weekday_discount_pct, rate_note, rate_note_en";
 
 const EXPERIENCE_COLUMNS =
-  "id, slug, name, short_description, description, duration, capacity, price_cop, price_note, gallery, sort_order";
+  "id, slug, name, name_en, short_description, short_description_en, description, description_en, duration, duration_en, capacity, price_cop, price_note, price_note_en, gallery, sort_order";
 
 /**
  * Tramos de precio por ocupación, agrupados por alojamiento.
@@ -384,29 +462,58 @@ const getRateTiersByAccommodation = cache(
   },
 );
 
-export const getAccommodations = cache(async (): Promise<Accommodation[]> => {
-  const supabase = createPublicClient();
-  const [{ data, error }, tiersByAccommodation] = await Promise.all([
-    supabase
-      .from("accommodations")
-      .select(ACCOMMODATION_COLUMNS)
-      .eq("visible", true)
-      .order("sort_order", { ascending: true }),
-    getRateTiersByAccommodation(),
-  ]);
+export const getAccommodations = cache(
+  async (locale: Locale = DEFAULT_LOCALE): Promise<Accommodation[]> => {
+    const supabase = createPublicClient();
+    const [{ data, error }, tiersByAccommodation] = await Promise.all([
+      supabase
+        .from("accommodations")
+        .select(ACCOMMODATION_COLUMNS)
+        .eq("visible", true)
+        .order("sort_order", { ascending: true }),
+      getRateTiersByAccommodation(),
+    ]);
 
-  if (error) {
-    console.error("[content] getAccommodations:", error.message);
-    return [];
-  }
+    if (error) {
+      console.error("[content] getAccommodations:", error.message);
+      return [];
+    }
 
-  return (data ?? []).map((row) => ({
-    ...row,
-    amenities: toStringList(row.amenities),
-    gallery: toGallery(row.gallery),
-    tiers: tiersByAccommodation.get(row.id) ?? [],
-  }));
-});
+    return (data ?? []).map((row) => {
+      /* La lista de amenidades solo se sustituye ENTERA: media lista en inglés
+         y media en español, mezcladas en la misma tabla, se lee peor que la
+         lista original sin traducir. */
+      const amenitiesEn = toStringList(row.amenities_en);
+      return {
+        id: row.id,
+        slug: row.slug,
+        name: row.name,
+        short_description: pick(
+          locale,
+          row.short_description_en,
+          row.short_description,
+        ),
+        description: pick(locale, row.description_en, row.description),
+        capacity: row.capacity,
+        price_per_night_cop: row.price_per_night_cop,
+        price_note: pick(locale, row.price_note_en, row.price_note),
+        amenities:
+          locale === "en" && amenitiesEn.length > 0
+            ? amenitiesEn
+            : toStringList(row.amenities),
+        gallery: toGallery(row.gallery),
+        sort_order: row.sort_order,
+        tiers: tiersByAccommodation.get(row.id) ?? [],
+        extra_person_price_cop: row.extra_person_price_cop,
+        extra_person_price_weekday_cop: row.extra_person_price_weekday_cop,
+        breakfast_included: row.breakfast_included,
+        breakfast_price_cop: row.breakfast_price_cop,
+        weekday_discount_pct: row.weekday_discount_pct,
+        rate_note: pick(locale, row.rate_note_en, row.rate_note),
+      };
+    });
+  },
+);
 
 /**
  * Festivos de Colombia desde hoy en adelante.
@@ -436,11 +543,13 @@ export const getHolidays = cache(async (): Promise<Holiday[]> => {
 });
 
 const getMinStayRulesByAccommodation = cache(
-  async (): Promise<Map<string, MinStayRule[]>> => {
+  async (locale: Locale = DEFAULT_LOCALE): Promise<Map<string, MinStayRule[]>> => {
     const supabase = createPublicClient();
     const { data, error } = await supabase
       .from("min_stay_rules")
-      .select("accommodation_id, label, rule_type, date_from, date_to, min_nights")
+      .select(
+        "accommodation_id, label, label_en, rule_type, date_from, date_to, min_nights",
+      )
       .order("sort", { ascending: true });
 
     const grouped = new Map<string, MinStayRule[]>();
@@ -452,7 +561,9 @@ const getMinStayRulesByAccommodation = cache(
     for (const row of data ?? []) {
       const list = grouped.get(row.accommodation_id) ?? [];
       list.push({
-        label: row.label,
+        /* El rótulo se publica en la ficha ("Semana Santa: mínimo 3 noches"),
+           así que también viaja traducido. */
+        label: pick(locale, row.label_en, row.label) ?? row.label,
         rule_type: row.rule_type as MinStayRule["rule_type"],
         date_from: row.date_from,
         date_to: row.date_to,
@@ -512,10 +623,13 @@ const getRatePlans = cache(
  * y huéspedes sin pedirle nada al servidor.
  */
 export const getRateConfig = cache(
-  async (accommodation: Accommodation): Promise<RateConfig> => {
+  async (
+    accommodation: Accommodation,
+    locale: Locale = DEFAULT_LOCALE,
+  ): Promise<RateConfig> => {
     const [holidays, rulesByAccommodation, plans] = await Promise.all([
       getHolidays(),
-      getMinStayRulesByAccommodation(),
+      getMinStayRulesByAccommodation(locale),
       getRatePlans(),
     ]);
 
@@ -543,37 +657,69 @@ export const getRateConfig = cache(
 );
 
 export const getAccommodationBySlug = cache(
-  async (slug: string): Promise<Accommodation | null> => {
-    const all = await getAccommodations();
+  async (
+    slug: string,
+    locale: Locale = DEFAULT_LOCALE,
+  ): Promise<Accommodation | null> => {
+    const all = await getAccommodations(locale);
     return all.find((item) => item.slug === slug) ?? null;
   },
 );
 
-export const getExperiences = cache(async (): Promise<Experience[]> => {
-  const supabase = createPublicClient();
-  const { data, error } = await supabase
-    .from("experiences")
-    .select(EXPERIENCE_COLUMNS)
-    .eq("visible", true)
-    .order("sort_order", { ascending: true });
+export const getExperiences = cache(
+  async (locale: Locale = DEFAULT_LOCALE): Promise<Experience[]> => {
+    const supabase = createPublicClient();
+    const { data, error } = await supabase
+      .from("experiences")
+      .select(EXPERIENCE_COLUMNS)
+      .eq("visible", true)
+      .order("sort_order", { ascending: true });
 
-  if (error) {
-    console.error("[content] getExperiences:", error.message);
-    return [];
-  }
+    if (error) {
+      console.error("[content] getExperiences:", error.message);
+      return [];
+    }
 
-  return (data ?? []).map((row) => ({
-    ...row,
-    gallery: toGallery(row.gallery),
-  }));
-});
+    return (data ?? []).map((row) => ({
+      id: row.id,
+      slug: row.slug,
+      /* Aquí el nombre SÍ se traduce: "Clase de yoga" o "Cocina casera de
+         campo" describen la actividad, no son marcas. */
+      name: pick(locale, row.name_en, row.name) ?? row.name,
+      short_description: pick(
+        locale,
+        row.short_description_en,
+        row.short_description,
+      ),
+      description: pick(locale, row.description_en, row.description),
+      duration: pick(locale, row.duration_en, row.duration),
+      capacity: row.capacity,
+      price_cop: row.price_cop,
+      price_note: pick(locale, row.price_note_en, row.price_note),
+      gallery: toGallery(row.gallery),
+      sort_order: row.sort_order,
+    }));
+  },
+);
 
+/**
+ * Una fila de `site_content` ya resuelta para un idioma.
+ *
+ * El objeto español es la BASE y el inglés se superpone clave a clave, así que
+ * `value_en` solo necesita llevar lo que de verdad cambia (los textos). Las
+ * fotos, las direcciones y los números viven una sola vez, en español, y se
+ * heredan: cuando la administradora cambia la foto de portada, cambia en las
+ * dos versiones sin que nadie tenga que acordarse de la otra.
+ */
 const getSiteContent = cache(
-  async (key: string): Promise<Record<string, unknown> | null> => {
+  async (
+    key: string,
+    locale: Locale = DEFAULT_LOCALE,
+  ): Promise<Record<string, unknown> | null> => {
     const supabase = createPublicClient();
     const { data, error } = await supabase
       .from("site_content")
-      .select("value")
+      .select("value, value_en")
       .eq("key", key)
       .maybeSingle();
 
@@ -582,32 +728,85 @@ const getSiteContent = cache(
       return null;
     }
 
-    const value = data?.value;
-    return typeof value === "object" && value !== null
-      ? (value as Record<string, unknown>)
-      : null;
+    const base =
+      typeof data?.value === "object" && data.value !== null
+        ? (data.value as Record<string, unknown>)
+        : null;
+
+    if (locale !== "en") return base;
+
+    const english =
+      typeof data?.value_en === "object" && data.value_en !== null
+        ? (data.value_en as Record<string, unknown>)
+        : null;
+
+    if (!english) return base;
+    return mergeContent(base ?? {}, english);
   },
 );
 
-export const getHomeHero = cache(async (): Promise<HomeHero> => {
-  const value = await getSiteContent("home_hero");
-  if (!value) return FALLBACK_HERO;
-  return { ...FALLBACK_HERO, ...(value as Partial<HomeHero>) };
-});
+/**
+ * Superpone el objeto inglés sobre el español.
+ *
+ * La fusión es PROFUNDA para los objetos anidados —`listing_heroes` guarda
+ * `{ alojamientos: { image, image_alt } }`, y el inglés solo necesita traer el
+ * texto alternativo— y de REEMPLAZO para los arreglos: una galería o una lista
+ * de párrafos se sustituye entera o no se sustituye, porque mezclarla elemento
+ * a elemento produciría listas de largo distinto y frases descolocadas.
+ */
+function mergeContent(
+  base: Record<string, unknown>,
+  patch: Record<string, unknown>,
+): Record<string, unknown> {
+  const result: Record<string, unknown> = { ...base };
 
-export const getHomeAbout = cache(async (): Promise<HomeAbout> => {
-  const value = await getSiteContent("home_about");
-  if (!value) return FALLBACK_ABOUT;
-  const merged = { ...FALLBACK_ABOUT, ...(value as Partial<HomeAbout>) };
-  return {
-    ...merged,
-    paragraphs: toStringList(merged.paragraphs).length
-      ? toStringList(merged.paragraphs)
-      : FALLBACK_ABOUT.paragraphs,
-    gallery: toGallery(merged.gallery),
-    stats: Array.isArray(merged.stats) ? merged.stats : FALLBACK_ABOUT.stats,
-  };
-});
+  for (const [key, value] of Object.entries(patch)) {
+    const current = result[key];
+    if (
+      value !== null &&
+      typeof value === "object" &&
+      !Array.isArray(value) &&
+      current !== null &&
+      typeof current === "object" &&
+      !Array.isArray(current)
+    ) {
+      result[key] = mergeContent(
+        current as Record<string, unknown>,
+        value as Record<string, unknown>,
+      );
+    } else {
+      result[key] = value;
+    }
+  }
+
+  return result;
+}
+
+export const getHomeHero = cache(
+  async (locale: Locale = DEFAULT_LOCALE): Promise<HomeHero> => {
+    const fallback = FALLBACK_HERO[locale];
+    const value = await getSiteContent("home_hero", locale);
+    if (!value) return fallback;
+    return { ...fallback, ...(value as Partial<HomeHero>) };
+  },
+);
+
+export const getHomeAbout = cache(
+  async (locale: Locale = DEFAULT_LOCALE): Promise<HomeAbout> => {
+    const fallback = FALLBACK_ABOUT[locale];
+    const value = await getSiteContent("home_about", locale);
+    if (!value) return fallback;
+    const merged = { ...fallback, ...(value as Partial<HomeAbout>) };
+    return {
+      ...merged,
+      paragraphs: toStringList(merged.paragraphs).length
+        ? toStringList(merged.paragraphs)
+        : fallback.paragraphs,
+      gallery: toGallery(merged.gallery),
+      stats: Array.isArray(merged.stats) ? merged.stats : fallback.stats,
+    };
+  },
+);
 
 /**
  * Fotos que muestra la sección "Sobre la reserva" de la portada.
@@ -672,16 +871,18 @@ export const getContactInfo = cache(async (): Promise<ContactInfo> => {
   };
 });
 
-export const getOgImage = cache(async (): Promise<OgImage> => {
-  const value = await getSiteContent("seo");
-  if (!value) return OG_IMAGE;
-  return {
-    url: textOr(value, "image", OG_IMAGE.url),
-    alt: textOr(value, "image_alt", OG_IMAGE.alt),
-    width: OG_IMAGE.width,
-    height: OG_IMAGE.height,
-  };
-});
+export const getOgImage = cache(
+  async (locale: Locale = DEFAULT_LOCALE): Promise<OgImage> => {
+    const value = await getSiteContent("seo", locale);
+    if (!value) return OG_IMAGE;
+    return {
+      url: textOr(value, "image", OG_IMAGE.url),
+      alt: textOr(value, "image_alt", OG_IMAGE.alt),
+      width: OG_IMAGE.width,
+      height: OG_IMAGE.height,
+    };
+  },
+);
 
 /** Lectura segura de una sub-fila `{ image, image_alt }` dentro de un jsonb. */
 function toListingHero(value: unknown, fallback: ListingHero): ListingHero {
@@ -696,19 +897,21 @@ function toListingHero(value: unknown, fallback: ListingHero): ListingHero {
 }
 
 /** Cabeceras de `/alojamientos` y `/experiencias` (`site_content.listing_heroes`). */
-export const getListingHeroes = cache(async (): Promise<ListingHeroes> => {
-  const value = await getSiteContent("listing_heroes");
-  return {
-    alojamientos: toListingHero(
-      value?.alojamientos,
-      FALLBACK_LISTING_HEROES.alojamientos,
-    ),
-    experiencias: toListingHero(
-      value?.experiencias,
-      FALLBACK_LISTING_HEROES.experiencias,
-    ),
-  };
-});
+export const getListingHeroes = cache(
+  async (locale: Locale = DEFAULT_LOCALE): Promise<ListingHeroes> => {
+    const value = await getSiteContent("listing_heroes", locale);
+    return {
+      alojamientos: toListingHero(
+        value?.alojamientos,
+        FALLBACK_LISTING_HEROES.alojamientos,
+      ),
+      experiencias: toListingHero(
+        value?.experiencias,
+        FALLBACK_LISTING_HEROES.experiencias,
+      ),
+    };
+  },
+);
 
 /**
  * Fotos de la franja de Instagram de la portada (`site_content.instagram_strip`).
@@ -716,21 +919,25 @@ export const getListingHeroes = cache(async (): Promise<ListingHeroes> => {
  * Igual que `aboutImages()`: si el panel deja la galería vacía, se cae con
  * elegancia a la selección fija original en vez de dejar la franja sin fotos.
  */
-export const getInstagramGallery = cache(async (): Promise<GalleryImage[]> => {
-  const value = await getSiteContent("instagram_strip");
-  const gallery = toGallery(value?.gallery);
-  return gallery.length > 0 ? gallery : FALLBACK_INSTAGRAM_GALLERY;
-});
+export const getInstagramGallery = cache(
+  async (locale: Locale = DEFAULT_LOCALE): Promise<GalleryImage[]> => {
+    const value = await getSiteContent("instagram_strip", locale);
+    const gallery = toGallery(value?.gallery);
+    return gallery.length > 0 ? gallery : FALLBACK_INSTAGRAM_GALLERY;
+  },
+);
 
 /** Foto de fondo de la página 404 (`site_content.not_found`). */
-export const getNotFoundContent = cache(async (): Promise<NotFoundContent> => {
-  const value = await getSiteContent("not_found");
-  if (!value) return FALLBACK_NOT_FOUND;
-  return {
-    image: textOr(value, "image", FALLBACK_NOT_FOUND.image),
-    image_alt: textOr(value, "image_alt", FALLBACK_NOT_FOUND.image_alt),
-  };
-});
+export const getNotFoundContent = cache(
+  async (locale: Locale = DEFAULT_LOCALE): Promise<NotFoundContent> => {
+    const value = await getSiteContent("not_found", locale);
+    if (!value) return FALLBACK_NOT_FOUND;
+    return {
+      image: textOr(value, "image", FALLBACK_NOT_FOUND.image),
+      image_alt: textOr(value, "image_alt", FALLBACK_NOT_FOUND.image_alt),
+    };
+  },
+);
 
 /* ---------------------------------------------------------------------------
  * Fechas de última modificación (sitemap)

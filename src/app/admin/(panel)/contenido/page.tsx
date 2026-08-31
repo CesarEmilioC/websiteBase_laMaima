@@ -22,6 +22,7 @@ import {
   Textarea,
 } from "@/components/admin/ui";
 import { requireAdmin } from "@/lib/admin/auth";
+import { EnglishSection } from "@/components/admin/english-section";
 import { getSiteContentMap } from "@/lib/admin/data";
 import type { GalleryImage } from "@/lib/admin/types";
 import {
@@ -99,17 +100,28 @@ function statsOf(source: Record<string, unknown>): Stat[] {
 
 export default async function SiteContentPage() {
   await requireAdmin();
-  const content = await getSiteContentMap();
+  /* Dos mapas: el espanol completo y el espejo ingles PARCIAL. Los campos en
+     ingles se pintan con lo que haya en `en` y vacios si no hay: rellenarlos
+     con el texto espanol haria que guardar sin tocar nada los diera por
+     traducidos. */
+  const { es: content, en: contentEn } = await getSiteContentMap();
 
   const hero = content.home_hero ?? {};
+  const heroEn = contentEn.home_hero ?? {};
   const about = content.home_about ?? {};
+  const aboutEn = contentEn.home_about ?? {};
   const contact = content.contact ?? {};
   const seo = content.seo ?? {};
+  const seoEn = contentEn.seo ?? {};
   const stats = statsOf(about);
+  const statsEn = statsOf(aboutEn);
 
   const listingHeroes = content.listing_heroes ?? {};
+  const listingHeroesEn = contentEn.listing_heroes ?? {};
   const listingAlojamientos = objectOf(listingHeroes, "alojamientos");
   const listingExperiencias = objectOf(listingHeroes, "experiencias");
+  const listingAlojamientosEn = objectOf(listingHeroesEn, "alojamientos");
+  const listingExperienciasEn = objectOf(listingHeroesEn, "experiencias");
 
   const instagramStrip = content.instagram_strip ?? {};
   const instagramGallery = galleryOf(instagramStrip);
@@ -208,6 +220,58 @@ export default async function SiteContentPage() {
                     defaultValue={text(hero, "image_alt")}
                   />
                 </Field>
+
+                <div className="sm:col-span-2">
+                  <EnglishSection hint="La foto es la misma en los dos idiomas: aqui solo se traduce el texto. Lo que dejes vacio se muestra en espanol en lamaima.com/en.">
+                    <Field label="Rotulo (ingles)" htmlFor="hero_eyebrow_en">
+                      <Input
+                        id="hero_eyebrow_en"
+                        name="eyebrow_en"
+                        maxLength={120}
+                        defaultValue={text(heroEn, "eyebrow")}
+                      />
+                    </Field>
+                    <Field label="Titular (ingles)" htmlFor="hero_title_en">
+                      <Input
+                        id="hero_title_en"
+                        name="title_en"
+                        maxLength={160}
+                        defaultValue={text(heroEn, "title")}
+                      />
+                    </Field>
+                    <Field label="Bajada (ingles)" htmlFor="hero_subtitle_en">
+                      <Textarea
+                        id="hero_subtitle_en"
+                        name="subtitle_en"
+                        rows={2}
+                        maxLength={400}
+                        defaultValue={text(heroEn, "subtitle")}
+                        className="min-h-0"
+                      />
+                    </Field>
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      <Field label="Texto del boton (ingles)" htmlFor="hero_cta_en">
+                        <Input
+                          id="hero_cta_en"
+                          name="cta_label_en"
+                          maxLength={60}
+                          defaultValue={text(heroEn, "cta_label")}
+                        />
+                      </Field>
+                      <Field
+                        label="Descripcion de la imagen (ingles)"
+                        htmlFor="hero_image_alt_en"
+                      >
+                        <Input
+                          id="hero_image_alt_en"
+                          name="image_alt_en"
+                          maxLength={300}
+                          defaultValue={text(heroEn, "image_alt")}
+                        />
+                      </Field>
+                    </div>
+                  </EnglishSection>
+                </div>
               </div>
             </ActionForm>
           </CardBody>
@@ -317,9 +381,71 @@ export default async function SiteContentPage() {
                             defaultValue={stats[index]?.label ?? ""}
                           />
                         </Field>
+                        <Field
+                          label="Texto (ingles)"
+                          htmlFor={`stat_${index}_label_en`}
+                          className="mt-3"
+                        >
+                          <Input
+                            id={`stat_${index}_label_en`}
+                            name={`stat_${index}_label_en`}
+                            maxLength={60}
+                            defaultValue={statsEn[index]?.label ?? ""}
+                          />
+                        </Field>
                       </div>
                     ))}
                   </div>
+                  <p className="mt-2 text-[0.8125rem] leading-relaxed text-ink-muted">
+                    La cifra es la misma en los dos idiomas; solo cambia el
+                    texto. Traduce las tres o ninguna: media tabla en ingles y
+                    media en espanol se lee peor que la espanola completa.
+                  </p>
+                </div>
+
+                <div className="sm:col-span-2">
+                  <EnglishSection hint="Las fotos y las cifras son las mismas en los dos idiomas. Lo que dejes vacio se muestra en espanol en lamaima.com/en.">
+                    <Field label="Etiqueta pequena (ingles)" htmlFor="about_eyebrow_en">
+                      <Input
+                        id="about_eyebrow_en"
+                        name="eyebrow_en"
+                        maxLength={120}
+                        defaultValue={text(aboutEn, "eyebrow")}
+                      />
+                    </Field>
+                    <Field label="Titular (ingles)" htmlFor="about_title_en">
+                      <Input
+                        id="about_title_en"
+                        name="title_en"
+                        maxLength={200}
+                        defaultValue={text(aboutEn, "title")}
+                      />
+                    </Field>
+                    <Field
+                      label="Parrafos (ingles)"
+                      htmlFor="about_paragraphs_en"
+                      hint="Deja una linea en blanco entre un parrafo y el siguiente, igual que en espanol."
+                    >
+                      <Textarea
+                        id="about_paragraphs_en"
+                        name="paragraphs_en"
+                        rows={10}
+                        maxLength={6000}
+                        defaultValue={paragraphsToText(aboutEn)}
+                      />
+                    </Field>
+                    <Field
+                      label="Descripcion de la foto de respaldo (ingles)"
+                      htmlFor="about_image_alt_en"
+                    >
+                      <Input
+                        id="about_image_alt_en"
+                        name="image_alt_en"
+                        maxLength={300}
+                        defaultValue={text(aboutEn, "image_alt")}
+                      />
+                    </Field>
+                  </EnglishSection>
                 </div>
               </div>
             </ActionForm>
@@ -481,6 +607,22 @@ export default async function SiteContentPage() {
                     defaultValue={text(seo, "image_alt")}
                   />
                 </Field>
+
+                <div className="sm:col-span-2">
+                  <EnglishSection>
+                    <Field
+                      label="Descripcion de la imagen (ingles)"
+                      htmlFor="seo_image_alt_en"
+                    >
+                      <Input
+                        id="seo_image_alt_en"
+                        name="image_alt_en"
+                        maxLength={300}
+                        defaultValue={text(seoEn, "image_alt")}
+                      />
+                    </Field>
+                  </EnglishSection>
+                </div>
               </div>
             </ActionForm>
           </CardBody>
@@ -566,6 +708,33 @@ export default async function SiteContentPage() {
                     />
                   </Field>
                 </div>
+              </div>
+
+              <div className="mt-4">
+                <EnglishSection hint="Las fotos son las mismas en los dos idiomas: aquí solo se traduce su descripción.">
+                  <Field
+                    label="Alojamientos — descripción de la imagen (inglés)"
+                    htmlFor="alojamientos_image_alt_en"
+                  >
+                    <Input
+                      id="alojamientos_image_alt_en"
+                      name="alojamientos_image_alt_en"
+                      maxLength={300}
+                      defaultValue={text(listingAlojamientosEn, "image_alt")}
+                    />
+                  </Field>
+                  <Field
+                    label="Experiencias — descripción de la imagen (inglés)"
+                    htmlFor="experiencias_image_alt_en"
+                  >
+                    <Input
+                      id="experiencias_image_alt_en"
+                      name="experiencias_image_alt_en"
+                      maxLength={300}
+                      defaultValue={text(listingExperienciasEn, "image_alt")}
+                    />
+                  </Field>
+                </EnglishSection>
               </div>
             </ActionForm>
           </CardBody>

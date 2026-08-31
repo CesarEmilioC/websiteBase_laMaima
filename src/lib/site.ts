@@ -7,6 +7,8 @@
  * botón de WhatsApp y el JSON-LD deben renderizar SIEMPRE, incluso si esa
  * fila no existe todavía, viene incompleta o la consulta a Supabase falla.
  */
+import { dict } from "./i18n";
+import { localePath, type Locale } from "./i18n/config";
 
 export const SITE = {
   name: "La Maima",
@@ -20,6 +22,16 @@ export const SITE = {
    */
   description:
     "Hotel campestre y reserva natural en el Km 12 vía a Dapa, Yumbo: seis casas y cabañas entre 30 años de bosque rehabilitado, a menos de una hora de Cali.",
+
+  /**
+   * La misma descripción en inglés, con la misma disciplina: por debajo de 160
+   * caracteres y empezando por lo que se busca ("country hotel", "Dapa").
+   */
+  descriptionEn:
+    "Country hotel and nature reserve on the Dapa road, Yumbo: six houses and cabins in 30 years of restored forest, less than an hour from Cali, Colombia.",
+
+  /** Titular de la portada en inglés (el español lo edita el panel). */
+  taglineEn: "Nature within your reach",
 
   /** URL canónica de producción. Se sobreescribe con NEXT_PUBLIC_SITE_URL. */
   url: process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.lamaima.com",
@@ -76,13 +88,37 @@ export const SITE = {
   },
 } as const;
 
-/** Navegación principal (header y footer). */
-export const NAV_LINKS = [
-  { href: "/", label: "Inicio" },
-  { href: "/alojamientos", label: "Alojamientos" },
-  { href: "/experiencias", label: "Experiencias" },
-  { href: "/#contacto", label: "Contacto" },
+/* ---------------------------------------------------------------------------
+ * Navegación y documentos legales
+ * -------------------------------------------------------------------------
+ * Las rutas se declaran UNA sola vez, en su forma canónica (la española, sin
+ * prefijo), y las funciones de abajo las traducen al árbol del idioma que toque
+ * con `localePath()`. Ningún componente compone direcciones de idioma a mano:
+ * es la única forma de que las dos versiones del sitio no se desincronicen
+ * cuando mañana se añada una sección.
+ *
+ * Las ETIQUETAS no viven aquí sino en el diccionario (`@/lib/i18n`), porque son
+ * texto de interfaz como cualquier otro.
+ */
+
+/** Destinos de la navegación principal, en orden. */
+export const NAV_ITEMS = [
+  { path: "/", key: "home" },
+  { path: "/alojamientos", key: "accommodations" },
+  { path: "/experiencias", key: "experiences" },
+  { path: "/#contacto", key: "contact" },
 ] as const;
+
+export type NavKey = (typeof NAV_ITEMS)[number]["key"];
+
+/** Navegación principal ya resuelta para un idioma (header, menú y pie). */
+export function navLinks(locale: Locale): { href: string; label: string }[] {
+  const t = dict(locale);
+  return NAV_ITEMS.map((item) => ({
+    href: localePath(locale, item.path),
+    label: t.nav[item.key],
+  }));
+}
 
 /**
  * Documentos legales del sitio.
@@ -93,27 +129,51 @@ export const NAV_LINKS = [
  * Además dan confianza al huésped y aportan páginas indexables al SEO.
  *
  * `label` es el título completo (encabezado de la página y `title` del
- * metadata); `short` es la versión corta de la fila del pie.
+ * metadata); `short` es la versión corta de la fila del pie. Los dos salen del
+ * diccionario, así que el documento se titula en el idioma de la página.
+ *
+ * Las direcciones (`/legal/privacidad`…) se mantienen en ESPAÑOL también en el
+ * árbol inglés (`/en/legal/privacidad`). Es a propósito: son las direcciones
+ * que ya están publicadas y enlazadas desde la pasarela de pagos y desde los
+ * correos, y un espejo con las mismas rutas hace que el `hreflang` de cada
+ * documento sea trivial de verificar (misma cola, distinto prefijo).
  */
-export const LEGAL_LINKS = [
-  {
-    href: "/legal/privacidad",
-    label: "Política de privacidad y tratamiento de datos",
-    short: "Privacidad",
-  },
-  {
-    href: "/legal/terminos",
-    label: "Términos y condiciones de reserva",
-    short: "Términos",
-  },
-  {
-    href: "/legal/cancelacion",
-    label: "Política de cancelación y reembolsos",
-    short: "Cancelaciones",
-  },
+export const LEGAL_DOCS = [
+  { path: "/legal/privacidad", key: "privacy" },
+  { path: "/legal/terminos", key: "terms" },
+  { path: "/legal/cancelacion", key: "cancellation" },
 ] as const;
 
-export type LegalLink = (typeof LEGAL_LINKS)[number];
+export type LegalKey = (typeof LEGAL_DOCS)[number]["key"];
+
+export type LegalLink = {
+  /** Ruta canónica en español, sin prefijo de idioma. */
+  path: string;
+  /** Ruta real dentro del árbol del idioma pedido. */
+  href: string;
+  key: LegalKey;
+  /** Título completo del documento. */
+  label: string;
+  /** Versión corta, para la fila del pie. */
+  short: string;
+};
+
+/** Los tres documentos legales resueltos para un idioma. */
+export function legalLinks(locale: Locale): LegalLink[] {
+  const t = dict(locale);
+  return LEGAL_DOCS.map((doc) => ({
+    path: doc.path,
+    href: localePath(locale, doc.path),
+    key: doc.key,
+    label: t.legal.links[doc.key],
+    short: t.legal.short[doc.key],
+  }));
+}
+
+/** Un documento legal concreto, por clave. */
+export function legalLink(key: LegalKey, locale: Locale): LegalLink {
+  return legalLinks(locale).find((doc) => doc.key === key) as LegalLink;
+}
 
 /* ---------------------------------------------------------------------------
  * Imágenes

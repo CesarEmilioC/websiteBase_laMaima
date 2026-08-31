@@ -2,6 +2,8 @@ import Image from "next/image";
 
 import { ArrowRightIcon, InstagramIcon } from "../icons";
 import type { GalleryImage } from "@/lib/content";
+import { dict } from "@/lib/i18n";
+import type { Locale } from "@/lib/i18n/config";
 
 /**
  * Franja de Instagram, justo antes del pie.
@@ -31,9 +33,12 @@ type Props = {
   /** Enlace al perfil, editable desde el panel (`getContactInfo`). */
   href: string;
   handle: string;
+  locale: Locale;
 };
 
-export function InstagramStrip({ photos, href, handle }: Props) {
+export function InstagramStrip({ photos, href, handle, locale }: Props) {
+  const t = dict(locale);
+
   return (
     <section
       className="section-y-sm bg-sand-soft"
@@ -49,11 +54,10 @@ export function InstagramStrip({ photos, href, handle }: Props) {
             id="instagram-title"
             className="tracking-editorial mt-3 text-[1.75rem] leading-[1.15] text-ink sm:text-[2.125rem]"
           >
-            El día a día de la reserva
+            {t.home.instagram.title}
           </h2>
           <p className="mt-3 text-[0.9375rem] leading-relaxed text-ink-muted">
-            Amaneceres sobre el valle, las aves que volvieron al bosque y las
-            casas por dentro.
+            {t.home.instagram.lead}
           </p>
         </div>
 
@@ -101,7 +105,7 @@ export function InstagramStrip({ photos, href, handle }: Props) {
             className="inline-flex items-center gap-2.5 rounded-full bg-brand-600 px-6 py-3.5 text-[0.9375rem] font-semibold text-white shadow-pill transition-[background-color,transform] duration-200 ease-ios hover:bg-brand-700 active:scale-[0.98]"
           >
             <InstagramIcon className="h-[1.15rem] w-[1.15rem]" />
-            Síguenos en Instagram
+            {t.home.instagram.cta}
             <ArrowRightIcon className="h-[0.95rem] w-[0.95rem]" />
           </a>
         </div>

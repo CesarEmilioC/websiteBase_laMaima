@@ -3,10 +3,13 @@ import Image from "next/image";
 import { ClockIcon } from "./icons";
 import { WhatsAppButton } from "./whatsapp-button";
 import { coverImage, type Experience } from "@/lib/content";
+import { dict } from "@/lib/i18n";
+import type { Locale } from "@/lib/i18n/config";
 import { experienceMessage } from "@/lib/whatsapp";
 
 type Props = {
   experience: Experience;
+  locale: Locale;
   /**
    * "compact" para el carrusel de la portada, "full" para la página de
    * experiencias.
@@ -19,8 +22,16 @@ type Props = {
  * la imagen prioritaria es la banda de encabezado. Ver la nota de
  * `AccommodationCard`.
  */
-export function ExperienceCard({ experience, variant = "compact" }: Props) {
-  const cover = coverImage(experience.gallery, `${experience.name} en La Maima`);
+export function ExperienceCard({
+  experience,
+  locale,
+  variant = "compact",
+}: Props) {
+  const t = dict(locale);
+  const cover = coverImage(
+    experience.gallery,
+    t.gallery.fallbackAlt(experience.name),
+  );
   const full = variant === "full";
 
   return (
@@ -100,9 +111,9 @@ export function ExperienceCard({ experience, variant = "compact" }: Props) {
 
         <div className="mt-6">
           <WhatsAppButton
-            message={experienceMessage(experience.name)}
-            label="Consultar por WhatsApp"
-            ariaLabel={`Consultar por WhatsApp sobre la experiencia ${experience.name}`}
+            message={experienceMessage(experience.name, locale)}
+            label={t.common.whatsappConsult}
+            ariaLabel={t.experiences.askAbout(experience.name)}
             variant="soft"
             size="sm"
           />

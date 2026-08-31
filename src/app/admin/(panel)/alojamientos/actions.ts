@@ -74,6 +74,13 @@ export async function saveAccommodationAction(
       price_note: optionalText(formData, "price_note", 160),
       amenities: stringList(formData, "amenities"),
       gallery: galleryList(formData, "gallery"),
+      /* Versión inglesa (subsección plegable del formulario). Se guarda con la
+         misma higiene que el español: vacío -> NULL, y el sitio /en cae al
+         español donde falte. Ver `pick()` en `@/lib/content`. */
+      short_description_en: optionalText(formData, "short_description_en", 400),
+      description_en: optionalText(formData, "description_en", 6000),
+      price_note_en: optionalText(formData, "price_note_en", 160),
+      amenities_en: stringList(formData, "amenities_en"),
       visible: checkbox(formData, "visible"),
       sort_order: requiredInt(formData, "sort_order", "Orden", {
         min: 0,

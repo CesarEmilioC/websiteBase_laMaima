@@ -14,6 +14,9 @@
  */
 export const LEGAL_UPDATED = "26 de agosto de 2026";
 
+/** La misma fecha, escrita para la versión inglesa de los documentos. */
+export const LEGAL_UPDATED_EN = "26 August 2026";
+
 /**
  * La misma fecha en ISO, para el `lastmod` del sitemap. Las dos constantes van
  * juntas para que no puedan separarse: si se cambia una hay que cambiar la

@@ -6,12 +6,15 @@ import { createPortal } from "react-dom";
 
 import { ChevronLeftIcon, ChevronRightIcon, CloseIcon } from "./icons";
 import type { GalleryImage } from "@/lib/content";
+import { dict } from "@/lib/i18n";
+import type { Locale } from "@/lib/i18n/config";
 
 type Props = {
   /** TODAS las fotos del alojamiento, no solo las cuatro que se ven en la ficha. */
   images: GalleryImage[];
   /** Nombre del alojamiento: alimenta el nombre accesible del diálogo. */
   name: string;
+  locale: Locale;
   /** Foto por la que se abre el visor. */
   startIndex: number;
   onClose: () => void;
@@ -51,7 +54,14 @@ const SWIPE_THRESHOLD = 48;
  * nada. El cliente añade y quita fotos desde el panel, así que nada aquí
  * supone una cantidad concreta.
  */
-export function GalleryLightbox({ images, name, startIndex, onClose }: Props) {
+export function GalleryLightbox({
+  images,
+  name,
+  locale,
+  startIndex,
+  onClose,
+}: Props) {
+  const t = dict(locale);
   const total = images.length;
   const [index, setIndex] = useState(() =>
     Math.min(Math.max(startIndex, 0), Math.max(total - 1, 0)),
@@ -240,7 +250,7 @@ export function GalleryLightbox({ images, name, startIndex, onClose }: Props) {
   const current = images[index];
   const previous = images[(index - 1 + total) % total];
   const next = images[(index + 1) % total];
-  const caption = current.alt || `${name} en La Maima`;
+  const caption = current.alt || t.gallery.fallbackAlt(name);
 
   const controlClass =
     "inline-flex h-12 w-12 items-center justify-center rounded-full bg-white/12 text-white ring-1 ring-inset ring-white/25 backdrop-blur-md transition-[background-color,transform] duration-200 ease-ios hover:bg-white/25 active:scale-95";
@@ -250,7 +260,7 @@ export function GalleryLightbox({ images, name, startIndex, onClose }: Props) {
       ref={dialogRef}
       role="dialog"
       aria-modal="true"
-      aria-label={`Galería de fotos de ${name}`}
+      aria-label={t.gallery.label(name)}
       onKeyDown={onDialogKeyDown}
       /* `touch-action: pan-y pinch-zoom` desactiva el gesto HORIZONTAL del
          navegador —el "deslizar para volver atrás" de Chrome y Safari— dentro
@@ -355,7 +365,7 @@ export function GalleryLightbox({ images, name, startIndex, onClose }: Props) {
           ref={closeRef}
           type="button"
           onClick={onClose}
-          aria-label="Cerrar la galería"
+          aria-label={t.gallery.close}
           className={`pointer-events-auto ${controlClass}`}
         >
           <CloseIcon className="h-5 w-5" />
@@ -368,7 +378,7 @@ export function GalleryLightbox({ images, name, startIndex, onClose }: Props) {
           <button
             type="button"
             onClick={() => go(-1)}
-            aria-label="Foto anterior"
+            aria-label={t.gallery.previous}
             className={`absolute left-3 top-1/2 -translate-y-1/2 sm:left-5 ${controlClass}`}
           >
             <ChevronLeftIcon className="h-5 w-5" />
@@ -376,7 +386,7 @@ export function GalleryLightbox({ images, name, startIndex, onClose }: Props) {
           <button
             type="button"
             onClick={() => go(1)}
-            aria-label="Foto siguiente"
+            aria-label={t.gallery.next}
             className={`absolute right-3 top-1/2 -translate-y-1/2 sm:right-5 ${controlClass}`}
           >
             <ChevronRightIcon className="h-5 w-5" />
@@ -388,7 +398,7 @@ export function GalleryLightbox({ images, name, startIndex, onClose }: Props) {
           como "tres barra doce". Este anuncio, invisible, dice la frase entera
           y se actualiza solo al cambiar de foto. */}
       <p role="status" aria-live="polite" className="sr-only">
-        Foto {index + 1} de {total}
+        {t.gallery.counter(index + 1, total)}
       </p>
     </div>,
     document.body,

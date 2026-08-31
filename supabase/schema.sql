@@ -108,6 +108,24 @@ create table if not exists public.accommodations (
 
   -- ["Cocineta equipada", "Baño privado", ...]
   amenities           jsonb not null default '[]'::jsonb,
+
+  /* --- Versión inglesa del sitio (migración `bilingual_english_columns`) ---
+     El texto español se queda en las columnas de siempre y el inglés va en
+     estas gemelas. Donde la traducción falte o venga vacía, la capa de
+     contenido cae al español: una ficha a medio traducir se lee, un hueco en
+     blanco parece una página rota.
+
+     NO hay `name_en`: "Casa Maima", "Mirador" o "Tres Casitas" son nombres
+     propios de las casas y traducirlos rompería la correspondencia con los
+     letreros, con Airbnb y con lo que el equipo dice por WhatsApp. */
+  short_description_en text,
+  description_en       text,
+  price_note_en        text,
+  rate_note_en         text,
+  -- Se usa ENTERA o no se usa: media lista traducida en la misma tabla se lee
+  -- peor que la original sin traducir.
+  amenities_en        jsonb not null default '[]'::jsonb,
+
   -- [{ "url": "https://mauolzwhergekdvigmaf.supabase.co/storage/v1/object/public/gallery/alojamientos/casa-maima/1.jpg", "alt": "..." }, ...]
   gallery             jsonb not null default '[]'::jsonb,
 
@@ -177,6 +195,9 @@ create table if not exists public.min_stay_rules (
 
   -- Texto que ve el huésped: "Puentes festivos", "Semana Santa 2027"…
   label            text not null,
+  -- Su gemela inglesa: el rótulo se publica en la ficha ("Easter Week:
+  -- minimum 3 nights"), así que también viaja traducido.
+  label_en         text,
 
   -- 'holiday_bridge': cualquier fin de semana largo (festivo en lunes). Se
   --                   calcula con `holidays`, así que no lleva fechas.
@@ -303,6 +324,14 @@ create table if not exists public.experiences (
   price_cop         integer check (price_cop is null or price_cop >= 0),
   price_note        text,
 
+  /* --- Versión inglesa. A diferencia de los alojamientos, aquí el NOMBRE sí
+     se traduce: "Clase de yoga" describe la actividad, no es una marca. */
+  name_en              text,
+  short_description_en text,
+  description_en       text,
+  duration_en          text,
+  price_note_en        text,
+
   gallery           jsonb not null default '[]'::jsonb,
 
   visible           boolean not null default true,
@@ -425,6 +454,12 @@ create table if not exists public.site_content (
   key        text primary key,
   -- objeto jsonb libre por sección
   value      jsonb not null default '{}'::jsonb,
+  /* Espejo PARCIAL en inglés: solo las claves de TEXTO. Lo que no traiga
+     (fotos, direcciones, números) se hereda del español al fusionar, así que
+     cambiar una imagen desde el panel la cambia en los dos idiomas. La fusión
+     es profunda para objetos anidados y de reemplazo para arreglos; ver
+     `mergeContent()` en src/lib/content.ts. */
+  value_en   jsonb not null default '{}'::jsonb,
   updated_at timestamptz not null default now()
 );
 

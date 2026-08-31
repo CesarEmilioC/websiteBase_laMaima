@@ -96,7 +96,11 @@ async function fetchReferencedUrls(supabase: SupabaseClient): Promise<Set<string
   const [accommodations, experiences, content] = await Promise.all([
     supabase.from("accommodations").select("gallery"),
     supabase.from("experiences").select("gallery"),
-    supabase.from("site_content").select("value"),
+    /* Las DOS columnas de contenido: el espejo ingles (`value_en`) tambien
+       puede ser el unico sitio donde queda referenciada una foto —una galeria
+       con textos alternativos propios, por ejemplo—, y borrarla del bucket por
+       no mirarla dejaria la version inglesa del sitio con huecos. */
+    supabase.from("site_content").select("value, value_en"),
   ]);
 
   if (accommodations.error || experiences.error || content.error) {
@@ -118,6 +122,7 @@ async function fetchReferencedUrls(supabase: SupabaseClient): Promise<Set<string
   }
   for (const row of content.data ?? []) {
     collectStrings((row as { value?: unknown }).value, referenced);
+    collectStrings((row as { value_en?: unknown }).value_en, referenced);
   }
 
   return referenced;

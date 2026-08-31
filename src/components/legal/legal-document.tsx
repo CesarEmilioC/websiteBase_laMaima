@@ -1,8 +1,10 @@
 import Link from "next/link";
 
 import { JsonLd } from "@/components/json-ld";
+import { dict } from "@/lib/i18n";
+import { localePath, type Locale } from "@/lib/i18n/config";
 import { breadcrumbList } from "@/lib/seo";
-import { LEGAL_LINKS } from "@/lib/site";
+import { legalLinks } from "@/lib/site";
 
 /**
  * Armazón compartido de los tres documentos legales
@@ -25,9 +27,11 @@ export type LegalSection = {
 };
 
 type Props = {
+  locale: Locale;
   /** Título del documento (h1). */
   title: string;
-  /** Ruta de este documento: se usa para no enlazarlo consigo mismo. */
+  /** Ruta CANÓNICA de este documento (sin prefijo de idioma): se usa para no
+   *  enlazarlo consigo mismo y para la miga de pan. */
   current: string;
   /** Entradilla bajo el título: de qué trata el documento, en una frase. */
   intro: string;
@@ -39,6 +43,7 @@ type Props = {
 };
 
 export function LegalDocument({
+  locale,
   title,
   current,
   intro,
@@ -46,7 +51,8 @@ export function LegalDocument({
   sections,
   footnote,
 }: Props) {
-  const others = LEGAL_LINKS.filter((link) => link.href !== current);
+  const t = dict(locale);
+  const others = legalLinks(locale).filter((link) => link.path !== current);
 
   return (
     <>
@@ -56,14 +62,14 @@ export function LegalDocument({
           los únicos blancos de la página son los paneles de lectura. */}
       <section className="bg-shell pb-10 pt-28 sm:pt-32 lg:pt-36">
         <div className="container-page">
-          <nav aria-label="Ruta de navegación">
+          <nav aria-label={t.nav.breadcrumb}>
             <ol className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-[0.8125rem] text-ink-muted">
               <li>
                 <Link
-                  href="/"
+                  href={localePath(locale, "/")}
                   className="transition-colors duration-200 hover:text-brand-600"
                 >
-                  Inicio
+                  {t.nav.home}
                 </Link>
               </li>
               <li aria-hidden="true" className="text-ink-muted/50">
@@ -75,7 +81,7 @@ export function LegalDocument({
             </ol>
           </nav>
 
-          <p className="eyebrow mt-6 text-brand-700">Legal</p>
+          <p className="eyebrow mt-6 text-brand-700">{t.legal.eyebrow}</p>
           <h1 className="tracking-display mt-3 max-w-3xl text-[2.125rem] leading-[1.08] text-ink sm:text-[2.75rem] lg:text-5xl">
             {title}
           </h1>
@@ -83,7 +89,7 @@ export function LegalDocument({
             {intro}
           </p>
           <p className="glass-sand mt-6 inline-flex items-center gap-2 rounded-full px-3.5 py-1.5 text-[0.8125rem] font-medium text-ink-soft">
-            Última actualización: {updated}
+            {t.legal.updated(updated)}
           </p>
         </div>
       </section>
@@ -95,12 +101,12 @@ export function LegalDocument({
             {/* Índice: en pantalla ancha acompaña la lectura pegado arriba;
                 en móvil se pliega para no empujar el texto media pantalla. */}
             <nav
-              aria-label="Contenido del documento"
+              aria-label={t.legal.contentsNav}
               className="lg:col-span-4 lg:order-2"
             >
               <details className="group rounded-panel bg-white p-5 shadow-card ring-1 ring-ink/[0.05] lg:hidden">
                 <summary className="flex cursor-pointer list-none items-center justify-between gap-4 text-[0.9375rem] font-semibold text-ink [&::-webkit-details-marker]:hidden">
-                  Contenido del documento
+                  {t.legal.contentsMobile}
                   <span
                     aria-hidden="true"
                     className="text-ink-muted transition-transform duration-200 ease-ios group-open:rotate-180"
@@ -127,7 +133,7 @@ export function LegalDocument({
                   {/* `.eyebrow` fija la familia SANS: es un rótulo de
                       interfaz, no un titular, y a 13 px la serifa de display
                       con peso 600 solo se ve emborronada. */}
-                  <h2 className="eyebrow text-ink-muted">Contenido</h2>
+                  <h2 className="eyebrow text-ink-muted">{t.legal.contents}</h2>
                   <ol className="mt-4 space-y-2.5 text-[0.9375rem]">
                     {sections.map((section) => (
                       <li key={section.id}>
@@ -175,7 +181,7 @@ export function LegalDocument({
               {/* Los tres documentos se citan entre sí: conviene poder saltar
                   de uno a otro sin volver al pie de página. */}
               <nav
-                aria-label="Otros documentos legales"
+                aria-label={t.legal.otherDocs}
                 className="mt-8 grid gap-3 sm:grid-cols-2"
               >
                 {others.map((link) => (
@@ -200,8 +206,8 @@ export function LegalDocument({
       <JsonLd
         graph={[
           breadcrumbList([
-            { name: "Inicio", path: "/" },
-            { name: title, path: current },
+            { name: t.nav.home, path: localePath(locale, "/") },
+            { name: title, path: localePath(locale, current) },
           ]),
         ]}
       />
@@ -219,10 +225,17 @@ export function LegalDocument({
  * de lo que ya está cerrado. Inventar un NIT o un plazo de reembolso sería
  * mucho peor que dejarlo señalado.
  */
-export function Pending({ children }: { children: React.ReactNode }) {
+export function Pending({
+  children,
+  locale = "es",
+}: {
+  /** Que falta, en texto plano: la marca lo envuelve con su propio rotulo. */
+  children: string;
+  locale?: Locale;
+}) {
   return (
     <mark className="mx-0.5 rounded-md bg-amber-100/80 px-1.5 py-0.5 font-medium text-amber-900 ring-1 ring-inset ring-amber-500/30">
-      [Dato por confirmar con La Maima: {children}]
+      {dict(locale).legal.pending(children)}
     </mark>
   );
 }

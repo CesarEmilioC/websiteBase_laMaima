@@ -5,8 +5,11 @@ import {
   breadcrumbList,
   composeDescription,
   DESCRIPTION_LIMIT,
+  languageAlternates,
+  lodgingId,
   pageMetadata,
   serializeJsonLd,
+  websiteId,
 } from "./seo";
 import { SITE } from "./site";
 
@@ -146,5 +149,113 @@ describe("serializeJsonLd", () => {
     expect(output).not.toContain("</script>");
     expect(output).toContain("\\u003c");
     expect(JSON.parse(output).name).toBe("</script><img onerror=x>");
+  });
+});
+
+/* ---------------------------------------------------------------------------
+ * SEO bilingüe
+ * -------------------------------------------------------------------------
+ * Un `hreflang` que no es recíproco Google lo descarta ENTERO, y un canónico
+ * que apunta al otro idioma manda a indexar la página equivocada. Las dos cosas
+ * fallan en silencio: no rompen el sitio, solo hacen que la mitad no exista
+ * para el buscador. De ahí que se prueben.
+ * ------------------------------------------------------------------------- */
+describe("alternates de idioma", () => {
+  it("publica las dos versiones y un x-default al español", () => {
+    expect(languageAlternates("/alojamientos")).toEqual({
+      es: "/alojamientos",
+      en: "/en/alojamientos",
+      "x-default": "/alojamientos",
+    });
+  });
+
+  it("la portada inglesa no arrastra una barra suelta", () => {
+    expect(languageAlternates("/")).toEqual({
+      es: "/",
+      en: "/en",
+      "x-default": "/",
+    });
+  });
+
+  it("las dos versiones de una página se apuntan MUTUAMENTE", () => {
+    const spanish = pageMetadata({
+      title: "Mirador",
+      description: "…",
+      path: "/alojamientos/mirador",
+      image: { url: "https://cdn.example/a.jpg", alt: "a" },
+    });
+    const english = pageMetadata({
+      title: "Mirador",
+      description: "…",
+      path: "/alojamientos/mirador",
+      image: { url: "https://cdn.example/a.jpg", alt: "a" },
+      locale: "en",
+    });
+
+    // Mismo mapa de idiomas en las dos: es lo que hace el vínculo recíproco.
+    expect(spanish.alternates?.languages).toEqual(
+      english.alternates?.languages,
+    );
+    // Y cada una se declara canónica en SU árbol.
+    expect(spanish.alternates?.canonical).toBe("/alojamientos/mirador");
+    expect(english.alternates?.canonical).toBe("/en/alojamientos/mirador");
+  });
+
+  it("declara el og:locale del idioma de la página", () => {
+    expect(
+      pageMetadata({
+        title: "Stays",
+        description: "…",
+        path: "/alojamientos",
+        image: { url: "https://cdn.example/a.jpg", alt: "a" },
+        locale: "en",
+      }).openGraph,
+    ).toMatchObject({ locale: "en_US", url: "/en/alojamientos" });
+  });
+
+  it("permite un título que ya trae la marca, sin duplicarla", () => {
+    // La portada: la plantilla del layout (`%s · La Maima`) no debe aplicarse.
+    const meta = pageMetadata({
+      title: "La Maima — Hotel campestre",
+      absoluteTitle: true,
+      description: "…",
+      path: "/",
+      image: { url: "https://cdn.example/a.jpg", alt: "a" },
+    });
+    expect(meta.title).toEqual({ absolute: "La Maima — Hotel campestre" });
+  });
+});
+
+describe("colas de descripción en inglés", () => {
+  it("marca el precio como COP para que no se lea en dólares", () => {
+    const [preferred] = accommodationTails("$495.000", "en");
+    expect(preferred).toContain("COP");
+    expect(preferred).toContain("Dapa");
+  });
+
+  it("no promete precio cuando el alojamiento no tiene tarifa publicada", () => {
+    expect(
+      accommodationTails(null, "en").every((tail) => !tail.includes("From")),
+    ).toBe(true);
+  });
+
+  it("compone dentro del límite igual que en español", () => {
+    const result = composeDescription(
+      "A house for four with a kitchenette and a private bathroom.",
+      accommodationTails("$570.000", "en"),
+    );
+    expect(result.length).toBeLessThanOrEqual(DESCRIPTION_LIMIT);
+    expect(result).toContain("COP");
+  });
+});
+
+describe("identificadores del grafo", () => {
+  it("cada idioma publica su propio nodo de negocio", () => {
+    // Dos documentos distintos, con descripciones distintas: compartir `@id`
+    // sería declarar dos veces la misma entidad diciendo cosas diferentes.
+    expect(lodgingId("es")).toBe(`${SITE.url}/#lodging`);
+    expect(lodgingId("en")).toBe(`${SITE.url}/en/#lodging`);
+    expect(websiteId("en")).toBe(`${SITE.url}/en/#website`);
+    expect(lodgingId("es")).not.toBe(lodgingId("en"));
   });
 });

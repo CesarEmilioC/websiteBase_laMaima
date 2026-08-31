@@ -89,17 +89,19 @@ npm run lint     # ESLint
 website/
 ├── src/
 │   ├── app/
-│   │   ├── layout.tsx        # fuentes y metadata base (título, OG, Twitter)
 │   │   ├── globals.css       # tokens de diseño (Tailwind v4 @theme) y base
-│   │   ├── not-found.tsx     # 404 personalizada
-│   │   ├── sitemap.ts        # sitemap con lastmod reales (incluye legales)
+│   │   ├── sitemap.ts        # sitemap bilingüe con lastmod reales y alternates
 │   │   ├── robots.ts         # robots.txt (bloquea /admin y /api)
-│   │   ├── (public)/         # rutas públicas (route group, no afecta la URL)
-│   │   │   ├── layout.tsx      # header + footer + WhatsApp + JSON-LD del hotel
-│   │   │   ├── page.tsx        # Home
-│   │   │   ├── alojamientos/page.tsx
-│   │   │   ├── alojamientos/[slug]/page.tsx
-│   │   │   └── experiencias/page.tsx
+│   │   ├── (es-root)/        # SITIO EN ESPAÑOL, en la raíz del dominio
+│   │   │   ├── layout.tsx      # layout RAÍZ es: <html lang="es-CO">
+│   │   │   ├── not-found.tsx   # 404 personalizada (sin nav ni pie)
+│   │   │   ├── [...ruta]/      # comodín -> 404 de la casa
+│   │   │   └── (site)/         # armazón público (nav isla + pie + JSON-LD)
+│   │   │       ├── page.tsx, alojamientos/, experiencias/, legal/
+│   │   ├── en/               # SITIO EN INGLÉS, espejo exacto bajo /en
+│   │   │   ├── layout.tsx      # layout RAÍZ en: <html lang="en">
+│   │   │   ├── not-found.tsx, [...ruta]/
+│   │   │   └── (site)/         # mismas rutas, mismos componentes, locale "en"
 │   │   ├── admin/            # [convención, aún vacía] panel administrativo
 │   │   │   ├── login/page.tsx
 │   │   │   ├── page.tsx         # dashboard
@@ -117,6 +119,10 @@ website/
 │       ├── seo.ts           # metadatos por página (canónica + OG + Twitter),
 │       │                      descripciones compuestas y datos estructurados
 │       ├── site.ts          # constantes: contacto, redes, mapa, navegación
+│       ├── i18n/            # sitio bilingüe: rutas por idioma y diccionarios
+│       │   ├── config.ts    #   Locale, localePath()/splitLocale(), cookie
+│       │   ├── es.ts        #   diccionario español (fuente del tipo)
+│       │   └── en.ts        #   diccionario inglés (mismas claves, obligatorio)
 │       ├── whatsapp.ts      # construcción de enlaces wa.me con mensaje
 │       └── supabase/
 │           ├── client.ts    # cliente para el navegador (Client Components)
@@ -202,6 +208,28 @@ tocarlo al lanzar.
 
 Lo que sí depende del dominio y de las cuentas del cliente es esta lista. **En
 orden**, porque los pasos 2 y 3 no sirven de nada antes del 1.
+
+### 0. El sitio es bilingüe (español en la raíz, inglés en `/en`)
+
+- **El español NO lleva prefijo.** `lamaima.com/alojamientos` sigue siendo
+  `lamaima.com/alojamientos`: las direcciones que ya están indexadas y las
+  redirecciones 301 del Wix no se tocan. El inglés es un **espejo exacto** bajo
+  `/en`, con las mismas rutas (incluidos los caminos legales en español:
+  `/en/legal/privacidad`), para que cada par de páginas se corresponda una a una.
+- **Cada página publica sus `hreflang`** (`es`, `en` y `x-default` al español) y
+  su canónica dentro de su propio árbol. El sitemap lista las dos versiones de
+  cada página con sus `alternates`. Todo sale de `pageMetadata()` en
+  `src/lib/seo.ts`: una página nueva lo hereda sin hacer nada.
+- **No hay detección por `Accept-Language`.** Quien llega sin más ve el sitio en
+  español. El conmutador de banderas guarda la elección en una cookie y el
+  middleware solo la respeta **en la portada** (`/`), que es la única ruta que
+  intercepta: los buscadores no mandan cookies, así que nunca ven ese salto.
+- **Traducir contenido nuevo** es rellenar las columnas `*_en` desde el panel
+  (subsección plegable “English” en alojamientos, experiencias, tarifas y
+  contenido). Lo que se deje vacío se publica en español: el sitio nunca queda
+  con huecos, pero conviene repasarlo al añadir una cabaña o una experiencia.
+- Los **correos transaccionales siguen en español**; el mensaje prellenado de
+  WhatsApp sí se traduce, porque lo escribe el visitante desde su pantalla.
 
 ### 1. Apuntar el sitio al dominio real
 

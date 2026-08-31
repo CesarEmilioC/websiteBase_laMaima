@@ -29,6 +29,16 @@ export type AdminAccommodation = {
   created_at: string;
   updated_at: string;
 
+  /* --- Versión inglesa (sitio /en) ---------------------------------------
+   * No hay `name_en`: los nombres de las casas son nombres propios y no se
+   * traducen. Donde falte la traducción, el sitio inglés cae al español.
+   * ---------------------------------------------------------------------- */
+  short_description_en: string | null;
+  description_en: string | null;
+  amenities_en: string[];
+  price_note_en: string | null;
+  rate_note_en: string | null;
+
   /* --- Modelo de tarifas por ocupación (se edita en /admin/tarifas) ------- */
   extra_person_price_cop: number | null;
   extra_person_price_weekday_cop: number | null;
@@ -53,6 +63,14 @@ export type AdminExperience = {
   sort_order: number;
   created_at: string;
   updated_at: string;
+
+  /* --- Versión inglesa (sitio /en) ---------------------------------------
+   * Aquí el nombre SÍ se traduce: describe la actividad, no es una marca. */
+  name_en: string | null;
+  short_description_en: string | null;
+  description_en: string | null;
+  duration_en: string | null;
+  price_note_en: string | null;
 };
 
 /* ---------------------------------------------------------------------------

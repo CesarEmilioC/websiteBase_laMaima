@@ -4,10 +4,13 @@ import Link from "next/link";
 import { ChevronRightIcon, UsersIcon } from "./icons";
 import { coverImage, type Accommodation } from "@/lib/content";
 import { formatCOP, formatGuests } from "@/lib/format";
+import { dict } from "@/lib/i18n";
+import { localePath, type Locale } from "@/lib/i18n/config";
 import { lowestRate } from "@/lib/pricing";
 
 type Props = {
   accommodation: Accommodation;
+  locale: Locale;
 };
 
 /**
@@ -24,10 +27,11 @@ type Props = {
  * ancho de banda a la imagen que sí es el LCP (la banda de encabezado),
  * empeorando la métrica.
  */
-export function AccommodationCard({ accommodation }: Props) {
+export function AccommodationCard({ accommodation, locale }: Props) {
+  const t = dict(locale);
   const cover = coverImage(
     accommodation.gallery,
-    `${accommodation.name} en La Maima`,
+    t.gallery.fallbackAlt(accommodation.name),
   );
 
   // "Desde" = el tramo más barato de la tabla real de precios. Se calcula aquí
@@ -61,7 +65,7 @@ export function AccommodationCard({ accommodation }: Props) {
         />
         <span className="glass eyebrow eyebrow-chip absolute left-3.5 top-3.5 inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-ink ring-1 ring-inset ring-white/50">
           <UsersIcon className="h-3.5 w-3.5" />
-          {formatGuests(accommodation.capacity)}
+          {formatGuests(accommodation.capacity, locale)}
         </span>
       </div>
 
@@ -69,7 +73,7 @@ export function AccommodationCard({ accommodation }: Props) {
         <h3 className="text-[1.375rem] leading-tight text-ink">
           {/* El enlace cubre toda la tarjeta (stretched link) */}
           <Link
-            href={`/alojamientos/${accommodation.slug}`}
+            href={localePath(locale, `/alojamientos/${accommodation.slug}`)}
             className="after:absolute after:inset-0 after:content-['']"
           >
             {accommodation.name}
@@ -84,11 +88,11 @@ export function AccommodationCard({ accommodation }: Props) {
 
         <div className="mt-6 flex items-end justify-between gap-4 border-t border-ink/[0.08] pt-5">
           <div>
-            <p className="eyebrow text-ink-muted">Desde</p>
+            <p className="eyebrow text-ink-muted">{t.common.from}</p>
             <p className="mt-1.5 text-[1.5rem] font-semibold leading-none tracking-[-0.02em] text-brand-700">
               {formatCOP(from.amountCop)}
               <span className="ml-1.5 text-[0.8125rem] font-medium tracking-normal text-ink-muted">
-                / noche
+                {t.common.perNight}
               </span>
             </p>
             {accommodation.price_note && (

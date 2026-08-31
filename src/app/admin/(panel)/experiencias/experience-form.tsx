@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useActionState } from "react";
 
 import { saveExperienceAction } from "./actions";
+import { EnglishSection } from "@/components/admin/english-section";
 import { GalleryEditor } from "@/components/admin/gallery-editor";
 import { SlugFields } from "@/components/admin/slug-fields";
 import { SubmitButton } from "@/components/admin/submit-button";
@@ -76,6 +77,75 @@ export function ExperienceForm({
               defaultValue={experience?.description ?? ""}
             />
           </Field>
+
+          {/* A diferencia de los alojamientos, aquí el NOMBRE sí se traduce:
+              "Clase de yoga" describe la actividad, no es una marca. */}
+          <EnglishSection hint="Lo que se deje vacío se muestra en español en lamaima.com/en.">
+            <Field
+              label="Nombre (inglés)"
+              htmlFor="name_en"
+              hint="Ej.: “Clase de yoga” → “Yoga class”."
+            >
+              <Input
+                id="name_en"
+                name="name_en"
+                maxLength={120}
+                defaultValue={experience?.name_en ?? ""}
+              />
+            </Field>
+
+            <Field
+              label="Descripción corta (inglés)"
+              htmlFor="short_description_en"
+            >
+              <Textarea
+                id="short_description_en"
+                name="short_description_en"
+                rows={2}
+                maxLength={400}
+                defaultValue={experience?.short_description_en ?? ""}
+                className="min-h-0"
+              />
+            </Field>
+
+            <Field label="Descripción completa (inglés)" htmlFor="description_en">
+              <Textarea
+                id="description_en"
+                name="description_en"
+                rows={7}
+                maxLength={6000}
+                defaultValue={experience?.description_en ?? ""}
+              />
+            </Field>
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Field
+                label="Duración (inglés)"
+                htmlFor="duration_en"
+                hint="Ej.: “About 45 minutes down to the river”."
+              >
+                <Input
+                  id="duration_en"
+                  name="duration_en"
+                  maxLength={80}
+                  defaultValue={experience?.duration_en ?? ""}
+                />
+              </Field>
+
+              <Field
+                label="Aclaración de la tarifa (inglés)"
+                htmlFor="price_note_en"
+                hint="Ej.: “Included in your stay”."
+              >
+                <Input
+                  id="price_note_en"
+                  name="price_note_en"
+                  maxLength={160}
+                  defaultValue={experience?.price_note_en ?? ""}
+                />
+              </Field>
+            </div>
+          </EnglishSection>
         </CardBody>
       </Card>
 

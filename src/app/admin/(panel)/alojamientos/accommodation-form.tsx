@@ -5,6 +5,7 @@ import { useActionState } from "react";
 
 import { saveAccommodationAction } from "./actions";
 import { ChipsInput } from "@/components/admin/chips-input";
+import { EnglishSection } from "@/components/admin/english-section";
 import { GalleryEditor } from "@/components/admin/gallery-editor";
 import { SlugFields } from "@/components/admin/slug-fields";
 import { SubmitButton } from "@/components/admin/submit-button";
@@ -96,6 +97,65 @@ export function AccommodationForm({
               defaultValue={accommodation?.description ?? ""}
             />
           </Field>
+
+          {/* El nombre NO tiene versión inglesa: "Casa Maima" o "Mirador" son
+              nombres propios de las casas y traducirlos rompería la
+              correspondencia con los letreros, con Airbnb y con lo que el
+              equipo dice por WhatsApp. */}
+          <EnglishSection hint="Lo que se deje vacío se muestra en español en lamaima.com/en. El nombre del alojamiento no se traduce.">
+            <Field
+              label="Descripción corta (inglés)"
+              htmlFor="short_description_en"
+              hint="La misma idea que arriba, en inglés. Aparece en la tarjeta del listado."
+            >
+              <Textarea
+                id="short_description_en"
+                name="short_description_en"
+                rows={2}
+                maxLength={400}
+                defaultValue={accommodation?.short_description_en ?? ""}
+                className="min-h-0"
+              />
+            </Field>
+
+            <Field
+              label="Descripción completa (inglés)"
+              htmlFor="description_en"
+              hint="Separa los párrafos con una línea en blanco, igual que en español."
+            >
+              <Textarea
+                id="description_en"
+                name="description_en"
+                rows={8}
+                maxLength={6000}
+                defaultValue={accommodation?.description_en ?? ""}
+              />
+            </Field>
+
+            <Field
+              label="Aclaración de la tarifa (inglés)"
+              htmlFor="price_note_en"
+              hint="Ej.: “Up to 8 guests · 25 % less Monday to Thursday”."
+            >
+              <Input
+                id="price_note_en"
+                name="price_note_en"
+                maxLength={160}
+                defaultValue={accommodation?.price_note_en ?? ""}
+              />
+            </Field>
+
+            <Field
+              label="Amenidades (inglés)"
+              hint="Se usa la lista ENTERA o ninguna: si la dejas incompleta, el sitio en inglés muestra la lista española completa antes que una mezcla de los dos idiomas."
+            >
+              <ChipsInput
+                name="amenities_en"
+                initial={accommodation?.amenities_en ?? []}
+                placeholder="Ej.: Fitted kitchenette"
+              />
+            </Field>
+          </EnglishSection>
         </CardBody>
       </Card>
 

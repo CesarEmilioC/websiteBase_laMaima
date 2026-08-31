@@ -45,9 +45,11 @@ const BOOKING_SECTION_ID = "reservar";
 
 type Props = {
   href: string;
+  /** Nombre accesible, ya traducido por el componente de servidor. */
+  label: string;
 };
 
-export function WhatsAppFloatButton({ href }: Props) {
+export function WhatsAppFloatButton({ href, label }: Props) {
   const pathname = usePathname();
   const [overBooking, setOverBooking] = useState(false);
 
@@ -74,7 +76,7 @@ export function WhatsAppFloatButton({ href }: Props) {
       href={href}
       target="_blank"
       rel="noopener noreferrer"
-      aria-label="Escríbenos por WhatsApp"
+      aria-label={label}
       aria-hidden={overBooking}
       tabIndex={overBooking ? -1 : undefined}
       /* AZUL PRIMARIO, no verde WhatsApp: el verde de marca dejó de existir

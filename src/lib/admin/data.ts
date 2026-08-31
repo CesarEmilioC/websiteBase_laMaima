@@ -67,10 +67,10 @@ function joinedName(value: unknown): string | null {
  * ------------------------------------------------------------------------- */
 
 const ACCOMMODATION_COLUMNS =
-  "id, slug, name, short_description, description, capacity, price_per_night_cop, price_note, amenities, gallery, visible, sort_order, created_at, updated_at, extra_person_price_cop, extra_person_price_weekday_cop, breakfast_included, breakfast_price_cop, weekday_discount_pct, rate_note";
+  "id, slug, name, short_description, short_description_en, description, description_en, capacity, price_per_night_cop, price_note, price_note_en, amenities, amenities_en, gallery, visible, sort_order, created_at, updated_at, extra_person_price_cop, extra_person_price_weekday_cop, breakfast_included, breakfast_price_cop, weekday_discount_pct, rate_note, rate_note_en";
 
 const EXPERIENCE_COLUMNS =
-  "id, slug, name, short_description, description, duration, capacity, price_cop, price_note, gallery, visible, sort_order, created_at, updated_at";
+  "id, slug, name, name_en, short_description, short_description_en, description, description_en, duration, duration_en, capacity, price_cop, price_note, price_note_en, gallery, visible, sort_order, created_at, updated_at";
 
 const BOOKING_COLUMNS =
   "id, accommodation_id, guest_name, guest_email, guest_phone, check_in, check_out, guests, total_cop, status, source, payment_ref, created_at, updated_at, accommodations(name)";
@@ -119,6 +119,11 @@ function mapAccommodation(row: RawRow): AdminAccommodation {
         ? null
         : Number(row.weekday_discount_pct),
     rate_note: (row.rate_note as string | null) ?? null,
+    short_description_en: (row.short_description_en as string | null) ?? null,
+    description_en: (row.description_en as string | null) ?? null,
+    amenities_en: toStringList(row.amenities_en),
+    price_note_en: (row.price_note_en as string | null) ?? null,
+    rate_note_en: (row.rate_note_en as string | null) ?? null,
   };
 }
 
@@ -186,6 +191,11 @@ function mapExperience(row: RawRow): AdminExperience {
     sort_order: Number(row.sort_order),
     created_at: String(row.created_at),
     updated_at: String(row.updated_at),
+    name_en: (row.name_en as string | null) ?? null,
+    short_description_en: (row.short_description_en as string | null) ?? null,
+    description_en: (row.description_en as string | null) ?? null,
+    duration_en: (row.duration_en as string | null) ?? null,
+    price_note_en: (row.price_note_en as string | null) ?? null,
   };
 }
 
@@ -370,21 +380,42 @@ export async function listBlockedDates(options?: {
 
 export type SiteContentMap = Record<string, Record<string, unknown>>;
 
-export async function getSiteContentMap(): Promise<SiteContentMap> {
+/**
+ * Contenido editable del sitio, en los dos idiomas.
+ *
+ * `es` es la fila completa (`site_content.value`) y `en` el espejo PARCIAL
+ * (`value_en`), que solo lleva las claves de texto traducidas. El formulario
+ * pinta cada campo inglés con lo que haya en `en` —vacío si no hay— y nunca
+ * rellena el hueco con el español: si el panel mostrara el texto español dentro
+ * del campo inglés, guardar sin tocar nada lo daría por traducido.
+ */
+export async function getSiteContentMap(): Promise<{
+  es: SiteContentMap;
+  en: SiteContentMap;
+}> {
   const supabase = await adminClient();
-  const { data, error } = await supabase.from("site_content").select("key, value");
+  const { data, error } = await supabase
+    .from("site_content")
+    .select("key, value, value_en");
 
   if (error) throw new Error(`No se pudo cargar el contenido: ${error.message}`);
 
-  const map: SiteContentMap = {};
-  for (const row of data ?? []) {
-    const value = (row as RawRow).value;
-    map[String((row as RawRow).key)] =
-      typeof value === "object" && value !== null
-        ? (value as Record<string, unknown>)
-        : {};
+  const es: SiteContentMap = {};
+  const en: SiteContentMap = {};
+
+  const asRecord = (value: unknown): Record<string, unknown> =>
+    typeof value === "object" && value !== null
+      ? (value as Record<string, unknown>)
+      : {};
+
+  for (const raw of data ?? []) {
+    const row = raw as RawRow;
+    const key = String(row.key);
+    es[key] = asRecord(row.value);
+    en[key] = asRecord(row.value_en);
   }
-  return map;
+
+  return { es, en };
 }
 
 /* ---------------------------------------------------------------------------

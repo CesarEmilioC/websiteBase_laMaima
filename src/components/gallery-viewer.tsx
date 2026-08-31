@@ -4,6 +4,7 @@ import dynamic from "next/dynamic";
 import { useCallback, useRef, useState } from "react";
 
 import type { GalleryImage } from "@/lib/content";
+import type { Locale } from "@/lib/i18n/config";
 
 /**
  * El visor entra en SU PROPIO trozo de JavaScript, que el navegador no pide
@@ -24,6 +25,7 @@ type Props = {
   /** TODAS las fotos del alojamiento, no solo las que se ven en la rejilla. */
   images: GalleryImage[];
   name: string;
+  locale: Locale;
   /** La rejilla de miniaturas, renderizada en el servidor. */
   children: React.ReactNode;
 };
@@ -44,7 +46,7 @@ type Props = {
  *      que espera quien navega con teclado y lo que exige el patrón de
  *      diálogo modal.
  */
-export function GalleryViewer({ images, name, children }: Props) {
+export function GalleryViewer({ images, name, locale, children }: Props) {
   const [openAt, setOpenAt] = useState<number | null>(null);
   const trigger = useRef<HTMLElement | null>(null);
 
@@ -80,6 +82,7 @@ export function GalleryViewer({ images, name, children }: Props) {
         <GalleryLightbox
           images={images}
           name={name}
+          locale={locale}
           startIndex={openAt}
           onClose={close}
         />

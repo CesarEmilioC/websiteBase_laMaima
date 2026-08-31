@@ -43,13 +43,15 @@ import {
 import {
   addMonths,
   compareMonths,
-  formatDateEs,
+  formatDate,
   monthOf,
   nightsBetween,
   addDays,
   type YearMonth,
 } from "@/lib/dates";
-import { formatCOP, formatGuests } from "@/lib/format";
+import { formatCOP, formatGuests, formatNights } from "@/lib/format";
+import { dict } from "@/lib/i18n";
+import { localePath, type Locale } from "@/lib/i18n/config";
 import {
   breakfastLabel,
   lowestRate,
@@ -63,6 +65,7 @@ import { bookingRequestMessage, whatsappUrl } from "@/lib/whatsapp";
 type Props = {
   slug: string;
   name: string;
+  locale: Locale;
   capacity: number;
   /** Tabla de precios, temporadas y festivos: llega con la página estática. */
   rates: RateConfig;
@@ -78,6 +81,7 @@ type Status = "loading" | "ready" | "error";
 export function BookingWidget({
   slug,
   name,
+  locale,
   capacity,
   rates,
   priceNote,
@@ -85,6 +89,7 @@ export function BookingWidget({
   phoneDisplay,
   phoneHref,
 }: Props) {
+  const t = dict(locale);
   const [status, setStatus] = useState<Status>("loading");
   const [availability, setAvailability] = useState<AvailabilityResponse | null>(
     null,
@@ -148,10 +153,11 @@ export function BookingWidget({
     if (!rangeIsFree(checkIn, iso, availability.occupied)) {
       const limit = lastCheckOutFor(checkIn, availability.occupied, availability.to);
       setNotice(
-        `Entre el ${formatDateEs(checkIn)} y el ${formatDateEs(iso)} hay noches ` +
-          `ya reservadas: con entrada el ${formatDateEs(checkIn)}, la salida más ` +
-          `tardía era el ${formatDateEs(limit)}. Empezamos de nuevo con entrada ` +
-          `el ${formatDateEs(iso)}.`,
+        t.booking.occupiedRange(
+          formatDate(checkIn, locale),
+          formatDate(iso, locale),
+          formatDate(limit, locale),
+        ),
       );
       setCheckIn(iso);
       setCheckOut(null);
@@ -172,7 +178,9 @@ export function BookingWidget({
     setGuests((current) => {
       const next = current + delta;
       if (next > capacity) {
-        setNotice(`${name} admite máximo ${formatGuests(capacity)}.`);
+        setNotice(
+          t.booking.overCapacity(name, formatGuests(capacity, locale)),
+        );
         return current;
       }
       if (next < 1) return current;
@@ -191,16 +199,16 @@ export function BookingWidget({
   const estimate: Quote | null = useMemo(
     () =>
       checkIn && checkOut && nights > 0
-        ? quote(rates, checkIn, checkOut, guests)
+        ? quote(rates, checkIn, checkOut, guests, locale)
         : null,
-    [rates, checkIn, checkOut, guests, nights],
+    [rates, checkIn, checkOut, guests, nights, locale],
   );
 
   const from = lowestRate(rates.tiers, rates.basePriceCop);
-  const breakfast = breakfastLabel(rates);
+  const breakfast = breakfastLabel(rates, locale);
   /* `rates` no cambia en toda la vida del componente (llega del servidor), así
      que las notas se calculan una vez y no en cada pulsación del calendario. */
-  const notes = useMemo(() => rateNotes(rates), [rates]);
+  const notes = useMemo(() => rateNotes(rates, locale), [rates, locale]);
 
   // Una estadía por debajo de la estancia mínima no se puede pedir: mejor
   // decirlo aquí que dejar que el equipo tenga que rechazarla por WhatsApp.
@@ -210,20 +218,23 @@ export function BookingWidget({
   const whatsappHref =
     estimate && canRequest
       ? whatsappUrl(
-          bookingRequestMessage({
-            accommodation: name,
-            checkIn: checkIn as string,
-            checkOut: checkOut as string,
-            nights,
-            guests,
-            totalCop: estimate.totalCop,
-            detail: [
-              ...estimate.lines.map((line) => line.label),
-              estimate.breakfast?.label,
-            ]
-              .filter(Boolean)
-              .join(" · "),
-          }),
+          bookingRequestMessage(
+            {
+              accommodation: name,
+              checkIn: checkIn as string,
+              checkOut: checkOut as string,
+              nights,
+              guests,
+              totalCop: estimate.totalCop,
+              detail: [
+                ...estimate.lines.map((line) => line.label),
+                estimate.breakfast?.label,
+              ]
+                .filter(Boolean)
+                .join(" · "),
+            },
+            locale,
+          ),
           whatsapp,
         )
       : undefined;
@@ -239,11 +250,10 @@ export function BookingWidget({
           </span>
           <div>
             <p className="text-[1.0625rem] font-semibold text-ink">
-              No pudimos cargar la disponibilidad, intenta de nuevo
+              {t.booking.errorTitle}
             </p>
             <p className="mt-1.5 text-[0.9375rem] text-ink-muted">
-              Si el problema sigue, escríbenos por WhatsApp al {phoneDisplay} y
-              confirmamos las fechas contigo.
+              {t.booking.errorBody(phoneDisplay)}
             </p>
           </div>
           <button
@@ -251,7 +261,7 @@ export function BookingWidget({
             onClick={() => void load()}
             className="rounded-full bg-brand-600 px-6 py-3 text-[0.9375rem] font-semibold text-white shadow-pill transition-[background-color,transform] duration-200 ease-ios hover:bg-brand-700 active:scale-[0.98]"
           >
-            Reintentar
+            {t.booking.retry}
           </button>
         </div>
       </Shell>
@@ -272,7 +282,7 @@ export function BookingWidget({
           className="grid animate-pulse gap-8 lg:grid-cols-[minmax(0,1fr)_21.5rem] lg:gap-10"
           aria-live="polite"
         >
-          <p className="sr-only">Cargando disponibilidad…</p>
+          <p className="sr-only">{t.booking.loading}</p>
 
           {/* Calendario */}
           <div>
@@ -339,10 +349,10 @@ export function BookingWidget({
   const lastMonth = addMonths(monthOf(addDays(availability.to, -1)), -1);
 
   const hint = !checkIn
-    ? "Toca una fecha para la entrada."
+    ? t.booking.hintStart
     : !checkOut
-      ? "Ahora toca la fecha de salida."
-      : "Fechas listas. Revisa el resumen y envía la solicitud.";
+      ? t.booking.hintEnd
+      : t.booking.hintReady;
 
   return (
     <Shell>
@@ -352,6 +362,7 @@ export function BookingWidget({
           <AvailabilityCalendar
             cursor={cursor}
             context={context}
+            locale={locale}
             onSelect={handleSelect}
             onPrev={() => setCursor(addMonths(cursor, -1))}
             onNext={() => setCursor(addMonths(cursor, 1))}
@@ -367,7 +378,7 @@ export function BookingWidget({
                 onClick={clearDates}
                 className="rounded-full bg-sand-soft px-4 py-2 text-[0.8125rem] font-semibold text-ink-soft transition-[background-color,transform] duration-200 ease-ios hover:bg-sand active:scale-[0.97]"
               >
-                Borrar fechas
+                {t.booking.clearDates}
               </button>
             )}
           </div>
@@ -386,7 +397,7 @@ export function BookingWidget({
         {/* Resumen --------------------------------------------------------- */}
         <div className="lg:border-l lg:border-ink/[0.07] lg:pl-10">
           <p className="text-[0.8125rem] font-semibold text-ink-muted">
-            Tu solicitud
+            {t.booking.summaryTitle}
           </p>
           <p className="mt-1 text-[1.125rem] font-semibold tracking-[-0.02em] text-ink">
             {name}
@@ -394,20 +405,20 @@ export function BookingWidget({
 
           <dl className="mt-4 overflow-hidden rounded-card bg-sand-soft text-[0.9375rem]">
             <SummaryRow
-              label="Entrada"
-              value={checkIn ? formatDateEs(checkIn) : "Sin elegir"}
+              label={t.booking.checkIn}
+              value={checkIn ? formatDate(checkIn, locale) : t.booking.unset}
               muted={!checkIn}
               icon={<CalendarIcon className="h-4 w-4" />}
             />
             <SummaryRow
-              label="Salida"
-              value={checkOut ? formatDateEs(checkOut) : "Sin elegir"}
+              label={t.booking.checkOut}
+              value={checkOut ? formatDate(checkOut, locale) : t.booking.unset}
               muted={!checkOut}
               icon={<CalendarIcon className="h-4 w-4" />}
               divider
             />
             <SummaryRow
-              label="Noches"
+              label={t.booking.nights}
               value={nights > 0 ? String(nights) : "—"}
               muted={nights === 0}
               divider
@@ -420,20 +431,19 @@ export function BookingWidget({
             <div>
               <p className="flex items-center gap-2 text-[0.9375rem] font-semibold text-ink">
                 <UsersIcon className="h-4 w-4 text-ink-muted" />
-                Huéspedes
+                {t.booking.guests}
               </p>
               {/* La tarifa depende de cuántos sean, así que el contador no es
                   un detalle administrativo: mover este número cambia el total. */}
               <p className="mt-0.5 text-[0.8125rem] text-ink-muted">
-                Máximo {formatGuests(capacity)} · la tarifa cambia con la
-                ocupación
+                {t.booking.guestsHint(formatGuests(capacity, locale))}
               </p>
             </div>
             <div className="flex items-center gap-1">
               <StepperButton
                 onClick={() => changeGuests(-1)}
                 disabled={guests <= 1}
-                label="Quitar un huésped"
+                label={t.booking.removeGuest}
               >
                 <MinusIcon className="h-4 w-4" />
               </StepperButton>
@@ -446,7 +456,7 @@ export function BookingWidget({
               <StepperButton
                 onClick={() => changeGuests(1)}
                 disabled={guests >= capacity}
-                label="Añadir un huésped"
+                label={t.booking.addGuest}
               >
                 <PlusIcon className="h-4 w-4" />
               </StepperButton>
@@ -485,7 +495,9 @@ export function BookingWidget({
                 </ul>
 
                 <div className="mt-3 flex items-baseline justify-between gap-4 border-t border-ink/[0.07] pt-3">
-                  <span className="font-semibold text-ink">Total estimado</span>
+                  <span className="font-semibold text-ink">
+                    {t.booking.total}
+                  </span>
                   <span className="text-[1.375rem] font-semibold tracking-[-0.03em] tabular-nums text-brand-700">
                     {formatCOP(estimate.totalCop)}
                   </span>
@@ -493,7 +505,7 @@ export function BookingWidget({
 
                 {estimate.nights > 1 && (
                   <p className="mt-1 text-right text-[0.8125rem] text-ink-muted">
-                    {formatCOP(estimate.averageNightCop)} por noche en promedio
+                    {t.booking.average(formatCOP(estimate.averageNightCop))}
                   </p>
                 )}
               </>
@@ -503,9 +515,9 @@ export function BookingWidget({
               <>
                 <div className="flex items-baseline justify-between gap-4">
                   <span className="text-ink-muted">
-                    Desde
+                    {t.common.from}
                     {from.guests
-                      ? ` · ${formatGuests(from.guests)}`
+                      ? ` · ${formatGuests(from.guests, locale)}`
                       : ""}
                   </span>
                   <span className="tabular-nums text-ink-soft">
@@ -513,7 +525,9 @@ export function BookingWidget({
                   </span>
                 </div>
                 <div className="mt-3 flex items-baseline justify-between gap-4 border-t border-ink/[0.07] pt-3">
-                  <span className="font-semibold text-ink">Total estimado</span>
+                  <span className="font-semibold text-ink">
+                    {t.booking.total}
+                  </span>
                   <span className="text-[1.375rem] font-semibold tracking-[-0.03em] tabular-nums text-brand-700">
                     —
                   </span>
@@ -530,10 +544,11 @@ export function BookingWidget({
 
             {estimate?.breakfast?.optionalTotalCop ? (
               <p className="mt-2 text-[0.8125rem] leading-relaxed text-ink-muted">
-                El desayuno de {formatGuests(guests)} durante {estimate.nights}{" "}
-                {estimate.nights === 1 ? "noche" : "noches"} sumaría{" "}
-                {formatCOP(estimate.breakfast.optionalTotalCop)}. No está
-                incluido en el total.
+                {t.booking.breakfastExtra(
+                  formatGuests(guests, locale),
+                  formatNights(estimate.nights, locale),
+                  formatCOP(estimate.breakfast.optionalTotalCop),
+                )}
               </p>
             ) : null}
 
@@ -565,10 +580,11 @@ export function BookingWidget({
             >
               <AlertIcon className="mt-0.5 h-4 w-4 shrink-0" />
               <span>
-                {estimate.minStay.message} Elegiste {estimate.nights}{" "}
-                {estimate.nights === 1 ? "noche" : "noches"}: añade{" "}
-                {estimate.minStay.requiredNights - estimate.nights} más para
-                poder reservar.
+                {estimate.minStay.message}{" "}
+                {t.booking.minStayHelp(
+                  formatNights(estimate.nights, locale),
+                  estimate.minStay.requiredNights - estimate.nights,
+                )}
               </span>
             </p>
           )}
@@ -582,7 +598,7 @@ export function BookingWidget({
               className="mt-5 flex w-full items-center justify-center gap-2 rounded-full bg-brand-600 px-4 py-4 text-center text-[0.9375rem] font-semibold tracking-[-0.01em] text-white shadow-pill transition-[background-color,transform] duration-200 ease-ios hover:bg-brand-700 active:scale-[0.98]"
             >
               <WhatsAppIcon className="h-5 w-5 shrink-0" />
-              Solicitar reserva por WhatsApp
+              {t.booking.request}
             </a>
           ) : (
             <button
@@ -591,22 +607,22 @@ export function BookingWidget({
               className="mt-5 flex w-full cursor-not-allowed items-center justify-center gap-2 rounded-full bg-sand px-4 py-4 text-[0.9375rem] font-semibold tracking-[-0.01em] text-ink-muted"
             >
               <WhatsAppIcon className="h-5 w-5 shrink-0" />
-              Solicitar reserva por WhatsApp
+              {t.booking.request}
             </button>
           )}
 
           <p className="mt-3 text-center text-[0.8125rem] leading-relaxed text-ink-muted">
             {canRequest
-              ? "Te confirmamos disponibilidad y forma de pago por WhatsApp."
+              ? t.booking.requestReady
               : blockedByMinStay
-                ? "Ajusta las fechas para cumplir la estancia mínima."
-                : "Elige las fechas para enviar tu solicitud."}
+                ? t.booking.requestBlocked
+                : t.booking.requestPending}
           </p>
           <p className="mt-2 text-center text-[0.8125rem] font-medium text-brand-700">
-            Muy pronto podrás pagar en línea aquí mismo.
+            {t.booking.onlineSoon}
           </p>
           <p className="mt-3 text-center text-[0.8125rem] text-ink-muted">
-            ¿Prefieres hablar?{" "}
+            {t.booking.prefersTalking}{" "}
             <a
               href={phoneHref}
               className="font-semibold text-brand-700 underline-offset-4 transition-colors duration-200 hover:underline"
@@ -620,12 +636,12 @@ export function BookingWidget({
               reprogramación con 24 horas y no-show. Enlace discreto, mismo tono
               que las notas de arriba; `<a>` plano como el del teléfono. */}
           <p className="mt-3 text-center text-[0.8125rem] leading-relaxed text-ink-muted">
-            Al reservar aceptas la{" "}
+            {t.booking.acceptPolicy}{" "}
             <a
-              href="/legal/cancelacion"
+              href={localePath(locale, "/legal/cancelacion")}
               className="font-semibold text-brand-700 underline-offset-4 transition-colors duration-200 hover:underline"
             >
-              política de cancelación
+              {t.booking.acceptPolicyLink}
             </a>
             .
           </p>

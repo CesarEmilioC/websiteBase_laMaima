@@ -895,3 +895,153 @@ describe("notas de la tarifa", () => {
     expect(rateNotes(CASA_UBA)).toEqual([]);
   });
 });
+
+/* ---------------------------------------------------------------------------
+ * Versión inglesa del sitio
+ * -------------------------------------------------------------------------
+ * El motor de tarifas es el mismo para los dos idiomas —los números no cambian—
+ * pero TODO lo que produce texto recibe el idioma: la tabla de la ficha, las
+ * condiciones de la tarifa, el desglose de la cotización y el aviso de estancia
+ * mínima. Estas pruebas fijan las dos cosas que importan: que el inglés diga lo
+ * mismo que el español, y que el DINERO no se mueva ni un peso por cambiar de
+ * bandera.
+ * ------------------------------------------------------------------------- */
+describe("sitio en inglés", () => {
+  it("escribe la ocupación como techo, no como cuota por cabeza", () => {
+    // "Hasta 8 personas" -> "Up to 8 guests": nunca "8 personas" a secas, que
+    // es lo que el cliente pidió evitar (se leía como precio por persona).
+    expect(tierRows(CASA_MAIMA.tiers, "en").map((row) => row.label)).toEqual([
+      "Up to 8 guests",
+      "Up to 10 guests",
+    ]);
+  });
+
+  it("distingue las dos tablas de Tres Casitas también en inglés", () => {
+    expect(tierRows(TRES_CASITAS.tiers, "en").map((row) => row.label)).toEqual([
+      "Up to 1 guest · weekend",
+      "Up to 2 guests · weekend",
+      "Up to 1 guest · Monday to Thursday",
+      "Up to 2 guests · Monday to Thursday",
+    ]);
+  });
+
+  it("traduce las condiciones de la tarifa sin tocar las cifras", () => {
+    const notes = rateNotes(CASA_MAIMA, "en");
+
+    expect(notes[0].text).toBe(
+      "Breakfast is not included: $25.000 per person.",
+    );
+    const weekday = notes.find((note) => note.kind === "weekday");
+    expect(weekday?.text).toBe("25 % off from Monday to Thursday.");
+    expect(weekday?.detail).toContain("14 December");
+
+    // Mismo número de puntos y mismos temas que en español.
+    expect(notes.map((note) => note.kind)).toEqual(
+      rateNotes(CASA_MAIMA).map((note) => note.kind),
+    );
+  });
+
+  it("traduce el huésped adicional y su precio propio entre semana", () => {
+    const extra = rateNotes(TRES_CASITAS, "en").find(
+      (note) => note.kind === "extra-guest",
+    );
+    expect(extra?.text).toBe("Extra guest: $75.000 per night.");
+    expect(extra?.detail).toBe("$55.000 from Monday to Thursday.");
+  });
+
+  it("traduce el desayuno incluido y el que se cobra aparte", () => {
+    expect(breakfastLabel(MIRADOR, "en")).toBe("Breakfast included");
+    expect(breakfastLabel(CASA_MAIMA, "en")).toBe(
+      "Breakfast extra: $25.000 per person",
+    );
+    // Tres Casitas no dice nada del desayuno: tampoco se lo inventa en inglés.
+    expect(breakfastLabel(TRES_CASITAS, "en")).toBeNull();
+  });
+
+  it("resume las estancias mínimas con los rótulos ya traducidos", () => {
+    /* `label` llega desde la base ya en inglés (columna `label_en`), así que la
+       función solo compone la frase y agrupa por familia de temporada. */
+    const english: MinStayRule[] = [
+      { label: "Long holiday weekends", rule_type: "holiday_bridge", date_from: null, date_to: null, min_nights: 2 },
+      { label: "Easter Week 2027", rule_type: "date_range", date_from: "2027-03-22", date_to: "2027-03-28", min_nights: 3 },
+      { label: "Easter Week 2028", rule_type: "date_range", date_from: "2028-04-10", date_to: "2028-04-16", min_nights: 3 },
+    ];
+    expect(minStaySummary(english, "en")).toEqual([
+      "Long holiday weekends: minimum 2 nights",
+      "Easter Week: minimum 3 nights",
+    ]);
+  });
+
+  it("redacta el aviso de estancia mínima en inglés, sin minusculizar la temporada", () => {
+    const config: RateConfig = {
+      ...MIRADOR,
+      minStayRules: [
+        {
+          label: "Easter Week 2027",
+          rule_type: "date_range",
+          date_from: "2027-03-22",
+          date_to: "2027-03-28",
+          min_nights: 3,
+        },
+      ],
+    };
+    const issue = quote(config, "2027-03-23", "2027-03-24", 2, "en").minStay;
+    expect(issue?.message).toBe(
+      "During Easter Week 2027 the minimum stay is 3 nights.",
+    );
+
+    const bridge = quote(MIRADOR, "2026-01-10", "2026-01-11", 2, "en").minStay;
+    expect(bridge?.message).toBe(
+      "Over long holiday weekends the minimum stay is 2 nights.",
+    );
+  });
+
+  it("traduce el desglose de la cotización", () => {
+    // Vie 11 y sáb 12 de septiembre de 2026 (fin de semana) + lun 14 (entre
+    // semana, con su 25 %).
+    const english = quote(MIRADOR, "2026-09-11", "2026-09-15", 2, "en");
+    expect(english.lines.map((line) => line.label)).toEqual([
+      "3 nights × $570.000",
+      "1 night × $427.500",
+    ]);
+    expect(english.lines[0].detail).toBe("Weekend or public holiday");
+    expect(english.lines[1].detail).toBe("Monday to Thursday · 25 % off");
+  });
+
+  it("cobra exactamente lo mismo en los dos idiomas", () => {
+    const spanish = quote(CASA_MAIMA, "2026-09-11", "2026-09-15", 9);
+    const english = quote(CASA_MAIMA, "2026-09-11", "2026-09-15", 9, "en");
+
+    expect(english.totalCop).toBe(spanish.totalCop);
+    expect(english.averageNightCop).toBe(spanish.averageNightCop);
+    expect(english.extraTotalCop).toBe(spanish.extraTotalCop);
+    expect(english.nightly.map((night) => night.totalCop)).toEqual(
+      spanish.nightly.map((night) => night.totalCop),
+    );
+    // El separador de miles NO se anglosajoniza: los pesos se escriben igual.
+    expect(english.lines[0].label).toContain("$");
+    expect(english.lines[0].label).not.toContain(",");
+  });
+
+  it("descarta del texto libre inglés lo que los campos ya cuentan", () => {
+    const notes = rateNotes({
+      ...CASA_MAIMA,
+      rateNote:
+        "Breakfast is not included: $25.000 COP per person. A 25 % discount applies Monday to Thursday, except between 14 December and 15 January.",
+    }, "en");
+    expect(notes.some((note) => note.kind === "other")).toBe(false);
+  });
+
+  it("sí publica lo que el texto libre inglés añade", () => {
+    const notes = rateNotes({
+      ...CASA_MAIMA,
+      rateNote:
+        "Breakfast is included. Firewood for the fire pit is charged separately at the front desk.",
+    }, "en");
+    const extra = notes.filter((note) => note.kind === "other");
+    expect(extra).toHaveLength(1);
+    expect(extra[0].text).toBe(
+      "Firewood for the fire pit is charged separately at the front desk.",
+    );
+  });
+});

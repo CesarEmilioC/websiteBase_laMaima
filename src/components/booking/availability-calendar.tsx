@@ -16,17 +16,20 @@ import { ChevronLeftIcon, ChevronRightIcon } from "@/components/icons";
 import { dayState, type CalendarContext } from "@/lib/availability";
 import {
   addMonths,
-  formatLongDateEs,
+  formatLongDate,
   monthGrid,
-  monthTitleEs,
-  WEEKDAYS_SHORT_ES,
+  monthTitle,
+  weekdaysShort,
   type YearMonth,
 } from "@/lib/dates";
+import { dict } from "@/lib/i18n";
+import type { Locale } from "@/lib/i18n/config";
 
 type Props = {
   /** Primer mes visible; el segundo es el siguiente (solo en ≥ sm). */
   cursor: YearMonth;
   context: CalendarContext;
+  locale: Locale;
   onSelect: (iso: string) => void;
   onPrev: () => void;
   onNext: () => void;
@@ -37,12 +40,14 @@ type Props = {
 export function AvailabilityCalendar({
   cursor,
   context,
+  locale,
   onSelect,
   onPrev,
   onNext,
   canGoPrev,
   canGoNext,
 }: Props) {
+  const t = dict(locale);
   const second = addMonths(cursor, 1);
 
   return (
@@ -53,15 +58,15 @@ export function AvailabilityCalendar({
           direction="prev"
           onClick={onPrev}
           disabled={!canGoPrev}
-          label="Mes anterior"
+          label={t.booking.calendar.prevMonth}
         />
 
         <div className="grid flex-1 grid-cols-1 sm:grid-cols-2 sm:gap-x-6">
           <p className="text-center text-[0.9375rem] font-semibold tracking-[-0.01em] text-ink">
-            {monthTitleEs(cursor)}
+            {monthTitle(cursor, locale)}
           </p>
           <p className="hidden text-center text-[0.9375rem] font-semibold tracking-[-0.01em] text-ink sm:block">
-            {monthTitleEs(second)}
+            {monthTitle(second, locale)}
           </p>
         </div>
 
@@ -69,15 +74,25 @@ export function AvailabilityCalendar({
           direction="next"
           onClick={onNext}
           disabled={!canGoNext}
-          label="Mes siguiente"
+          label={t.booking.calendar.nextMonth}
         />
       </div>
 
       {/* Rejillas ---------------------------------------------------------- */}
       <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 sm:gap-x-6">
-        <Month target={cursor} context={context} onSelect={onSelect} />
+        <Month
+          target={cursor}
+          context={context}
+          locale={locale}
+          onSelect={onSelect}
+        />
         <div className="hidden sm:block">
-          <Month target={second} context={context} onSelect={onSelect} />
+          <Month
+            target={second}
+            context={context}
+            locale={locale}
+            onSelect={onSelect}
+          />
         </div>
       </div>
 
@@ -88,21 +103,21 @@ export function AvailabilityCalendar({
             aria-hidden="true"
             className="h-3.5 w-3.5 rounded-full bg-white ring-1 ring-inset ring-ink/15"
           />
-          Disponible
+          {t.booking.calendar.available}
         </li>
         <li className="flex items-center gap-2">
           <span
             aria-hidden="true"
             className="h-3.5 w-3.5 rounded-full bg-sand"
           />
-          No disponible
+          {t.booking.calendar.unavailable}
         </li>
         <li className="flex items-center gap-2">
           <span
             aria-hidden="true"
             className="h-3.5 w-3.5 rounded-full bg-brand-600"
           />
-          Tus fechas
+          {t.booking.calendar.yourDates}
         </li>
       </ul>
     </div>
@@ -141,10 +156,12 @@ function NavButton({
 function Month({
   target,
   context,
+  locale,
   onSelect,
 }: {
   target: YearMonth;
   context: CalendarContext;
+  locale: Locale;
   onSelect: (iso: string) => void;
 }) {
   const cells = monthGrid(target);
@@ -155,7 +172,7 @@ function Month({
         aria-hidden="true"
         className="mt-3 grid grid-cols-7 text-center text-[0.6875rem] font-semibold uppercase tracking-[0.02em] text-ink-muted"
       >
-        {WEEKDAYS_SHORT_ES.map((day) => (
+        {weekdaysShort(locale).map((day) => (
           <span key={day} className="py-2">
             {day}
           </span>
@@ -175,6 +192,7 @@ function Month({
               key={iso}
               iso={iso}
               context={context}
+              locale={locale}
               onSelect={onSelect}
               hasRange={Boolean(context.checkIn && context.checkOut)}
             />
@@ -188,14 +206,17 @@ function Month({
 function Day({
   iso,
   context,
+  locale,
   onSelect,
   hasRange,
 }: {
   iso: string;
   context: CalendarContext;
+  locale: Locale;
   onSelect: (iso: string) => void;
   hasRange: boolean;
 }) {
+  const t = dict(locale);
   const state = dayState(iso, context);
   const day = Number(iso.slice(8));
   const isEdge = state.role === "start" || state.role === "end";
@@ -228,8 +249,8 @@ function Day({
         type="button"
         disabled={!state.selectable}
         onClick={() => onSelect(iso)}
-        aria-label={`${formatLongDateEs(iso)}${
-          state.selectable ? "" : " — no disponible"
+        aria-label={`${formatLongDate(iso, locale)}${
+          state.selectable ? "" : t.booking.calendar.dayUnavailable
         }`}
         aria-pressed={isEdge}
         className={`relative flex aspect-square w-full items-center justify-center rounded-full text-[0.9375rem] font-medium tabular-nums transition-[background-color,color,transform] duration-200 ease-ios ${tone}`}

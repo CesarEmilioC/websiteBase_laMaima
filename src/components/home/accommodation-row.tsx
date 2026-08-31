@@ -4,10 +4,13 @@ import Link from "next/link";
 import { ArrowRightIcon, UsersIcon } from "../icons";
 import { coverImage, type Accommodation } from "@/lib/content";
 import { formatCOP, formatGuests } from "@/lib/format";
+import { dict } from "@/lib/i18n";
+import { localePath, type Locale } from "@/lib/i18n/config";
 import { lowestRate } from "@/lib/pricing";
 
 type Props = {
   accommodation: Accommodation;
+  locale: Locale;
   /** Posición en la lista: decide el lado de la foto y la carga diferida. */
   index: number;
 };
@@ -36,17 +39,18 @@ type Props = {
  * porque en una sola columna el zigzag no se percibe y solo conseguiría que la
  * mitad de las fotos llegaran después de su propio texto.
  */
-export function AccommodationRow({ accommodation, index }: Props) {
+export function AccommodationRow({ accommodation, locale, index }: Props) {
+  const t = dict(locale);
   const cover = coverImage(
     accommodation.gallery,
-    `${accommodation.name} en La Maima`,
+    t.gallery.fallbackAlt(accommodation.name),
   );
 
   // "Desde" = el tramo más barato de la tabla real de precios. Se calcula aquí
   // en vez de leer la columna para que no pueda quedarse atrás si el cliente
   // edita un precio desde el panel.
   const from = lowestRate(accommodation.tiers, accommodation.price_per_night_cop);
-  const href = `/alojamientos/${accommodation.slug}`;
+  const href = localePath(locale, `/alojamientos/${accommodation.slug}`);
 
   // Las filas pares llevan la foto a la izquierda; las impares, a la derecha.
   const photoRight = index % 2 === 1;
@@ -84,7 +88,7 @@ export function AccommodationRow({ accommodation, index }: Props) {
       <div className={`lg:col-span-5 ${photoRight ? "lg:order-1 lg:pr-4" : "lg:pl-4"}`}>
         <p className="eyebrow flex items-center gap-2 text-brand-700">
           <UsersIcon className="h-3.5 w-3.5" />
-          Hasta {formatGuests(accommodation.capacity)}
+          {t.common.upTo} {formatGuests(accommodation.capacity, locale)}
         </p>
 
         <h3 className="mt-3 text-[1.625rem] leading-[1.15] text-ink sm:text-[1.875rem]">
@@ -106,12 +110,12 @@ export function AccommodationRow({ accommodation, index }: Props) {
         )}
 
         <p className="mt-4 flex items-baseline gap-1.5">
-          <span className="eyebrow text-ink-muted">Desde</span>
+          <span className="eyebrow text-ink-muted">{t.common.from}</span>
           <span className="text-[1.375rem] font-semibold leading-none tracking-[-0.02em] text-brand-700">
             {formatCOP(from.amountCop)}
           </span>
           <span className="text-[0.8125rem] font-medium text-ink-muted">
-            / noche
+            {t.common.perNight}
           </span>
         </p>
 
@@ -120,13 +124,13 @@ export function AccommodationRow({ accommodation, index }: Props) {
             href={`${href}#reservar`}
             className="inline-flex items-center justify-center gap-2 rounded-full bg-brand-600 px-5 py-2.5 text-[0.9375rem] font-semibold text-white shadow-pill transition-[background-color,transform] duration-200 ease-ios hover:bg-brand-700 active:scale-[0.98]"
           >
-            Reservar
+            {t.nav.book}
           </Link>
           <Link
             href={href}
             className="inline-flex items-center justify-center gap-1.5 rounded-full px-4 py-2.5 text-[0.9375rem] font-semibold text-ink-soft transition-colors duration-200 ease-ios hover:bg-brand-600/[0.07] hover:text-brand-700"
           >
-            Ver detalles
+            {t.common.seeDetails}
             <ArrowRightIcon className="h-[0.95rem] w-[0.95rem]" />
           </Link>
         </div>

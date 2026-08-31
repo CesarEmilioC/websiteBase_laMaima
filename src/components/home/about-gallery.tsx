@@ -4,6 +4,8 @@ import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 
 import type { GalleryImage } from "@/lib/content";
+import { dict } from "@/lib/i18n";
+import type { Locale } from "@/lib/i18n/config";
 
 /**
  * Galería automática de la sección "Sobre la reserva".
@@ -40,9 +42,11 @@ type Props = {
   images: GalleryImage[];
   /** Texto de respaldo cuando una foto viene sin descripción. */
   fallbackAlt: string;
+  locale: Locale;
 };
 
-export function AboutGallery({ images, fallbackAlt }: Props) {
+export function AboutGallery({ images, fallbackAlt, locale }: Props) {
+  const t = dict(locale);
   const [index, setIndex] = useState(0);
   const [paused, setPaused] = useState(false);
   const [autoplay, setAutoplay] = useState(false);
@@ -122,8 +126,8 @@ export function AboutGallery({ images, fallbackAlt }: Props) {
     >
       <div
         role="group"
-        aria-roledescription="carrusel"
-        aria-label="Fotos de la reserva natural"
+        aria-roledescription={t.gallery.carouselRole}
+        aria-label={t.home.about.galleryLabel}
         /* `shadow-panel` despega la foto del blanco cálido de la sección sin
            dibujarle un borde. */
         className="relative aspect-[4/3] overflow-hidden rounded-panel bg-brand-100 shadow-panel sm:aspect-[5/4] lg:aspect-[4/5]"
@@ -167,7 +171,7 @@ export function AboutGallery({ images, fallbackAlt }: Props) {
                 key={`dot-${image.url}-${position}`}
                 type="button"
                 onClick={() => setIndex(position)}
-                aria-label={`Ver la foto ${position + 1} de ${images.length}`}
+                aria-label={t.gallery.dot(position + 1, images.length)}
                 aria-current={active ? "true" : undefined}
                 /* Punto de 7 px dentro de un botón de 40 px: discreto a la
                    vista y con el área táctil holgada que pide la WCAG 2.2. A

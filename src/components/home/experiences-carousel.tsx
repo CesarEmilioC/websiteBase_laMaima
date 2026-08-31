@@ -24,9 +24,17 @@ import { ChevronRightIcon } from "@/components/icons";
 type Props = {
   children: React.ReactNode;
   label: string;
+  /** Nombres accesibles de las flechas, ya traducidos. */
+  prevLabel: string;
+  nextLabel: string;
 };
 
-export function ExperiencesCarousel({ children, label }: Props) {
+export function ExperiencesCarousel({
+  children,
+  label,
+  prevLabel,
+  nextLabel,
+}: Props) {
   const track = useRef<HTMLUListElement>(null);
   const [canPrev, setCanPrev] = useState(false);
   const [canNext, setCanNext] = useState(false);
@@ -65,16 +73,12 @@ export function ExperiencesCarousel({ children, label }: Props) {
     <div className="relative">
       <div className="mb-5 hidden justify-end gap-2 lg:flex">
         <Arrow
-          label="Ver las experiencias anteriores"
+          label={prevLabel}
           disabled={!canPrev}
           onClick={() => scrollBy(-1)}
           flip
         />
-        <Arrow
-          label="Ver las siguientes experiencias"
-          disabled={!canNext}
-          onClick={() => scrollBy(1)}
-        />
+        <Arrow label={nextLabel} disabled={!canNext} onClick={() => scrollBy(1)} />
       </div>
 
       <ul

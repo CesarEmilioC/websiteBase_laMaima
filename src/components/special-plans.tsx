@@ -1,5 +1,7 @@
-import { formatRangeEs } from "@/lib/dates";
+import { formatRange } from "@/lib/dates";
 import { formatCOP, formatGuests } from "@/lib/format";
+import { dict } from "@/lib/i18n";
+import type { Locale } from "@/lib/i18n/config";
 import { comparePlans, type RatePlan } from "@/lib/pricing";
 
 /**
@@ -14,16 +16,23 @@ import { comparePlans, type RatePlan } from "@/lib/pricing";
  * de diseño (`brand-*`, `ink*`, radios y sombras), así que sigue la paleta del
  * sitio sin tener que tocarla.
  */
-export function SpecialPlans({ plans }: { plans: RatePlan[] }) {
+export function SpecialPlans({
+  plans,
+  locale,
+}: {
+  plans: RatePlan[];
+  locale: Locale;
+}) {
   if (plans.length === 0) return null;
 
+  const t = dict(locale);
   // Mismo orden de precedencia que usa el motor: el que cobra va primero.
   const sorted = [...plans].sort(comparePlans);
 
   return (
     <div className="mt-6 rounded-card bg-brand-600/[0.07] px-4 py-4 ring-1 ring-brand-600/15">
       <p className="text-[0.8125rem] font-semibold text-ink">
-        Planes especiales
+        {t.detail.specialPlans}
       </p>
 
       <ul className="mt-2.5 space-y-3">
@@ -33,11 +42,11 @@ export function SpecialPlans({ plans }: { plans: RatePlan[] }) {
               {plan.name}
             </p>
             <p className="mt-0.5 text-[0.8125rem] leading-relaxed text-ink-muted">
-              {formatRangeEs(plan.date_from, plan.date_to)}
+              {formatRange(plan.date_from, plan.date_to, locale)}
               {plan.price_per_night_cop !== null &&
-                ` · ${formatCOP(plan.price_per_night_cop)} por noche`}
+                ` · ${formatCOP(plan.price_per_night_cop)} ${t.detail.planPerNight}`}
               {plan.guests_included !== null &&
-                ` · ${formatGuests(plan.guests_included)}`}
+                ` · ${formatGuests(plan.guests_included, locale)}`}
             </p>
             {plan.description && (
               <p className="mt-0.5 text-[0.8125rem] leading-relaxed text-ink-muted/85">
@@ -49,8 +58,7 @@ export function SpecialPlans({ plans }: { plans: RatePlan[] }) {
       </ul>
 
       <p className="mt-3 text-[0.75rem] leading-relaxed text-ink-muted">
-        Si eliges fechas dentro de un plan, el calendario aplica su precio
-        automáticamente.
+        {t.detail.specialPlansNote}
       </p>
     </div>
   );

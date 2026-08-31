@@ -3,11 +3,14 @@ import Image from "next/image";
 import { GalleryViewer } from "./gallery-viewer";
 import { ExpandIcon } from "./icons";
 import type { GalleryImage } from "@/lib/content";
+import { dict } from "@/lib/i18n";
+import type { Locale } from "@/lib/i18n/config";
 
 type Props = {
   images: GalleryImage[];
   /** Nombre del alojamiento, para el alt de respaldo. */
   name: string;
+  locale: Locale;
 };
 
 /**
@@ -35,12 +38,13 @@ const SIDE_ROWS: Record<number, string> = {
 /** Cuántas fotos se ven sin abrir el visor. */
 const VISIBLE = 4;
 
-export function Gallery({ images, name }: Props) {
+export function Gallery({ images, name, locale }: Props) {
   if (images.length === 0) return null;
 
+  const t = dict(locale);
   const [main, ...rest] = images;
   const side = rest.slice(0, VISIBLE - 1);
-  const fallbackAlt = `${name} en La Maima`;
+  const fallbackAlt = t.gallery.fallbackAlt(name);
   const total = images.length;
   /* Cuántas quedan fuera de la vista. El cliente añade y quita fotos desde el
      panel, así que el número se calcula siempre: nada supone doce ni ocho. */
@@ -48,13 +52,11 @@ export function Gallery({ images, name }: Props) {
 
   /** Texto accesible de cada miniatura: qué foto es y qué va a pasar al tocarla. */
   const label = (position: number, alt: string) =>
-    total > 1
-      ? `Ver la foto ${position} de ${total} a pantalla completa: ${alt}`
-      : `Ver la foto a pantalla completa: ${alt}`;
+    total > 1 ? t.gallery.open(position, total, alt) : t.gallery.openOne(alt);
 
   return (
-    <section aria-label={`Galería de fotos de ${name}`}>
-      <GalleryViewer images={images} name={name}>
+    <section aria-label={t.gallery.label(name)}>
+      <GalleryViewer images={images} name={name} locale={locale}>
         <div className="grid gap-3 sm:gap-4 lg:grid-cols-3">
           <button
             type="button"
@@ -103,7 +105,7 @@ export function Gallery({ images, name }: Props) {
                     data-lightbox-index={index + 1}
                     aria-label={
                       showsRemaining
-                        ? `Ver las ${total} fotos a pantalla completa`
+                        ? t.gallery.openAll(total)
                         : label(index + 2, image.alt || fallbackAlt)
                     }
                     className={`group relative cursor-zoom-in overflow-hidden rounded-card bg-brand-100 lg:col-span-1 lg:aspect-auto lg:h-full ${
@@ -135,7 +137,7 @@ export function Gallery({ images, name }: Props) {
                       >
                         <ExpandIcon className="h-5 w-5" />
                         <span className="text-[1.0625rem] font-semibold tracking-[-0.02em]">
-                          +{remaining} {remaining === 1 ? "foto" : "fotos"}
+                          {t.gallery.morePhotos(remaining)}
                         </span>
                       </span>
                     ) : (

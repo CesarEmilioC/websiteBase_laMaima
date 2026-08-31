@@ -21,6 +21,14 @@
  */
 import type { Metadata } from "next";
 
+import {
+  DEFAULT_LOCALE,
+  HREFLANG,
+  LOCALES,
+  localePath,
+  OG_LOCALE,
+  type Locale,
+} from "./i18n/config";
 import { absoluteUrl, SITE } from "./site";
 
 /* ---------------------------------------------------------------------------
@@ -41,9 +49,18 @@ export type PageSeo = {
    * para que, con la marca, el resultado completo no se corte en Google.
    */
   title: string;
+  /**
+   * Cuando el título YA incluye la marca (la portada), se publica tal cual y
+   * la plantilla del layout no vuelve a añadirla.
+   */
+  absoluteTitle?: boolean;
   /** ~150 caracteres. Es lo que se lee bajo el enlace en el buscador. */
   description: string;
-  /** Ruta canónica de la página, siempre con barra inicial y sin barra final. */
+  /**
+   * Ruta CANÓNICA de la página, siempre en su forma española, con barra
+   * inicial y sin barra final ni prefijo de idioma: `/alojamientos/mirador`.
+   * El prefijo del árbol lo pone esta función a partir de `locale`.
+   */
   path: string;
   /** Imagen de la tarjeta social. Sin ella se usa la genérica del sitio. */
   image: SeoImage;
@@ -54,29 +71,59 @@ export type PageSeo = {
   socialTitle?: string;
   /** Texto para redes cuando la descripción del buscador resulta demasiado técnica. */
   socialDescription?: string;
+  /** Idioma de ESTA página. Por defecto, el español de la raíz. */
+  locale?: Locale;
 };
+
+/**
+ * Enlaces `hreflang` de una ruta canónica.
+ *
+ * Los publica TODA página de los dos árboles, y las dos versiones se apuntan
+ * mutuamente: un `hreflang` que no es recíproco Google lo descarta entero. El
+ * `x-default` va al español porque es la versión de la raíz y la que ve quien
+ * llega sin preferencia declarada.
+ *
+ * Las direcciones son relativas a propósito: `metadataBase` (declarado en el
+ * layout raíz) las convierte en absolutas al serializar, que es lo que exige
+ * la especificación, sin repetir el dominio en cada página.
+ */
+export function languageAlternates(path: string): Record<string, string> {
+  const languages: Record<string, string> = {};
+  for (const locale of LOCALES) {
+    languages[HREFLANG[locale]] = localePath(locale, path);
+  }
+  languages["x-default"] = localePath(DEFAULT_LOCALE, path);
+  return languages;
+}
 
 export function pageMetadata({
   title,
+  absoluteTitle,
   description,
   path,
   image,
   socialTitle,
   socialDescription,
+  locale = DEFAULT_LOCALE,
 }: PageSeo): Metadata {
   const social = socialTitle ?? `${title} · ${SITE.name}`;
   const socialText = socialDescription ?? description;
+  const url = localePath(locale, path);
 
   return {
-    title,
+    title: absoluteTitle ? { absolute: title } : title,
     description,
-    alternates: { canonical: path },
+    alternates: {
+      canonical: url,
+      /* El sitio es bilingüe: cada página declara dónde está su gemela. */
+      languages: languageAlternates(path),
+    },
     openGraph: {
       // Estas tres se repiten en cada página A PROPÓSITO: no se heredan.
       type: "website",
-      locale: "es_CO",
+      locale: OG_LOCALE[locale],
       siteName: SITE.name,
-      url: path,
+      url,
       title: social,
       description: socialText,
       images: [image],
@@ -140,7 +187,33 @@ export function composeDescription(
  * tiene tabla de tarifas publicada se pasa `null` y ninguna cola promete un
  * precio que la ficha no muestra.
  */
-export function accommodationTails(price: string | null): string[] {
+export function accommodationTails(
+  price: string | null,
+  locale: Locale = DEFAULT_LOCALE,
+): string[] {
+  if (locale === "en") {
+    /* El precio lleva "COP" pegado: un "$495.000" suelto en una descripción en
+       inglés se lee como dólares, y la diferencia entre las dos lecturas es de
+       tres órdenes de magnitud. */
+    if (price === null) {
+      return [
+        "A house at La Maima, a nature reserve in Dapa (Yumbo, Colombia).",
+        "At La Maima, a nature reserve in Dapa (Yumbo).",
+        "La Maima, Dapa (Yumbo).",
+        "",
+      ];
+    }
+    return [
+      `A house at La Maima, nature reserve in Dapa (Yumbo). From ${price} COP a night.`,
+      `At La Maima, nature reserve in Dapa (Yumbo). From ${price} COP a night.`,
+      `At La Maima, Dapa (Yumbo). From ${price} COP a night.`,
+      `La Maima, Dapa (Yumbo). From ${price} COP.`,
+      `Dapa, Yumbo. From ${price} COP.`,
+      `From ${price} COP a night.`,
+      "",
+    ];
+  }
+
   if (price === null) {
     return [
       "Alojamiento en La Maima, reserva natural en Dapa (Yumbo).",
@@ -165,9 +238,28 @@ export function accommodationTails(price: string | null): string[] {
  * Datos estructurados
  * ------------------------------------------------------------------------- */
 
-/** Identificadores estables del grafo. Se referencian entre sí con `@id`. */
-export const LODGING_ID = `${SITE.url}/#lodging`;
-export const WEBSITE_ID = `${SITE.url}/#website`;
+/**
+ * Identificadores estables del grafo. Se referencian entre sí con `@id`.
+ *
+ * SON DISTINTOS POR IDIOMA. Cada versión del sitio es un DOCUMENTO distinto
+ * —tiene su propia dirección canónica, su propio `inLanguage` y sus propias
+ * descripciones—, así que la ficha inglesa de Casa Maima no puede declararse
+ * con el mismo `@id` que la española: serían dos descripciones contradictorias
+ * de la misma entidad y el buscador se queda con una al azar. Con `@id`
+ * separados, cada árbol publica un grafo coherente consigo mismo y el vínculo
+ * entre los dos lo hace el `hreflang`, que es para lo que existe.
+ */
+export function lodgingId(locale: Locale = DEFAULT_LOCALE): string {
+  return `${absoluteUrl(localePath(locale, "/"))}/#lodging`;
+}
+
+export function websiteId(locale: Locale = DEFAULT_LOCALE): string {
+  return `${absoluteUrl(localePath(locale, "/"))}/#website`;
+}
+
+/** Atajos del árbol español, que es el canónico. */
+export const LODGING_ID = lodgingId("es");
+export const WEBSITE_ID = websiteId("es");
 
 export type Crumb = { name: string; path: string };
 

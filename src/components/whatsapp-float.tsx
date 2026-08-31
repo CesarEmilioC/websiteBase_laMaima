@@ -1,6 +1,8 @@
 import { WhatsAppFloatButton } from "./whatsapp-float-button";
 import { getContactInfo } from "@/lib/content";
-import { GENERAL_MESSAGE, whatsappUrl } from "@/lib/whatsapp";
+import { dict } from "@/lib/i18n";
+import { DEFAULT_LOCALE, type Locale } from "@/lib/i18n/config";
+import { generalMessage, whatsappUrl } from "@/lib/whatsapp";
 
 /**
  * Botón flotante de WhatsApp, presente en TODAS las páginas del sitio y en
@@ -25,12 +27,17 @@ import { GENERAL_MESSAGE, whatsappUrl } from "@/lib/whatsapp";
  * consulta ni el fallback al navegador— y solo viaja al cliente la URL ya
  * construida.
  */
-export async function WhatsAppFloat() {
+export async function WhatsAppFloat({
+  locale = DEFAULT_LOCALE,
+}: {
+  locale?: Locale;
+}) {
   const contact = await getContactInfo();
 
   return (
     <WhatsAppFloatButton
-      href={whatsappUrl(GENERAL_MESSAGE, contact.whatsapp)}
+      href={whatsappUrl(generalMessage(locale), contact.whatsapp)}
+      label={dict(locale).common.whatsappFloat}
     />
   );
 }
