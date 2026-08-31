@@ -4,6 +4,9 @@ import {
   saveAboutAction,
   saveContactAction,
   saveHeroAction,
+  saveInstagramStripAction,
+  saveListingHeroesAction,
+  saveNotFoundAction,
   saveSeoAction,
 } from "./actions";
 import { ActionForm } from "@/components/admin/action-form";
@@ -21,6 +24,11 @@ import {
 import { requireAdmin } from "@/lib/admin/auth";
 import { getSiteContentMap } from "@/lib/admin/data";
 import type { GalleryImage } from "@/lib/admin/types";
+import {
+  FALLBACK_INSTAGRAM_GALLERY,
+  FALLBACK_LISTING_HEROES,
+  FALLBACK_NOT_FOUND,
+} from "@/lib/content";
 
 export const metadata: Metadata = { title: "Contenido del sitio" };
 export const dynamic = "force-dynamic";
@@ -29,6 +37,28 @@ export const dynamic = "force-dynamic";
 function text(source: Record<string, unknown>, key: string): string {
   const value = source[key];
   return typeof value === "string" ? value : "";
+}
+
+/**
+ * Igual que `text()`, pero cuando la fila todavía no existe (o le falta el
+ * campo) devuelve el valor que hoy lleva fijo en código, en vez de un campo
+ * vacío. Así la primera vez que se abre el panel ya se ve —y se puede
+ * guardar tal cual— la imagen real que muestra el sitio público.
+ */
+function textOrFallback(
+  source: Record<string, unknown>,
+  key: string,
+  fallback: string,
+): string {
+  return text(source, key) || fallback;
+}
+
+/** Lectura segura de un sub-objeto anidado dentro del jsonb (p. ej. `listing_heroes.alojamientos`). */
+function objectOf(source: Record<string, unknown>, key: string): Record<string, unknown> {
+  const value = source[key];
+  return typeof value === "object" && value !== null
+    ? (value as Record<string, unknown>)
+    : {};
 }
 
 /** Lectura segura de una galería (`[{ url, alt }]`) dentro del jsonb. */
@@ -76,6 +106,15 @@ export default async function SiteContentPage() {
   const contact = content.contact ?? {};
   const seo = content.seo ?? {};
   const stats = statsOf(about);
+
+  const listingHeroes = content.listing_heroes ?? {};
+  const listingAlojamientos = objectOf(listingHeroes, "alojamientos");
+  const listingExperiencias = objectOf(listingHeroes, "experiencias");
+
+  const instagramStrip = content.instagram_strip ?? {};
+  const instagramGallery = galleryOf(instagramStrip);
+
+  const notFound = content.not_found ?? {};
 
   return (
     <>
@@ -440,6 +479,159 @@ export default async function SiteContentPage() {
                     name="image_alt"
                     maxLength={300}
                     defaultValue={text(seo, "image_alt")}
+                  />
+                </Field>
+              </div>
+            </ActionForm>
+          </CardBody>
+        </Card>
+
+        <Card>
+          <CardHeader
+            title="Cabeceras de Alojamientos y Experiencias"
+            description="La foto grande del encabezado de las páginas /alojamientos y /experiencias."
+          />
+          <CardBody>
+            <ActionForm
+              action={saveListingHeroesAction}
+              submitLabel="Guardar cabeceras"
+            >
+              <div className="grid gap-6 sm:grid-cols-2">
+                <div className="space-y-4">
+                  <p className="text-[0.8125rem] font-semibold text-ink">
+                    Página “Alojamientos”
+                  </p>
+                  <Field
+                    label="Imagen"
+                    hint="Sube una foto desde tu computador o pega la dirección de una que ya esté publicada."
+                  >
+                    <ImageField
+                      name="alojamientos_image"
+                      initialUrl={textOrFallback(
+                        listingAlojamientos,
+                        "image",
+                        FALLBACK_LISTING_HEROES.alojamientos.image,
+                      )}
+                    />
+                  </Field>
+                  <Field
+                    label="Descripción de la imagen"
+                    htmlFor="alojamientos_image_alt"
+                    hint="Para accesibilidad y buscadores."
+                  >
+                    <Input
+                      id="alojamientos_image_alt"
+                      name="alojamientos_image_alt"
+                      maxLength={300}
+                      defaultValue={textOrFallback(
+                        listingAlojamientos,
+                        "image_alt",
+                        FALLBACK_LISTING_HEROES.alojamientos.image_alt,
+                      )}
+                    />
+                  </Field>
+                </div>
+
+                <div className="space-y-4">
+                  <p className="text-[0.8125rem] font-semibold text-ink">
+                    Página “Experiencias”
+                  </p>
+                  <Field
+                    label="Imagen"
+                    hint="Sube una foto desde tu computador o pega la dirección de una que ya esté publicada."
+                  >
+                    <ImageField
+                      name="experiencias_image"
+                      initialUrl={textOrFallback(
+                        listingExperiencias,
+                        "image",
+                        FALLBACK_LISTING_HEROES.experiencias.image,
+                      )}
+                    />
+                  </Field>
+                  <Field
+                    label="Descripción de la imagen"
+                    htmlFor="experiencias_image_alt"
+                    hint="Para accesibilidad y buscadores."
+                  >
+                    <Input
+                      id="experiencias_image_alt"
+                      name="experiencias_image_alt"
+                      maxLength={300}
+                      defaultValue={textOrFallback(
+                        listingExperiencias,
+                        "image_alt",
+                        FALLBACK_LISTING_HEROES.experiencias.image_alt,
+                      )}
+                    />
+                  </Field>
+                </div>
+              </div>
+            </ActionForm>
+          </CardBody>
+        </Card>
+
+        <Card>
+          <CardHeader
+            title="Franja de Instagram (inicio)"
+            description="Las seis fotos que se ven justo antes del pie de la página de inicio. El enlace y el usuario que se muestran junto a ellas son los de “Datos de contacto”, arriba."
+          />
+          <CardBody>
+            <ActionForm
+              action={saveInstagramStripAction}
+              submitLabel="Guardar franja"
+            >
+              <Field
+                label="Fotos"
+                hint="Lo ideal son seis, en formato cuadrado. La primera de la lista aparece primero (arriba a la izquierda); usa las flechas para cambiar el orden."
+              >
+                <GalleryEditor
+                  name="gallery"
+                  initial={
+                    instagramGallery.length > 0
+                      ? instagramGallery
+                      : FALLBACK_INSTAGRAM_GALLERY
+                  }
+                  folder="sitio"
+                />
+              </Field>
+            </ActionForm>
+          </CardBody>
+        </Card>
+
+        <Card>
+          <CardHeader
+            title="Imagen de página no encontrada (404)"
+            description="El fondo de la página que se muestra cuando alguien entra a una dirección que ya no existe."
+          />
+          <CardBody>
+            <ActionForm action={saveNotFoundAction} submitLabel="Guardar imagen">
+              <div className="grid gap-4 sm:grid-cols-2">
+                <Field
+                  label="Imagen"
+                  hint="Sube una foto desde tu computador o pega la dirección de una que ya esté publicada."
+                  className="sm:col-span-2"
+                >
+                  <ImageField
+                    name="image"
+                    initialUrl={textOrFallback(
+                      notFound,
+                      "image",
+                      FALLBACK_NOT_FOUND.image,
+                    )}
+                  />
+                </Field>
+
+                <Field
+                  label="Descripción de la imagen"
+                  htmlFor="not_found_image_alt"
+                  hint="La imagen es solo decorativa: este texto no se muestra."
+                >
+                  <Input
+                    id="not_found_image_alt"
+                    name="image_alt"
+                    maxLength={300}
+                    defaultValue={text(notFound, "image_alt")}
                   />
                 </Field>
               </div>

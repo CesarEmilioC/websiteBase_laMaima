@@ -146,6 +146,48 @@ export type OgImage = {
   alt: string;
 };
 
+/**
+ * Foto de cabecera de `/alojamientos` y `/experiencias` (la banda a sangre de
+ * `PageHero`).
+ *
+ * Se editan en `/admin/contenido` (fila `site_content.listing_heroes`), con
+ * fallback a las fotos que llevaban fijas en cada página. Antes de esta fila
+ * solo se podían cambiar editando código y volviendo a desplegar.
+ */
+export type ListingHero = {
+  image: string;
+  image_alt: string;
+};
+
+export type ListingHeroes = {
+  alojamientos: ListingHero;
+  experiencias: ListingHero;
+};
+
+/**
+ * Fotos de la franja de Instagram al final de la portada (`InstagramStrip`).
+ *
+ * Se editan en `/admin/contenido` (fila `site_content.instagram_strip`), con
+ * el mismo `GalleryEditor` que la galería de "Sobre la reserva". El enlace y
+ * el usuario que se muestran junto a las fotos NO viven aquí: salen de
+ * `getContactInfo().social.instagram`, que ya se edita en la misma pantalla.
+ */
+export type InstagramStripContent = {
+  gallery: GalleryImage[];
+};
+
+/**
+ * Foto de fondo de la página 404 (`app/not-found.tsx`).
+ *
+ * Se edita en `/admin/contenido` (fila `site_content.not_found`), con
+ * fallback a la foto que llevaba fija en el archivo. La imagen es puramente
+ * decorativa (`aria-hidden`), así que el texto alternativo es opcional.
+ */
+export type NotFoundContent = {
+  image: string;
+  image_alt: string;
+};
+
 /* ---------------------------------------------------------------------------
  * Fallbacks
  * ------------------------------------------------------------------------- */
@@ -180,6 +222,57 @@ const FALLBACK_ABOUT: HomeAbout = {
     { value: "6", label: "casas y cabañas" },
     { value: "3", label: "tipos de bosque" },
   ],
+};
+
+/** Fotos de cabecera que llevaban fijas en cada página antes del panel. */
+export const FALLBACK_LISTING_HEROES: ListingHeroes = {
+  alojamientos: {
+    image: media("alojamientos/mirador/2.jpg"),
+    image_alt:
+      "Ventanal del Mirador de La Maima abierto sobre el Valle del Cauca",
+  },
+  experiencias: {
+    image: media("sitio/senderos.jpg"),
+    image_alt:
+      "Sendero con escalones de madera entre guaduas y árboles del bosque de La Maima, con una banca de guadua a un lado",
+  },
+};
+
+/**
+ * Seis fotos del bucket "gallery", elegidas por variedad de tema y de luz.
+ * Eran la selección fija en código de `InstagramStrip` antes de esta fila.
+ */
+export const FALLBACK_INSTAGRAM_GALLERY: GalleryImage[] = [
+  {
+    url: media("sitio/sobre-la-reserva.jpg"),
+    alt: "El Valle del Cauca visto desde los jardines de La Maima, con el cielo cubierto de nubes",
+  },
+  {
+    url: media("alojamientos/mirador/2.jpg"),
+    alt: "Ventanal panorámico del Mirador abierto sobre el bosque y el valle",
+  },
+  {
+    url: media("experiencias/avistamiento-de-flora-y-fauna/1.jpg"),
+    alt: "Tucancito esmeralda posado en una rama del bosque de la reserva",
+  },
+  {
+    url: media("alojamientos/mirador/5.jpg"),
+    alt: "Terraza del Mirador con una hamaca colgada frente a la montaña",
+  },
+  {
+    url: media("experiencias/piscina-de-rio/1.jpg"),
+    alt: "Quebrada de agua fría con pozos naturales entre las piedras del bosque",
+  },
+  {
+    url: media("alojamientos/casa-maima/1.jpg"),
+    alt: "Fachada de Casa Maima con su techo azul y el jardín de plantas tropicales",
+  },
+];
+
+/** Foto de fondo de la página 404 antes de esta fila. */
+export const FALLBACK_NOT_FOUND: NotFoundContent = {
+  image: media("sitio/bosque.jpg"),
+  image_alt: "",
 };
 
 /* ---------------------------------------------------------------------------
@@ -587,6 +680,55 @@ export const getOgImage = cache(async (): Promise<OgImage> => {
     alt: textOr(value, "image_alt", OG_IMAGE.alt),
     width: OG_IMAGE.width,
     height: OG_IMAGE.height,
+  };
+});
+
+/** Lectura segura de una sub-fila `{ image, image_alt }` dentro de un jsonb. */
+function toListingHero(value: unknown, fallback: ListingHero): ListingHero {
+  const source =
+    typeof value === "object" && value !== null
+      ? (value as Record<string, unknown>)
+      : null;
+  return {
+    image: textOr(source, "image", fallback.image),
+    image_alt: textOr(source, "image_alt", fallback.image_alt),
+  };
+}
+
+/** Cabeceras de `/alojamientos` y `/experiencias` (`site_content.listing_heroes`). */
+export const getListingHeroes = cache(async (): Promise<ListingHeroes> => {
+  const value = await getSiteContent("listing_heroes");
+  return {
+    alojamientos: toListingHero(
+      value?.alojamientos,
+      FALLBACK_LISTING_HEROES.alojamientos,
+    ),
+    experiencias: toListingHero(
+      value?.experiencias,
+      FALLBACK_LISTING_HEROES.experiencias,
+    ),
+  };
+});
+
+/**
+ * Fotos de la franja de Instagram de la portada (`site_content.instagram_strip`).
+ *
+ * Igual que `aboutImages()`: si el panel deja la galería vacía, se cae con
+ * elegancia a la selección fija original en vez de dejar la franja sin fotos.
+ */
+export const getInstagramGallery = cache(async (): Promise<GalleryImage[]> => {
+  const value = await getSiteContent("instagram_strip");
+  const gallery = toGallery(value?.gallery);
+  return gallery.length > 0 ? gallery : FALLBACK_INSTAGRAM_GALLERY;
+});
+
+/** Foto de fondo de la página 404 (`site_content.not_found`). */
+export const getNotFoundContent = cache(async (): Promise<NotFoundContent> => {
+  const value = await getSiteContent("not_found");
+  if (!value) return FALLBACK_NOT_FOUND;
+  return {
+    image: textOr(value, "image", FALLBACK_NOT_FOUND.image),
+    image_alt: textOr(value, "image_alt", FALLBACK_NOT_FOUND.image_alt),
   };
 });
 

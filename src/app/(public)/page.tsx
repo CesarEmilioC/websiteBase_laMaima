@@ -26,6 +26,7 @@ import {
   getExperiences,
   getHomeAbout,
   getHomeHero,
+  getInstagramGallery,
 } from "@/lib/content";
 import { SITE } from "@/lib/site";
 import { GENERAL_MESSAGE, whatsappUrl } from "@/lib/whatsapp";
@@ -82,13 +83,15 @@ function AccentTail({ text, className }: { text: string; className: string }) {
 }
 
 export default async function HomePage() {
-  const [hero, about, contact, accommodations, experiences] = await Promise.all([
-    getHomeHero(),
-    getHomeAbout(),
-    getContactInfo(),
-    getAccommodations(),
-    getExperiences(),
-  ]);
+  const [hero, about, contact, accommodations, experiences, instagramPhotos] =
+    await Promise.all([
+      getHomeHero(),
+      getHomeAbout(),
+      getContactInfo(),
+      getAccommodations(),
+      getExperiences(),
+      getInstagramGallery(),
+    ]);
 
   const gallery = aboutImages(about);
   const whatsappHref = whatsappUrl(GENERAL_MESSAGE, contact.whatsapp);
@@ -548,6 +551,7 @@ export default async function HomePage() {
       {/* Instagram                                                           */}
       {/* ================================================================== */}
       <InstagramStrip
+        photos={instagramPhotos}
         href={contact.social.instagram}
         handle={contact.social.instagramHandle}
       />

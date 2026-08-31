@@ -7,15 +7,9 @@ import { JsonLd } from "@/components/json-ld";
 import { LeafField } from "@/components/leaf-field";
 import { PageHero } from "@/components/page-hero";
 import { WhatsAppButton } from "@/components/whatsapp-button";
-import { getExperiences } from "@/lib/content";
+import { getExperiences, getListingHeroes } from "@/lib/content";
 import { breadcrumbList, pageMetadata } from "@/lib/seo";
-import { media } from "@/lib/site";
 import { GENERAL_MESSAGE } from "@/lib/whatsapp";
-
-/** Foto de la banda de encabezado (bucket "gallery" de Supabase Storage). */
-const HERO_IMAGE = media("sitio/senderos.jpg");
-const HERO_ALT =
-  "Sendero con escalones de madera entre guaduas y árboles del bosque de La Maima, con una banca de guadua a un lado";
 
 const CRUMBS = [
   { name: "Inicio", path: "/" },
@@ -24,19 +18,32 @@ const CRUMBS = [
 
 export const revalidate = 3600;
 
-export const metadata: Metadata = pageMetadata({
-  title: "Experiencias en la reserva natural",
-  description:
-    "Senderos por bosque primario, secundario y terciario, piscina natural de río, fogata y avistamiento de aves en la reserva La Maima, Dapa (Yumbo).",
-  path: "/experiencias",
-  image: { url: HERO_IMAGE, alt: HERO_ALT },
-  socialTitle: "Experiencias · La Maima",
-  socialDescription:
-    "Senderos, piscina de río, fogata y avistamiento de aves dentro de la reserva natural de La Maima.",
-});
+/**
+ * La foto de la banda de encabezado se edita en `/admin/contenido`
+ * (`site_content.listing_heroes.experiencias`, ver `getListingHeroes()`), así
+ * que los metadatos —que también la usan como imagen social— pasan a
+ * `generateMetadata()` para poder leerla antes de responder.
+ */
+export async function generateMetadata(): Promise<Metadata> {
+  const { experiencias: hero } = await getListingHeroes();
+
+  return pageMetadata({
+    title: "Experiencias en la reserva natural",
+    description:
+      "Senderos por bosque primario, secundario y terciario, piscina natural de río, fogata y avistamiento de aves en la reserva La Maima, Dapa (Yumbo).",
+    path: "/experiencias",
+    image: { url: hero.image, alt: hero.image_alt },
+    socialTitle: "Experiencias · La Maima",
+    socialDescription:
+      "Senderos, piscina de río, fogata y avistamiento de aves dentro de la reserva natural de La Maima.",
+  });
+}
 
 export default async function ExperiencesPage() {
-  const experiences = await getExperiences();
+  const [experiences, { experiencias: hero }] = await Promise.all([
+    getExperiences(),
+    getListingHeroes(),
+  ]);
 
   return (
     <>
@@ -45,8 +52,8 @@ export default async function ExperiencesPage() {
         title="Experiencias entre el bosque"
         titleAccent="y el agua"
         description="La Maima no es solo dónde dormir. Treinta años de rehabilitación dejaron senderos, una quebrada con pozos naturales y un bosque al que volvieron las aves."
-        image={HERO_IMAGE}
-        imageAlt={HERO_ALT}
+        image={hero.image}
+        imageAlt={hero.image_alt}
         breadcrumbs={CRUMBS.map((crumb) => ({
           href: crumb.path,
           label: crumb.name,

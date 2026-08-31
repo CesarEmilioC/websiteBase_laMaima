@@ -16,21 +16,31 @@ import {
 const PATH = "/admin/contenido";
 
 /**
- * Direcciones de imagen que contiene un patch de contenido: el campo único
- * `image` y, si la clave tiene galería (hoy solo `home_about`), las de la
- * lista. Es lo que compara la higiene de Storage antes y después de guardar.
+ * Recoge todas las direcciones de imagen de un valor jsonb arbitrario, sin
+ * asumir su forma: recorre objetos y arreglos anidados y se queda con cada
+ * string que encuentra.
+ *
+ * Antes esta comparación solo miraba los campos de primer nivel `image` y
+ * `gallery` (válido mientras cada fila tenía como mucho uno de cada). Con
+ * `listing_heroes` —dos sub-objetos `{ image, image_alt }` anidados— hacía
+ * falta bajar un nivel más, así que se generalizó a "cualquier string en
+ * cualquier profundidad". No hace falta filtrar qué strings "parecen" una
+ * imagen: los que no lo sean (un `cta_href`, un eyebrow) nunca van a
+ * coincidir con el prefijo del bucket que exige `bucketPathFromUrl()` más
+ * abajo en `cleanupRemovedGalleryImages`, así que llegan como candidatos pero
+ * se descartan solos.
  */
-function imageUrlsOf(value: Record<string, unknown>): string[] {
-  const urls: string[] = [];
-  if (typeof value.image === "string" && value.image) urls.push(value.image);
-  if (Array.isArray(value.gallery)) {
-    for (const item of value.gallery) {
-      if (typeof item !== "object" || item === null) continue;
-      const { url } = item as Record<string, unknown>;
-      if (typeof url === "string" && url) urls.push(url);
-    }
+function collectStrings(value: unknown, into: string[] = []): string[] {
+  if (typeof value === "string") {
+    if (value) into.push(value);
+  } else if (Array.isArray(value)) {
+    value.forEach((item) => collectStrings(item, into));
+  } else if (value && typeof value === "object") {
+    Object.values(value as Record<string, unknown>).forEach((item) =>
+      collectStrings(item, into),
+    );
   }
-  return urls;
+  return into;
 }
 
 /**
@@ -60,27 +70,22 @@ async function upsertContent(
       ? (current.value as Record<string, unknown>)
       : {};
 
+  const merged = { ...base, ...patch };
+
   const { error } = await supabase
     .from("site_content")
-    .upsert({ key, value: { ...base, ...patch } }, { onConflict: "key" });
+    .upsert({ key, value: merged }, { onConflict: "key" });
 
   if (error) throw new Error(error.message);
 
-  // Higiene de Storage: las direcciones que estaban en esta fila y ya no están
-  // tras guardar (foto de portada reemplazada, imagen sacada de la galería de
-  // "Sobre la reserva") quedan potencialmente huérfanas.
-  //
-  // Solo se comparan los campos que ESTE patch trae: si el formulario no envió
-  // `gallery`, la lista guardada sigue intacta y sus fotos no son candidatas a
-  // nada. `cleanupRemovedGalleryImages` vuelve a comprobar después —ya con el
-  // guardado hecho— que ninguna otra fila de la base las siga usando antes de
-  // borrar un solo objeto.
-  const touched: Record<string, unknown> = {};
-  if (patch.image !== undefined) touched.image = base.image;
-  if (patch.gallery !== undefined) touched.gallery = base.gallery;
-
-  const stillUsed = new Set(imageUrlsOf(patch));
-  const orphans = imageUrlsOf(touched).filter((url) => !stillUsed.has(url));
+  // Higiene de Storage: cualquier dirección que estuviera en la fila ANTES de
+  // guardar y ya no esté DESPUÉS (foto de portada reemplazada, imagen sacada
+  // de una galería, cabecera cambiada) queda potencialmente huérfana.
+  // `cleanupRemovedGalleryImages` vuelve a comprobar después —ya con el
+  // guardado hecho— que ninguna otra fila de la base la siga usando antes de
+  // borrar un solo objeto del bucket.
+  const stillUsed = new Set(collectStrings(merged));
+  const orphans = collectStrings(base).filter((url) => !stillUsed.has(url));
 
   if (orphans.length > 0) {
     await cleanupRemovedGalleryImages(supabase, orphans);
@@ -177,5 +182,49 @@ export async function saveContactAction(
       maps_url: optionalText(formData, "maps_url", 500) ?? "",
     });
     return okState("Datos de contacto guardados.");
+  });
+}
+
+export async function saveListingHeroesAction(
+  _state: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  return runAction(async () => {
+    await upsertContent("listing_heroes", {
+      alojamientos: {
+        image: optionalText(formData, "alojamientos_image", 500) ?? "",
+        image_alt: optionalText(formData, "alojamientos_image_alt", 300) ?? "",
+      },
+      experiencias: {
+        image: optionalText(formData, "experiencias_image", 500) ?? "",
+        image_alt: optionalText(formData, "experiencias_image_alt", 300) ?? "",
+      },
+    });
+    return okState("Cabeceras de Alojamientos y Experiencias actualizadas.");
+  });
+}
+
+export async function saveInstagramStripAction(
+  _state: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  return runAction(async () => {
+    await upsertContent("instagram_strip", {
+      gallery: galleryList(formData, "gallery").slice(0, 12),
+    });
+    return okState("Franja de Instagram actualizada.");
+  });
+}
+
+export async function saveNotFoundAction(
+  _state: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  return runAction(async () => {
+    await upsertContent("not_found", {
+      image: optionalText(formData, "image", 500) ?? "",
+      image_alt: optionalText(formData, "image_alt", 300) ?? "",
+    });
+    return okState("Imagen de la página 404 actualizada.");
   });
 }

@@ -27,4 +27,7 @@ export function revalidatePublicSite() {
   revalidatePath("/alojamientos/[slug]", "page");
   revalidatePath("/experiencias");
   revalidatePath("/sitemap.xml");
+  // La página 404 (`app/not-found.tsx`) también lee `site_content`
+  // (`not_found`, ver `getNotFoundContent()`); su ruta interna es esta.
+  revalidatePath("/_not-found");
 }

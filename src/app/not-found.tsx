@@ -5,14 +5,26 @@ import Link from "next/link";
 import { ArrowRightIcon } from "@/components/icons";
 import { LeafField } from "@/components/leaf-field";
 import { WhatsAppFloat } from "@/components/whatsapp-float";
-import { media } from "@/lib/site";
+import { getNotFoundContent } from "@/lib/content";
 
 export const metadata: Metadata = {
   title: "Página no encontrada",
   robots: { index: false, follow: false },
 };
 
-export default function NotFound() {
+/**
+ * `export const revalidate` (y no `force-dynamic`): la 404 no depende de
+ * ninguna sesión y se sirve igual para todo el mundo, así que puede
+ * revalidarse por tiempo como el resto del sitio público. La foto de fondo
+ * se edita en `/admin/contenido` (`site_content.not_found`, ver
+ * `getNotFoundContent()`), y el guardado fuerza además una revalidación
+ * inmediata (`revalidatePublicSite()`).
+ */
+export const revalidate = 3600;
+
+export default async function NotFound() {
+  const notFound = await getNotFoundContent();
+
   return (
     <>
       {/* El fondo va a sangre (la foto es `fill` sobre este mismo elemento), así
@@ -21,7 +33,7 @@ export default function NotFound() {
           sí son los mismos que el resto del sitio. */}
       <main className="on-photo section-y relative isolate flex min-h-screen flex-col items-center justify-center overflow-hidden px-5 text-center sm:px-8">
         <Image
-          src={media("sitio/bosque.jpg")}
+          src={notFound.image}
           alt=""
           aria-hidden="true"
           fill

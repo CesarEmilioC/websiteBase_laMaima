@@ -1,7 +1,7 @@
 import Image from "next/image";
 
 import { ArrowRightIcon, InstagramIcon } from "../icons";
-import { media } from "@/lib/site";
+import type { GalleryImage } from "@/lib/content";
 
 /**
  * Franja de Instagram, justo antes del pie.
@@ -19,46 +19,21 @@ import { media } from "@/lib/site";
  * Instagram cambia su API. Estas son fotos del bucket propio que enlazan al
  * perfil.
  *
- * En v1 la selección va fija en código (el cliente puede cambiar cualquier foto
- * del bucket, pero no la lista): hacerla editable pedía otra fila de
- * `site_content` y otro editor en el panel, y no estaba en el alcance.
+ * Las fotos se editan en `/admin/contenido` (`site_content.instagram_strip`,
+ * ver `getInstagramGallery()` en `@/lib/content`), con el mismo `GalleryEditor`
+ * que la galería de "Sobre la reserva". Con la galería vacía se cae con
+ * elegancia a la selección original de seis fotos.
  */
 
-/** Seis fotos del bucket "gallery", elegidas por variedad de tema y de luz. */
-const PHOTOS = [
-  {
-    src: media("sitio/sobre-la-reserva.jpg"),
-    alt: "El Valle del Cauca visto desde los jardines de La Maima, con el cielo cubierto de nubes",
-  },
-  {
-    src: media("alojamientos/mirador/2.jpg"),
-    alt: "Ventanal panorámico del Mirador abierto sobre el bosque y el valle",
-  },
-  {
-    src: media("experiencias/avistamiento-de-flora-y-fauna/1.jpg"),
-    alt: "Tucancito esmeralda posado en una rama del bosque de la reserva",
-  },
-  {
-    src: media("alojamientos/mirador/5.jpg"),
-    alt: "Terraza del Mirador con una hamaca colgada frente a la montaña",
-  },
-  {
-    src: media("experiencias/piscina-de-rio/1.jpg"),
-    alt: "Quebrada de agua fría con pozos naturales entre las piedras del bosque",
-  },
-  {
-    src: media("alojamientos/casa-maima/1.jpg"),
-    alt: "Fachada de Casa Maima con su techo azul y el jardín de plantas tropicales",
-  },
-] as const;
-
 type Props = {
+  /** Fotos del bucket "gallery", editables desde el panel (`getInstagramGallery`). */
+  photos: GalleryImage[];
   /** Enlace al perfil, editable desde el panel (`getContactInfo`). */
   href: string;
   handle: string;
 };
 
-export function InstagramStrip({ href, handle }: Props) {
+export function InstagramStrip({ photos, href, handle }: Props) {
   return (
     <section
       className="section-y-sm bg-sand-soft"
@@ -85,8 +60,8 @@ export function InstagramStrip({ href, handle }: Props) {
         {/* Rejilla de cuadrados perfectos: tres columnas en móvil (dos filas de
             tres) y seis en escritorio (una sola fila). Nunca quedan huecos. */}
         <ul className="mt-10 grid grid-cols-3 gap-2.5 sm:gap-3 lg:grid-cols-6">
-          {PHOTOS.map((photo) => (
-            <li key={photo.src}>
+          {photos.map((photo) => (
+            <li key={photo.url}>
               <a
                 href={href}
                 target="_blank"
@@ -94,7 +69,7 @@ export function InstagramStrip({ href, handle }: Props) {
                 className="group relative block aspect-square overflow-hidden rounded-card bg-brand-100"
               >
                 <Image
-                  src={photo.src}
+                  src={photo.url}
                   alt={photo.alt}
                   fill
                   sizes="(min-width: 1024px) 200px, 32vw"

@@ -4,23 +4,9 @@ import { AccommodationCard } from "@/components/accommodation-card";
 import { JsonLd } from "@/components/json-ld";
 import { PageHero } from "@/components/page-hero";
 import { WhatsAppButton } from "@/components/whatsapp-button";
-import { getAccommodations } from "@/lib/content";
+import { getAccommodations, getListingHeroes } from "@/lib/content";
 import { breadcrumbList, pageMetadata } from "@/lib/seo";
-import { media } from "@/lib/site";
 import { GENERAL_MESSAGE } from "@/lib/whatsapp";
-
-/**
- * Foto de la banda de encabezado (bucket "gallery" de Supabase Storage).
- *
- * Es un INTERIOR y no una fachada a propósito: el ventanal del Mirador sobre
- * el Valle del Cauca cuenta en una sola imagen las dos cosas que vende la
- * página —dormir dentro de la reserva y la vista— mucho mejor que la foto
- * frontal de una casa. Además tiene cielo arriba (donde va el header de
- * vidrio) y suelo oscuro abajo (donde cae el titular).
- */
-const HERO_IMAGE = media("alojamientos/mirador/2.jpg");
-const HERO_ALT =
-  "Ventanal del Mirador de La Maima abierto sobre el Valle del Cauca";
 
 /** Migas visibles y marcado estructurado salen de esta misma lista. */
 const CRUMBS = [
@@ -30,19 +16,32 @@ const CRUMBS = [
 
 export const revalidate = 3600;
 
-export const metadata: Metadata = pageMetadata({
-  title: "Alojamientos: casas y cabañas en Dapa",
-  description:
-    "Seis casas y cabañas independientes en Dapa (Yumbo): Casa Maima, Mirador, Casa Loma, Casa Uba, Dos Casitas y Tres Casitas. Con cocineta y baño privado.",
-  path: "/alojamientos",
-  image: { url: HERO_IMAGE, alt: HERO_ALT },
-  socialTitle: "Alojamientos · La Maima",
-  socialDescription:
-    "Seis casas y cabañas independientes entre el bosque de Dapa, todas con cocineta y baño privado.",
-});
+/**
+ * La foto de la banda de encabezado se edita en `/admin/contenido`
+ * (`site_content.listing_heroes.alojamientos`, ver `getListingHeroes()`), así
+ * que los metadatos —que también la usan como imagen social— pasan a
+ * `generateMetadata()` para poder leerla antes de responder.
+ */
+export async function generateMetadata(): Promise<Metadata> {
+  const { alojamientos: hero } = await getListingHeroes();
+
+  return pageMetadata({
+    title: "Alojamientos: casas y cabañas en Dapa",
+    description:
+      "Seis casas y cabañas independientes en Dapa (Yumbo): Casa Maima, Mirador, Casa Loma, Casa Uba, Dos Casitas y Tres Casitas. Con cocineta y baño privado.",
+    path: "/alojamientos",
+    image: { url: hero.image, alt: hero.image_alt },
+    socialTitle: "Alojamientos · La Maima",
+    socialDescription:
+      "Seis casas y cabañas independientes entre el bosque de Dapa, todas con cocineta y baño privado.",
+  });
+}
 
 export default async function AccommodationsPage() {
-  const accommodations = await getAccommodations();
+  const [accommodations, { alojamientos: hero }] = await Promise.all([
+    getAccommodations(),
+    getListingHeroes(),
+  ]);
 
   return (
     <>
@@ -54,8 +53,8 @@ export default async function AccommodationsPage() {
         title="Dormir dentro de"
         titleAccent="la reserva"
         description="Seis alojamientos independientes repartidos por la ladera. Cada uno con su entrada, su terraza y su vista. Todos con cocineta equipada y baño privado."
-        image={HERO_IMAGE}
-        imageAlt={HERO_ALT}
+        image={hero.image}
+        imageAlt={hero.image_alt}
         breadcrumbs={CRUMBS.map((crumb) => ({
           href: crumb.path,
           label: crumb.name,
