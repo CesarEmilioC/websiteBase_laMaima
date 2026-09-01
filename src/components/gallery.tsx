@@ -103,9 +103,17 @@ export function Gallery({ images, name, locale }: Props) {
                     key={`${image.url}-${index}`}
                     type="button"
                     data-lightbox-index={index + 1}
+                    /* La miniatura del "+N fotos" ANTEPONE ese texto visible a
+                       su rótulo. La regla `label-content-name-mismatch` de axe
+                       compara el nombre accesible con el texto que se ve
+                       pintado encima —y lo hace aunque el velo sea
+                       `aria-hidden`—, así que "Ver las N fotos a pantalla
+                       completa" a secas no basta: no contiene el "+N fotos"
+                       que se lee en la miniatura. El resto de miniaturas no
+                       pinta texto y se queda con su rótulo de siempre. */
                     aria-label={
                       showsRemaining
-                        ? t.gallery.openAll(total)
+                        ? `${t.gallery.morePhotos(remaining)} — ${t.gallery.openAll(total)}`
                         : label(index + 2, image.alt || fallbackAlt)
                     }
                     className={`group relative cursor-zoom-in overflow-hidden rounded-card bg-brand-100 lg:col-span-1 lg:aspect-auto lg:h-full ${

@@ -83,6 +83,14 @@ export function LanguageSwitch({
         const active = option === locale;
         const Flag = option === "es" ? FlagES : FlagGB;
 
+        /* El nombre accesible EMPIEZA por el texto visible ("ES" / "EN").
+           No es adorno: la regla `label-content-name-mismatch` de axe —y, de
+           paso, quien dicta "haz clic en EN" a un control por voz— exige que el
+           rótulo hablado contenga lo que se ve escrito. "Cambiar a inglés" no
+           contiene "EN" por ningún lado, así que el código corto va delante y
+           la frase completa detrás. */
+        const label = `${t.locale.short[option]} — ${t.locale.switchTo[option]}`;
+
         return (
           <Link
             key={option}
@@ -90,21 +98,36 @@ export function LanguageSwitch({
             hrefLang={option}
             prefetch={false}
             onClick={() => remember(option)}
-            aria-label={t.locale.switchTo[option]}
+            aria-label={label}
             aria-current={active ? "true" : undefined}
-            className={`inline-flex items-center gap-1.5 rounded-full px-2 py-1 text-[0.625rem] font-semibold uppercase tracking-[0.08em] transition-[background-color,color,opacity] duration-200 ease-ios sm:pr-2.5 ${
+            className={`group inline-flex items-center gap-1.5 rounded-full px-2 py-1 text-[0.625rem] font-semibold uppercase tracking-[0.08em] transition-[background-color,color] duration-200 ease-ios sm:pr-2.5 ${
               active
                 ? dark
                   ? "bg-white/90 text-brand-800"
                   : "bg-white text-brand-700 shadow-card"
                 : dark
-                  ? "text-white/60 opacity-70 hover:bg-white/10 hover:text-white hover:opacity-100"
-                  : "text-ink-muted opacity-70 hover:bg-white/70 hover:text-ink hover:opacity-100"
+                  ? "text-white/90 hover:bg-white/10 hover:text-white"
+                  : "text-ink-muted hover:bg-white/70 hover:text-ink"
             }`}
           >
             {/* 18×12: la proporción 3:2 real de las dos banderas. El filete
-                interior las despega del fondo claro de la pastilla activa. */}
-            <span className="block h-3 w-[1.125rem] overflow-hidden rounded-[2px] ring-1 ring-inset ring-black/15">
+                interior las despega del fondo claro de la pastilla activa.
+
+                LA OPACIDAD DEL "APAGADO" VIVE AQUÍ, en la bandera, y no en el
+                enlace entero. Antes el enlace llevaba `opacity-70` y el texto
+                `text-white/60`: las dos alfas se MULTIPLICAN (≈0,42) y el código
+                de idioma inactivo caía a 1,78:1 sobre el vidrio marino, muy por
+                debajo del 4,5:1 exigido. La bandera es decorativa —el SVG va
+                con `aria-hidden`, ver `flags.tsx`— y no está sujeta al mínimo
+                de contraste de TEXTO, así que se queda con el tono apagado y el
+                código de idioma recupera el suyo. La distinción
+                activo/inactivo la sigue marcando, sobre todo, la pastilla
+                blanca. */}
+            <span
+              className={`block h-3 w-[1.125rem] overflow-hidden rounded-[2px] ring-1 ring-inset ring-black/15 transition-opacity duration-200 ease-ios ${
+                active ? "" : "opacity-70 group-hover:opacity-100"
+              }`}
+            >
               <Flag className="h-full w-full" idSuffix={`${idSuffix}-${option}`} />
             </span>
             {/* El código de dos letras se ve SIEMPRE.

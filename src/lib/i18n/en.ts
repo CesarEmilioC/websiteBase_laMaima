@@ -137,7 +137,12 @@ export const en: Dictionary = {
     about: (name: string) => `About ${name}`,
     included: "What's included",
     book: "Book",
-    askAbout: (name: string) => `Ask about ${name} on WhatsApp`,
+    /* Empieza por el texto VISIBLE del botón ("Ask on WhatsApp") — igual que en
+       español, donde "Preguntar por WhatsApp sobre X" ya lo contenía por pura
+       suerte del orden de las palabras. En inglés "Ask about X on WhatsApp"
+       partía la frase visible en dos y axe lo marcaba como discrepancia
+       nombre-accesible/contenido-visible. */
+    askAbout: (name: string) => `Ask on WhatsApp about ${name}`,
     replyBy: (phone: string) => `We reply on WhatsApp at ${phone}`,
     bookingEyebrow: "Bookings",
     bookingTitle: (name: string) => `Choose your dates at ${name}`,
@@ -315,7 +320,9 @@ export const en: Dictionary = {
     planLead:
       "Tell us how many of you are coming and the dates you have in mind, and we will help you combine a house with the experiences.",
     planCta: "See stays and dates",
-    askAbout: (name: string) => `Ask about the ${name} experience on WhatsApp`,
+    /* Mismo motivo que en `detail.askAbout`: el rótulo hablado arranca con el
+       texto que se ve pintado en el botón. */
+    askAbout: (name: string) => `Ask on WhatsApp about the ${name} experience`,
   },
 
   /* --- Legal documents --------------------------------------------------------- */
