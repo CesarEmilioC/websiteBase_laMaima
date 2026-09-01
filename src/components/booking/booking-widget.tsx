@@ -3,17 +3,20 @@
 /**
  * Motor de reservas público — fase sin pasarela de pagos.
  *
- * Hace TODO menos cobrar: consulta la disponibilidad real, deja elegir el
- * rango de fechas y el número de huéspedes, cotiza la estadía con las tarifas
- * oficiales y termina en una solicitud por WhatsApp con todos los datos ya
- * escritos.
+ * Hace TODO menos cobrar: consulta la disponibilidad real, deja elegir fechas
+ * y huéspedes, cotiza con las tarifas oficiales, RECOGE LOS DATOS DEL HUÉSPED
+ * y registra la solicitud en la base de datos con un código legible y un hold
+ * de 48 horas.
  *
- * Tres decisiones que conviene no perder de vista:
+ * TRES PASOS, UNA SOLA ISLA. El widget es una máquina de estados de tres
+ * pasos —fechas, datos, confirmación— que se suceden DENTRO de la misma
+ * tarjeta blanca, sin navegar y sin abrir un modal. Los motivos, en detalle,
+ * están en la cabecera de `guest-form.tsx`; el resumen es que en un móvil de
+ * 390 px con el teclado abierto, un modal sobre un calendario de dos meses es
+ * la peor de las opciones disponibles.
  *
- *   - NO escribe nada en la base de datos. La reserva la registra el equipo
- *     desde el panel al confirmar, así que no quedan filas huérfanas de gente
- *     que solo estaba mirando. Cuando entre Wompi, el único cambio es que este
- *     último paso cree la reserva y abra el checkout.
+ * Cuatro decisiones que conviene no perder de vista:
+ *
  *   - La disponibilidad se pide al montar (no en el HTML estático de la
  *     página): las páginas de alojamiento se sirven prerenderizadas y un
  *     calendario de hace una hora invitaría a pedir fechas ya vendidas.
@@ -21,12 +24,20 @@
  *     cambian poco. Así el total se recalcula al instante cada vez que el
  *     huésped mueve una fecha o suma una persona, sin ida y vuelta al
  *     servidor. Toda la aritmética vive en `@/lib/pricing`.
+ *   - **Ese total es solo para mirar.** El que se guarda lo recalcula el
+ *     servidor en `@/lib/booking/actions`; el del navegador no viaja.
+ *   - WhatsApp deja de ser el final del embudo y pasa a ser el canal
+ *     SECUNDARIO: sigue ahí, debajo del botón principal, para quien prefiera
+ *     hablar con una persona.
  */
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 
 import { AvailabilityCalendar } from "@/components/booking/availability-calendar";
+import { BookingSuccess } from "@/components/booking/booking-success";
+import { GuestForm } from "@/components/booking/guest-form";
 import {
   AlertIcon,
+  ArrowRightIcon,
   CalendarIcon,
   MinusIcon,
   PlusIcon,
@@ -40,6 +51,8 @@ import {
   type AvailabilityResponse,
   type CalendarContext,
 } from "@/lib/availability";
+import { quoteBookingRequest } from "@/lib/booking/actions";
+import type { BookingQuote, BookingReceipt } from "@/lib/booking/result";
 import {
   addMonths,
   compareMonths,
@@ -78,6 +91,9 @@ type Props = {
 
 type Status = "loading" | "ready" | "error";
 
+/** Los tres pasos de la solicitud, dentro de la misma tarjeta. */
+type Step = "dates" | "form" | "success";
+
 export function BookingWidget({
   slug,
   name,
@@ -101,7 +117,21 @@ export function BookingWidget({
   const [guests, setGuests] = useState(() => Math.min(2, capacity));
   const [notice, setNotice] = useState<string | null>(null);
 
-  const load = useCallback(async () => {
+  const [step, setStep] = useState<Step>("dates");
+  const [serverQuote, setServerQuote] = useState<BookingQuote | null>(null);
+  const [receipt, setReceipt] = useState<BookingReceipt | null>(null);
+  const [quoting, startQuote] = useTransition();
+
+  const shellRef = useRef<HTMLDivElement>(null);
+  const mounted = useRef(false);
+
+  /**
+   * `keepNotice` existe para el caso "las fechas se acaban de ocupar": ahí hay
+   * que recargar el calendario Y conservar la explicación en pantalla. Sin
+   * esta bandera, la recarga borraría justo el mensaje que dice por qué se
+   * volvió atrás.
+   */
+  const load = useCallback(async (keepNotice = false) => {
     setStatus("loading");
     try {
       const response = await fetch(`/api/availability/${slug}`, {
@@ -121,7 +151,7 @@ export function BookingWidget({
       // Un calendario nuevo puede dejar sin sentido lo ya elegido.
       setCheckIn(null);
       setCheckOut(null);
-      setNotice(null);
+      if (!keepNotice) setNotice(null);
       setStatus("ready");
     } catch (error) {
       console.error("[reservas] disponibilidad:", error);
@@ -132,6 +162,19 @@ export function BookingWidget({
   useEffect(() => {
     void load();
   }, [load]);
+
+  /* Al cambiar de paso, la tarjeta vuelve a la vista. En móvil el paso
+     anterior deja la página desplazada muy abajo (un calendario de dos meses
+     mide más de una pantalla) y sin esto el formulario aparecería fuera de
+     cuadro. No se hace en el primer montaje: nadie ha pedido nada todavía y
+     robarle el scroll a quien está leyendo la ficha sería un secuestro. */
+  useEffect(() => {
+    if (!mounted.current) {
+      mounted.current = true;
+      return;
+    }
+    shellRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [step]);
 
   /* --- Selección de fechas ------------------------------------------------ */
 
@@ -239,11 +282,61 @@ export function BookingWidget({
         )
       : undefined;
 
+  /* --- Paso 1 -> paso 2 ---------------------------------------------------- */
+
+  /**
+   * Antes de enseñar el formulario se pide al SERVIDOR que verifique la
+   * estadía: que las fechas sigan libres y que el total sea el que dice el
+   * navegador.
+   *
+   * Se hace aquí y no al enviar porque el coste de descubrirlo tarde no es el
+   * mismo: enterarse de que la cabaña se ocupó ANTES de escribir el nombre, el
+   * correo y el teléfono es un contratiempo; enterarse DESPUÉS, con el
+   * formulario lleno, es la clase de fricción por la que alguien cierra la
+   * pestaña. (Y de paso, es el punto donde se enganchará el cobro de Wompi:
+   * ver la cabecera de `@/lib/booking/actions`.)
+   */
+  function startRequest() {
+    if (!canRequest || !checkIn || !checkOut || quoting) return;
+    setNotice(null);
+
+    startQuote(async () => {
+      const result = await quoteBookingRequest({
+        slug,
+        checkIn,
+        checkOut,
+        guests,
+        locale,
+      });
+
+      if (result.ok) {
+        setServerQuote(result.quote);
+        setStep("form");
+        return;
+      }
+
+      if (result.failure === "dates-taken") {
+        setNotice(t.booking.form.failures["dates-taken"]);
+        void load(true);
+        return;
+      }
+
+      setNotice(
+        `${t.booking.form.failures[result.failure]}${
+          result.detail ? ` ${result.detail}` : ""
+        }`,
+      );
+    });
+  }
+
   /* --- Estados de carga --------------------------------------------------- */
 
-  if (status === "error") {
+  /* El fallo de la disponibilidad solo se pinta en el paso del calendario: si
+     la recarga posterior a una solicitud falla, lo que NO puede pasar es que
+     desaparezca la pantalla con el código de reserva. */
+  if (status === "error" && step === "dates") {
     return (
-      <Shell>
+      <Shell ref={shellRef}>
         <div className="flex flex-col items-center gap-4 px-2 py-10 text-center">
           <span className="flex h-12 w-12 items-center justify-center rounded-full bg-sand-soft text-ink-muted">
             <AlertIcon className="h-6 w-6" />
@@ -268,9 +361,55 @@ export function BookingWidget({
     );
   }
 
+  /* --- Pasos 2 y 3 --------------------------------------------------------- */
+  /* Van ANTES de los estados de carga del calendario: una vez registrada la
+     solicitud, que la disponibilidad se esté recargando por detrás no puede
+     borrar de la pantalla el código que la persona todavía no ha copiado. */
+
+  if (step === "success" && receipt) {
+    return (
+      <Shell ref={shellRef}>
+        <BookingSuccess
+          receipt={receipt}
+          locale={locale}
+          whatsapp={whatsapp}
+          onRestart={() => {
+            setReceipt(null);
+            setServerQuote(null);
+            setStep("dates");
+            void load();
+          }}
+        />
+      </Shell>
+    );
+  }
+
+  if (step === "form" && serverQuote) {
+    return (
+      <Shell ref={shellRef}>
+        <GuestForm
+          slug={slug}
+          locale={locale}
+          quote={serverQuote}
+          onBack={() => setStep("dates")}
+          onSuccess={(created) => {
+            setReceipt(created);
+            setStep("success");
+          }}
+          onDatesTaken={(message) => {
+            setStep("dates");
+            setServerQuote(null);
+            setNotice(message);
+            void load(true);
+          }}
+        />
+      </Shell>
+    );
+  }
+
   if (status === "loading" || !availability || !cursor) {
     return (
-      <Shell>
+      <Shell ref={shellRef}>
         {/* El esqueleto copia la RETÍCULA y las medidas del estado final —dos
             columnas desde `lg`, seis filas de calendario, la misma pila de
             filas del resumen— y no una silueta cualquiera. La disponibilidad
@@ -590,25 +729,41 @@ export function BookingWidget({
           )}
 
           {/* Llamada a la acción --------------------------------------------- */}
-          {canRequest && whatsappHref ? (
+          {/* El botón principal ya NO va a WhatsApp: abre el paso de datos y la
+              solicitud queda registrada de verdad, con código y con las fechas
+              apartadas. WhatsApp baja a segunda opción, para quien prefiera
+              hablar con alguien. */}
+          <button
+            type="button"
+            onClick={startRequest}
+            disabled={!canRequest || quoting}
+            aria-busy={quoting || undefined}
+            className={`mt-5 flex w-full items-center justify-center gap-2 rounded-full px-4 py-4 text-center text-[0.9375rem] font-semibold tracking-[-0.01em] transition-[background-color,transform] duration-200 ease-ios ${
+              canRequest && !quoting
+                ? "bg-brand-600 text-white shadow-pill hover:bg-brand-700 active:scale-[0.98]"
+                : "cursor-not-allowed bg-sand text-ink-muted"
+            }`}
+          >
+            {quoting ? (
+              t.booking.form.checking
+            ) : (
+              <>
+                {t.booking.request}
+                <ArrowRightIcon className="h-[1.05rem] w-[1.05rem] shrink-0" />
+              </>
+            )}
+          </button>
+
+          {canRequest && whatsappHref && (
             <a
               href={whatsappHref}
               target="_blank"
               rel="noopener noreferrer"
-              className="mt-5 flex w-full items-center justify-center gap-2 rounded-full bg-brand-600 px-4 py-4 text-center text-[0.9375rem] font-semibold tracking-[-0.01em] text-white shadow-pill transition-[background-color,transform] duration-200 ease-ios hover:bg-brand-700 active:scale-[0.98]"
+              className="mt-2.5 flex w-full items-center justify-center gap-2 rounded-full bg-sand-soft px-4 py-3 text-center text-[0.875rem] font-semibold text-ink-soft transition-[background-color,transform] duration-200 ease-ios hover:bg-sand active:scale-[0.98]"
             >
-              <WhatsAppIcon className="h-5 w-5 shrink-0" />
-              {t.booking.request}
+              <WhatsAppIcon className="h-[1.05rem] w-[1.05rem] shrink-0" />
+              {t.booking.requestWhatsapp}
             </a>
-          ) : (
-            <button
-              type="button"
-              disabled
-              className="mt-5 flex w-full cursor-not-allowed items-center justify-center gap-2 rounded-full bg-sand px-4 py-4 text-[0.9375rem] font-semibold tracking-[-0.01em] text-ink-muted"
-            >
-              <WhatsAppIcon className="h-5 w-5 shrink-0" />
-              {t.booking.request}
-            </button>
           )}
 
           <p className="mt-3 text-center text-[0.8125rem] leading-relaxed text-ink-muted">
@@ -686,10 +841,28 @@ function MonthSkeleton() {
   );
 }
 
-/** Tarjeta blanca del widget: la misma caja en todos los estados. */
-function Shell({ children }: { children: React.ReactNode }) {
+/**
+ * Tarjeta blanca del widget: la misma caja en todos los estados y en los tres
+ * pasos. Que la caja no cambie es lo que hace que pasar de las fechas a los
+ * datos se lea como un deslizamiento dentro del mismo sitio y no como un salto
+ * a otra pantalla.
+ *
+ * `scroll-mt-24` deja hueco para la barra de navegación flotante: sin él, el
+ * `scrollIntoView` del cambio de paso metería la cabecera de la tarjeta justo
+ * debajo de la isla del menú.
+ */
+function Shell({
+  children,
+  ref,
+}: {
+  children: React.ReactNode;
+  ref?: React.Ref<HTMLDivElement>;
+}) {
   return (
-    <div className="rounded-panel bg-white p-5 shadow-panel ring-1 ring-ink/[0.05] sm:p-7">
+    <div
+      ref={ref}
+      className="scroll-mt-24 rounded-panel bg-white p-5 shadow-panel ring-1 ring-ink/[0.05] sm:p-7"
+    >
       {children}
     </div>
   );

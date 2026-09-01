@@ -16,6 +16,7 @@ import { requireAdmin } from "@/lib/admin/auth";
 import {
   getDashboardStats,
   listBlockedDates,
+  listPendingRequests,
   listRecentBookings,
   listUpcomingBookings,
 } from "@/lib/admin/data";
@@ -26,6 +27,7 @@ import {
   BOOKING_STATUS_LABEL,
   type AdminBooking,
 } from "@/lib/admin/types";
+import { formatHoldCountdownEs, isExpiringSoon } from "@/lib/booking/holds";
 import { formatCOP } from "@/lib/format";
 
 export const metadata: Metadata = { title: "Resumen" };
@@ -41,11 +43,12 @@ export default async function AdminDashboardPage({
   await requireAdmin();
   const params = await searchParams;
 
-  const [stats, upcoming, recent, blocks] = await Promise.all([
+  const [stats, upcoming, recent, blocks, pendingRequests] = await Promise.all([
     getDashboardStats(),
     listUpcomingBookings(6),
     listRecentBookings(5),
     listBlockedDates({ onlyUpcoming: true, limit: 100 }),
+    listPendingRequests(8),
   ]);
 
   return (
@@ -75,9 +78,11 @@ export default async function AdminDashboardPage({
           value={stats.bookingsUpcoming}
           label="Reservas próximas"
           hint={
-            stats.bookingsPending > 0
-              ? `${stats.bookingsPending} pendiente(s) de pago`
-              : "Sin pendientes de pago"
+            stats.bookingsPending === 0
+              ? "Sin solicitudes pendientes"
+              : stats.bookingsExpiringSoon > 0
+                ? `${stats.bookingsPending} pendiente(s) · ${stats.bookingsExpiringSoon} por vencer`
+                : `${stats.bookingsPending} pendiente(s) de confirmar`
           }
         />
         <StatTile
@@ -87,6 +92,57 @@ export default async function AdminDashboardPage({
           hint="Mantenimiento o uso propio"
         />
       </div>
+
+      {/* Solicitudes por confirmar: la cola de trabajo real. Va antes que nada
+          porque tiene reloj — pasadas 48 horas el hold caduca y las fechas se
+          liberan solas. */}
+      {pendingRequests.length > 0 && (
+        <Card className="mt-6">
+          <CardHeader
+            title={`${pendingRequests.length} reserva${
+              pendingRequests.length === 1 ? "" : "s"
+            } por confirmar`}
+            description="Las que llegan del sitio apartan sus fechas 48 horas: si nadie confirma antes, el hold caduca y el calendario las vuelve a ofrecer."
+            action={
+              <LinkButton href="/admin/reservas?estado=pending" tone="ghost" size="sm">
+                Ver todas
+              </LinkButton>
+            }
+          />
+          <CardBody className="pt-0">
+            <ul className="divide-y divide-ink/[0.07]">
+              {pendingRequests.map((booking) => {
+                const urgent = isExpiringSoon(booking.status, booking.expires_at);
+                return (
+                  <li key={booking.id} className="py-3">
+                    <Link
+                      href={`/admin/reservas/${booking.id}`}
+                      className="group flex flex-wrap items-start justify-between gap-3"
+                    >
+                      <div className="min-w-0">
+                        <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[0.9375rem] font-semibold text-ink group-hover:text-brand-700">
+                          {booking.guest_name}
+                          {booking.booking_code && (
+                            <Pill tone="blue">{booking.booking_code}</Pill>
+                          )}
+                        </p>
+                        <p className="mt-0.5 truncate text-[0.8125rem] text-ink-muted">
+                          {booking.accommodation_name ?? "Alojamiento"} ·{" "}
+                          {formatRangeEs(booking.check_in, booking.check_out)} ·{" "}
+                          {formatCOP(booking.total_cop)}
+                        </p>
+                      </div>
+                      <Pill tone={urgent ? "amber" : "neutral"}>
+                        {formatHoldCountdownEs(booking.expires_at) ?? "Sin vencimiento"}
+                      </Pill>
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+          </CardBody>
+        </Card>
+      )}
 
       <div className="mt-6 grid gap-5 lg:grid-cols-2">
         <Card>

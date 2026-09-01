@@ -194,8 +194,9 @@ export const en: Dictionary = {
     average: (amount: string) => `${amount} per night on average`,
     breakfastExtra: (guestsLabel: string, nightsLabel: string, amount: string) =>
       `Breakfast for ${guestsLabel} over ${nightsLabel} would add ${amount}. It is not included in the total.`,
-    request: "Request booking on WhatsApp",
-    requestReady: "We'll confirm availability and payment on WhatsApp.",
+    request: "Request booking",
+    requestWhatsapp: "I'd rather ask on WhatsApp",
+    requestReady: "Next: your details. We reply within 48 hours.",
     requestBlocked: "Adjust the dates to meet the minimum stay.",
     requestPending: "Choose your dates to send the request.",
     onlineSoon: "Online payment is coming to this page very soon.",
@@ -215,6 +216,86 @@ export const en: Dictionary = {
       unavailable: "Unavailable",
       yourDates: "Your dates",
       dayUnavailable: " — unavailable",
+    },
+
+    /* --- Step 2: guest details ------------------------------------------- */
+    form: {
+      eyebrow: "Step 2 of 2",
+      title: "Your details",
+      lead: "We'll hold your dates and write to you to confirm.",
+      back: "Change dates",
+      recapTitle: "Your stay",
+      checking: "Checking availability…",
+
+      name: "Full name",
+      namePlaceholder: "As it appears on your ID",
+      email: "Email address",
+      emailHint: "This is where your request code will arrive.",
+      phone: "Phone / WhatsApp",
+      phoneHint: "The fastest way for us to confirm.",
+      guests: "Guests",
+      notes: "Anything we should know",
+      notesOptional: "optional",
+      notesPlaceholder:
+        "Approximate arrival time, pets, celebrations, allergies…",
+      honeypot: "Leave this field empty",
+
+      policyBefore: "I have read and accept the",
+      policyLink: "cancellation policy",
+      policyAfter: "",
+
+      submit: "Send request",
+      submitting: "Sending…",
+      errorSummary: "Please check the highlighted fields.",
+      required: "required",
+
+      errors: {
+        "name-required": "Please enter your full name.",
+        "name-too-short": "That name looks incomplete.",
+        "name-too-long": "That name is too long.",
+        "email-required": "Please enter your email address.",
+        "email-invalid": "That email doesn't look right. Check the @ and the domain.",
+        "email-too-long": "That email is too long.",
+        "phone-required": "Please enter a phone number we can reach you on.",
+        "phone-too-short": "That phone number looks incomplete.",
+        "phone-too-long": "That phone number is too long.",
+        "notes-too-long": "That note is very long — could you shorten it?",
+        "policy-required": "Please accept the cancellation policy to continue.",
+      },
+
+      failures: {
+        "dates-taken":
+          "Those dates have just been taken. Go back to the calendar and pick others — availability is already up to date.",
+        "invalid-dates":
+          "Those dates are no longer valid. Go back to the calendar and choose again.",
+        "min-stay": "That season has a minimum stay.",
+        "over-capacity": "That accommodation doesn't sleep that many guests.",
+        "not-found": "That accommodation is no longer available.",
+        "rate-limited":
+          "We received several requests from you in a row. Give it a moment, or message us on WhatsApp and we'll take it right away.",
+        unconfigured:
+          "We can't register the request right now. Message us on WhatsApp and we'll take it for you.",
+        server:
+          "We couldn't register your request. Please try again; if it keeps failing, message us on WhatsApp.",
+      },
+    },
+
+    /* --- Step 3: request registered -------------------------------------- */
+    success: {
+      eyebrow: "Request registered",
+      title: "Done — your dates are on hold",
+      codeLabel: "Your request code",
+      hold: (deadline: string) =>
+        `Your request is registered and the dates are held for 48 hours (until ${deadline}) while our team confirms.`,
+      contact: "We'll get in touch on WhatsApp or by email.",
+      emailSent: (email: string) => `We sent a copy to ${email}.`,
+      onlineSoon: "Online payment is coming to this page very soon.",
+      summaryTitle: "Request summary",
+      accommodation: "Accommodation",
+      whatsapp: "Message us on WhatsApp",
+      whatsappMessage: (code: string, accommodation: string) =>
+        `Hi! I submitted request ${code} for ${accommodation}. Could you confirm?`,
+      again: "Make another request",
     },
   },
 

@@ -114,6 +114,17 @@ website/
 │   ├── components/          # UI compartida: header, footer, tarjetas,
 │   │                          galería, botones de WhatsApp, iconos SVG
 │   └── lib/
+│       ├── booking/         # MOTOR DE RESERVAS (ver su sección más abajo)
+│       │   ├── actions.ts   #   Server Actions: quote (no escribe) y create
+│       │   │                #   ← el cobro de Wompi va ENTRE las dos
+│       │   ├── code.ts      #   código legible "LM-7F3K" (puro)
+│       │   ├── guest.ts     #   validación del formulario (pura, compartida
+│       │   │                #   por navegador y servidor) + honeypot
+│       │   ├── holds.ts     #   reglas del hold de 48 h (puras)
+│       │   ├── result.ts    #   contrato widget↔servidor y errores de Postgres
+│       │   ├── db.ts        #   consultas con clave de servicio (server-only)
+│       │   ├── sweep.ts     #   barrido de holds vencidos (server-only)
+│       │   └── throttle.ts  #   freno por cookie + IP, sin servicios externos
 │       ├── content.ts       # acceso tipado al contenido público de Supabase
 │       ├── format.ts        # formato de precios COP ($350.000) y huéspedes
 │       ├── seo.ts           # metadatos por página (canónica + OG + Twitter),
@@ -167,9 +178,9 @@ Reglas de RLS vigentes:
   `visible = true`; lectura total y escritura solo para `authenticated`.
 - `site_content`: lectura pública, escritura solo `authenticated`.
 - `bookings` / `blocked_dates` / `ical_feeds`: sin políticas para `anon`, así
-  que RLS deniega por defecto. El flujo público de reserva (Fase 3) escribirá
-  desde el servidor con `SUPABASE_SERVICE_ROLE_KEY` después de validar el
-  pago, nunca desde el navegador.
+  que RLS deniega por defecto. El flujo público de reserva escribe desde el
+  servidor con `SUPABASE_SERVICE_ROLE_KEY` (Server Action), nunca desde el
+  navegador, y no devuelve jamás un dato personal hacia el cliente.
 
 `supabase/seed.sql` contiene los datos iniciales (6 alojamientos, 4
 experiencias y 3 bloques de `site_content`), también ya aplicados. Es
@@ -177,6 +188,68 @@ idempotente (`on conflict ... do update`), así que puede re-ejecutarse.
 
 **Cualquier cambio posterior debe hacerse como una migración nueva**, no
 editando estos archivos a ciegas, para no perder el historial.
+
+## Motor de reservas (sin pasarela todavía)
+
+El widget de la ficha de alojamiento es una máquina de tres pasos dentro de
+la misma tarjeta: **fechas → datos del huésped → solicitud registrada**.
+WhatsApp sigue disponible, pero como canal secundario.
+
+### Estados de `bookings`
+
+| Estado | Ocupa calendario | Vence |
+| --- | --- | --- |
+| `pending` | sí, mientras el hold viva | `expires_at` (48 h) si viene del sitio; nunca si la registra el equipo |
+| `confirmed` | sí | no |
+| `paid` | sí | no (fase Wompi) |
+| `cancelled` | no | — |
+| `external` | sí | no |
+
+### El hold de 48 horas — LA REGLA QUE NO SE PUEDE OLVIDAR
+
+Una solicitud nace `pending` con `expires_at = now() + 48 h`. **Un `pending`
+vencido no ocupa calendario**: lo excluyen `/api/availability/[slug]`, el
+`.ics` que leen Airbnb y Booking, y la comprobación de choques del panel —
+las tres a través de `occupiesCalendar()` en `src/lib/booking/holds.ts`.
+
+Pero la restricción `bookings_no_overlap` **no puede leer `now()`** (el
+predicado de una restricción EXCLUDE tiene que ser inmutable), así que para
+ella un hold vencido sigue ocupando sitio. De ahí la regla:
+
+> **Toda creación o reactivación de reserva —la pública y la manual del
+> panel— llama antes a `releaseExpiredHolds()`.**
+
+Esa función delega en `public.release_expired_holds(nota, alojamiento)`, que
+lo hace en un solo `UPDATE` atómico y anota "hold vencido" en `notes` sin
+borrar lo que escribió el huésped.
+
+### Código de reserva
+
+`booking_code` ("LM-7F3K") es único y **dictable por teléfono**: alfabeto sin
+`0/O`, `1/I/L` (`src/lib/booking/code.ts`). La unicidad la garantiza el índice
+único de Postgres; si sale repetido (`23505` sobre `booking_code`) se sortea
+otro y se reintenta el `INSERT`. Nunca se comprueba con un `SELECT` previo.
+
+### Carreras
+
+Si dos personas piden las mismas fechas a la vez, el perdedor recibe un
+`23P01` de la restricción anti-solape y el widget lo traduce a un mensaje
+amable bilingüe ("esas fechas se acaban de ocupar"), recarga el calendario y
+lo devuelve al paso 1.
+
+### Dónde se enchufa Wompi
+
+En `src/lib/booking/actions.ts`, **entre** `quoteBookingRequest()` (valida,
+re-verifica disponibilidad y calcula el total en el servidor; no escribe
+nada) y `createBookingRequest()` (crea la fila). La costura está documentada
+en la cabecera de ese archivo. Con pasarela, la reserva pasará a crearse
+`pending` al iniciar el pago y a subir a `paid` desde el webhook.
+
+### Invariante de precios
+
+El total que muestra el navegador es **solo para mirar**. El que se guarda lo
+recalcula el servidor con `@/lib/pricing` a partir de las tarifas que él mismo
+lee. Nunca se acepta un importe del cliente.
 
 ## Notas de entorno (Windows / OneDrive)
 

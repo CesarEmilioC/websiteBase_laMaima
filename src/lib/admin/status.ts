@@ -9,7 +9,10 @@ export function statusTone(
   status: BookingStatus,
 ): "green" | "amber" | "red" | "blue" | "neutral" {
   switch (status) {
+    // Confirmada y pagada comparten el azul de marca: las dos significan
+    // "esto va en firme" y se distinguen por la etiqueta, no por el color.
     case "paid":
+    case "confirmed":
       return "green";
     case "pending":
       return "amber";

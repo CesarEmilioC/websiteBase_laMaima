@@ -92,8 +92,22 @@ export const TIER_DAY_TYPE_LABEL: Record<TierDayType, string> = {
 export const MIN_STAY_RULE_TYPES = ["holiday_bridge", "date_range"] as const;
 export type MinStayRuleType = (typeof MIN_STAY_RULE_TYPES)[number];
 
+/**
+ * Estados de una reserva, en el orden del ciclo de vida.
+ *
+ *   pending   → solicitud recibida. Si viene del sitio, con hold de 48 h; si la
+ *               registra el equipo, sin vencimiento. Ocupa calendario mientras
+ *               el hold esté vivo.
+ *   confirmed → el equipo la dio por buena. Ocupa calendario SIN vencimiento.
+ *               Es el estado nuevo del motor de reservas: separa "alguien lo
+ *               pidió" de "está apalabrado", que antes se confundían.
+ *   paid      → pago recibido (fase Wompi; hoy no lo pone nadie automáticamente).
+ *   cancelled → no ocupa nada.
+ *   external  → registrada a mano desde Airbnb/Booking/otro canal.
+ */
 export const BOOKING_STATUSES = [
   "pending",
+  "confirmed",
   "paid",
   "cancelled",
   "external",
@@ -105,22 +119,30 @@ export type BookingSource = (typeof BOOKING_SOURCES)[number];
 
 /** Etiquetas en español para la interfaz. */
 export const BOOKING_STATUS_LABEL: Record<BookingStatus, string> = {
-  pending: "Pendiente de pago",
+  pending: "Pendiente",
+  confirmed: "Confirmada",
   paid: "Pagada",
   cancelled: "Cancelada",
   external: "Canal externo",
 };
 
 export const BOOKING_SOURCE_LABEL: Record<BookingSource, string> = {
-  web: "Sitio web",
+  web: "Solicitud web",
   airbnb: "Airbnb",
   booking: "Booking.com",
   manual: "Registro manual",
 };
 
-/** Estados que ocupan calendario (bloquean fechas). */
+/**
+ * Estados que ocupan calendario (bloquean fechas).
+ *
+ * OJO: para los `pending` esto es condición necesaria pero no suficiente — un
+ * hold vencido no ocupa nada. La regla completa está en
+ * `@/lib/booking/holds`.`occupiesCalendar()`.
+ */
 export const OCCUPYING_STATUSES: BookingStatus[] = [
   "pending",
+  "confirmed",
   "paid",
   "external",
 ];
@@ -142,6 +164,16 @@ export type AdminBooking = {
   updated_at: string;
   /** Nombre del alojamiento (join). */
   accommodation_name: string | null;
+
+  /* --- Motor de reservas ------------------------------------------------- */
+  /** Código legible ("LM-7F3K"). `null` en las reservas registradas a mano. */
+  booking_code: string | null;
+  /** Vencimiento del hold. `null` = no vence. */
+  expires_at: string | null;
+  /** Notas del huésped y anotaciones del sistema. */
+  notes: string | null;
+  /** Idioma en el que el huésped hizo la solicitud. */
+  locale: string | null;
 };
 
 export type AdminBlockedDate = {

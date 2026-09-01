@@ -220,8 +220,10 @@ export const es = {
     average: (amount: string) => `${amount} por noche en promedio`,
     breakfastExtra: (guestsLabel: string, nightsLabel: string, amount: string) =>
       `El desayuno de ${guestsLabel} durante ${nightsLabel} sumaría ${amount}. No está incluido en el total.`,
-    request: "Solicitar reserva por WhatsApp",
-    requestReady: "Te confirmamos disponibilidad y forma de pago por WhatsApp.",
+    request: "Solicitar reserva",
+    /** Canal secundario: el mismo mensaje, pero por WhatsApp. */
+    requestWhatsapp: "Prefiero pedirlo por WhatsApp",
+    requestReady: "Sigue al paso de datos: te confirmamos en menos de 48 horas.",
     requestBlocked: "Ajusta las fechas para cumplir la estancia mínima.",
     requestPending: "Elige las fechas para enviar tu solicitud.",
     onlineSoon: "Muy pronto podrás pagar en línea aquí mismo.",
@@ -246,6 +248,91 @@ export const es = {
       unavailable: "No disponible",
       yourDates: "Tus fechas",
       dayUnavailable: " — no disponible",
+    },
+
+    /* --- Paso 2: datos del huésped --------------------------------------- */
+    form: {
+      eyebrow: "Paso 2 de 2",
+      title: "Tus datos",
+      lead: "Con esto apartamos tus fechas y te escribimos para confirmar.",
+      back: "Cambiar fechas",
+      recapTitle: "Tu estadía",
+      checking: "Comprobando disponibilidad…",
+
+      name: "Nombre completo",
+      namePlaceholder: "Como aparece en tu documento",
+      email: "Correo electrónico",
+      emailHint: "Aquí te llega el código de tu solicitud.",
+      phone: "Teléfono / WhatsApp",
+      phoneHint: "Es por donde te confirmamos más rápido.",
+      guests: "Huéspedes",
+      notes: "Algo que debamos saber",
+      notesOptional: "opcional",
+      notesPlaceholder:
+        "Hora aproximada de llegada, mascotas, celebraciones, alergias…",
+      /** Campo trampa: invisible, solo lo leen los lectores de pantalla. */
+      honeypot: "No rellenes este campo",
+
+      policyBefore: "He leído y acepto la",
+      policyLink: "política de cancelación",
+      policyAfter: "",
+
+      submit: "Enviar solicitud",
+      submitting: "Enviando…",
+      /** Aviso que resume el estado del formulario para lectores de pantalla. */
+      errorSummary: "Revisa los campos marcados.",
+      required: "obligatorio",
+
+      /** Mensajes por campo. Las claves salen de `@/lib/booking/guest`. */
+      errors: {
+        "name-required": "Escribe tu nombre completo.",
+        "name-too-short": "El nombre parece incompleto.",
+        "name-too-long": "El nombre es demasiado largo.",
+        "email-required": "Escribe tu correo electrónico.",
+        "email-invalid": "Ese correo no parece válido. Revisa la arroba y el dominio.",
+        "email-too-long": "El correo es demasiado largo.",
+        "phone-required": "Escribe un teléfono donde podamos escribirte.",
+        "phone-too-short": "El teléfono parece incompleto.",
+        "phone-too-long": "El teléfono es demasiado largo.",
+        "notes-too-long": "La nota es muy larga: resúmela un poco.",
+        "policy-required": "Necesitamos que aceptes la política de cancelación.",
+      },
+
+      /** Motivos por los que una solicitud correcta puede no prosperar. */
+      failures: {
+        "dates-taken":
+          "Esas fechas se acaban de ocupar. Vuelve al calendario y elige otras: la disponibilidad ya está actualizada.",
+        "invalid-dates":
+          "Esas fechas ya no son válidas. Vuelve al calendario y elígelas de nuevo.",
+        "min-stay": "Esa temporada tiene estancia mínima.",
+        "over-capacity": "Ese alojamiento no admite tantos huéspedes.",
+        "not-found": "Ese alojamiento ya no está disponible.",
+        "rate-limited":
+          "Recibimos varias solicitudes tuyas seguidas. Espera un momento o escríbenos por WhatsApp y te atendemos al instante.",
+        unconfigured:
+          "No podemos registrar la solicitud en este momento. Escríbenos por WhatsApp y la tomamos nosotros.",
+        server:
+          "No pudimos registrar tu solicitud. Inténtalo de nuevo; si vuelve a fallar, escríbenos por WhatsApp.",
+      },
+    },
+
+    /* --- Paso 3: solicitud registrada ------------------------------------ */
+    success: {
+      eyebrow: "Solicitud registrada",
+      title: "¡Listo! Tus fechas quedaron apartadas",
+      codeLabel: "Tu código de solicitud",
+      hold: (deadline: string) =>
+        `Tu solicitud quedó registrada y las fechas quedan reservadas por 48 horas (hasta el ${deadline}) mientras el equipo confirma.`,
+      contact: "Te contactaremos por WhatsApp o correo.",
+      emailSent: (email: string) => `Te enviamos una copia a ${email}.`,
+      onlineSoon: "Muy pronto podrás pagar en línea aquí mismo.",
+      summaryTitle: "Resumen de tu solicitud",
+      accommodation: "Alojamiento",
+      whatsapp: "Escribirnos por WhatsApp",
+      /** Mensaje prellenado del botón: lleva el código dentro. */
+      whatsappMessage: (code: string, accommodation: string) =>
+        `Hola! Hice la solicitud ${code} para ${accommodation}. ¿Me confirman?`,
+      again: "Hacer otra solicitud",
     },
   },
 

@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
+import { confirmBookingAction } from "./actions";
 import { Flash } from "@/components/admin/flash";
+import { SubmitButton } from "@/components/admin/submit-button";
 import {
   Card,
   CardBody,
@@ -24,9 +26,11 @@ import {
   BOOKING_SOURCE_LABEL,
   BOOKING_STATUSES,
   BOOKING_STATUS_LABEL,
+  type AdminBooking,
   type BookingSource,
   type BookingStatus,
 } from "@/lib/admin/types";
+import { formatHoldCountdownEs, isHoldExpired } from "@/lib/booking/holds";
 import { formatCOP } from "@/lib/format";
 import { isIsoDate } from "@/lib/admin/dates";
 
@@ -77,7 +81,7 @@ export default async function BookingsAdminPage({
 
       <PageHeading
         title="Reservas"
-        description="Todas las reservas del calendario: las que se registran aquí y, más adelante, las que lleguen del sitio con pago en línea."
+        description="Todas las reservas del calendario: las solicitudes que llegan del sitio y las que registra el equipo. Una solicitud web aparta las fechas 48 horas; confírmala para que queden bloqueadas en firme."
         action={
           <LinkButton href="/admin/reservas/nueva">Registrar reserva</LinkButton>
         }
@@ -174,46 +178,90 @@ export default async function BookingsAdminPage({
           </div>
         ) : (
           <ul className="divide-y divide-ink/[0.07]">
-            {bookings.map((booking) => {
-              const nights = nightsBetween(booking.check_in, booking.check_out);
-              return (
-                <li key={booking.id}>
-                  <Link
-                    href={`/admin/reservas/${booking.id}`}
-                    className="group flex flex-wrap items-center gap-x-4 gap-y-2 px-5 py-4 transition-colors hover:bg-ink/[0.02] sm:px-6"
-                  >
-                    <div className="min-w-[13rem] flex-1">
-                      <p className="text-[1rem] font-semibold text-ink group-hover:text-brand-700">
-                        {booking.guest_name}
-                      </p>
-                      <p className="mt-0.5 text-[0.8125rem] text-ink-muted">
-                        {booking.accommodation_name ?? "Alojamiento"} ·{" "}
-                        {formatRangeEs(booking.check_in, booking.check_out)} ·{" "}
-                        {nights} {nights === 1 ? "noche" : "noches"} ·{" "}
-                        {booking.guests}{" "}
-                        {booking.guests === 1 ? "huésped" : "huéspedes"}
-                      </p>
-                    </div>
-
-                    <div className="text-right">
-                      <p className="text-[0.9375rem] font-semibold text-ink">
-                        {formatCOP(booking.total_cop)}
-                      </p>
-                      <p className="text-[0.75rem] text-ink-muted">
-                        {BOOKING_SOURCE_LABEL[booking.source]}
-                      </p>
-                    </div>
-
-                    <Pill tone={statusTone(booking.status)}>
-                      {BOOKING_STATUS_LABEL[booking.status]}
-                    </Pill>
-                  </Link>
-                </li>
-              );
-            })}
+            {bookings.map((booking) => (
+              <BookingRow key={booking.id} booking={booking} />
+            ))}
           </ul>
         )}
       </Card>
     </>
+  );
+}
+
+/**
+ * Una fila del listado.
+ *
+ * El enlace a la ficha NO envuelve la fila entera: dentro va el formulario de
+ * "Confirmar", y un `<form>` dentro de un `<a>` no es HTML válido (ni se puede
+ * pulsar sin navegar). El enlace cubre el bloque de texto, que es lo que se
+ * quiere abrir, y el botón vive fuera de él.
+ */
+function BookingRow({ booking }: { booking: AdminBooking }) {
+  const nights = nightsBetween(booking.check_in, booking.check_out);
+  const isWebRequest = booking.source === "web";
+  const expired = isHoldExpired(booking.status, booking.expires_at);
+  const countdown =
+    booking.status === "pending"
+      ? formatHoldCountdownEs(booking.expires_at)
+      : null;
+  const canConfirm =
+    booking.status === "pending" || booking.status === "cancelled";
+
+  return (
+    <li className="flex flex-wrap items-center gap-x-4 gap-y-3 px-5 py-4 transition-colors hover:bg-ink/[0.02] sm:px-6">
+      <Link
+        href={`/admin/reservas/${booking.id}`}
+        className="group min-w-[13rem] flex-1"
+      >
+        <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[1rem] font-semibold text-ink group-hover:text-brand-700">
+          {booking.guest_name}
+          {isWebRequest && (
+            <Pill tone="blue">
+              Solicitud web
+              {booking.booking_code ? ` · ${booking.booking_code}` : ""}
+            </Pill>
+          )}
+        </p>
+        <p className="mt-0.5 text-[0.8125rem] text-ink-muted">
+          {booking.accommodation_name ?? "Alojamiento"} ·{" "}
+          {formatRangeEs(booking.check_in, booking.check_out)} · {nights}{" "}
+          {nights === 1 ? "noche" : "noches"} · {booking.guests}{" "}
+          {booking.guests === 1 ? "huésped" : "huéspedes"}
+        </p>
+        {countdown && (
+          <p
+            className={`mt-1 text-[0.75rem] font-semibold ${
+              expired ? "text-red-700" : "text-amber-700"
+            }`}
+          >
+            {expired
+              ? `${countdown} · las fechas ya están libres`
+              : `Hold de 48 h · ${countdown.toLowerCase()}`}
+          </p>
+        )}
+      </Link>
+
+      <div className="text-right">
+        <p className="text-[0.9375rem] font-semibold text-ink">
+          {formatCOP(booking.total_cop)}
+        </p>
+        <p className="text-[0.75rem] text-ink-muted">
+          {BOOKING_SOURCE_LABEL[booking.source]}
+        </p>
+      </div>
+
+      <Pill tone={statusTone(booking.status)}>
+        {BOOKING_STATUS_LABEL[booking.status]}
+      </Pill>
+
+      {canConfirm && (
+        <form action={confirmBookingAction}>
+          <input type="hidden" name="id" value={booking.id} />
+          <SubmitButton size="sm" pendingLabel="Confirmando…">
+            Confirmar
+          </SubmitButton>
+        </form>
+      )}
+    </li>
   );
 }

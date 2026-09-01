@@ -15,6 +15,7 @@
  */
 import type { SupabaseClient } from "@supabase/supabase-js";
 
+import { occupiesCalendar } from "@/lib/booking/holds";
 import { formatRangeEs, parseDateRange, rangesOverlap } from "./dates";
 import { BOOKING_STATUS_LABEL, OCCUPYING_STATUSES, type BookingStatus } from "./types";
 
@@ -39,7 +40,7 @@ export async function findCalendarConflicts(
   // --- Reservas que ocupan calendario -------------------------------------
   let bookingsQuery = supabase
     .from("bookings")
-    .select("id, guest_name, check_in, check_out, status")
+    .select("id, guest_name, check_in, check_out, status, expires_at")
     .eq("accommodation_id", accommodationId)
     .in("status", OCCUPYING_STATUSES)
     // Solape de rangos medio-abiertos: inicio_a < fin_b  y  inicio_b < fin_a.
@@ -57,7 +58,24 @@ export async function findCalendarConflicts(
     );
   }
 
+  const now = new Date();
+
   for (const row of bookings ?? []) {
+    // Un hold vencido no choca con nada: la solicitud caducó y sus fechas ya
+    // están libres, aunque la fila siga en 'pending' hasta el próximo barrido.
+    // Misma regla que ve el sitio público y que exporta el .ics.
+    if (
+      !occupiesCalendar(
+        {
+          status: String(row.status),
+          expires_at: (row.expires_at as string | null) ?? null,
+        },
+        now,
+      )
+    ) {
+      continue;
+    }
+
     const status = row.status as BookingStatus;
     conflicts.push({
       kind: "reserva",

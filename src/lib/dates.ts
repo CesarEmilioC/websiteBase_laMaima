@@ -240,19 +240,36 @@ export function toDateRangeLiteral(startIso: string, endIso: string): string {
   return `[${startIso},${endIso})`;
 }
 
-/** Fecha y hora de creación, legible: "12 ago 2026, 14:35". */
-export function formatTimestampEs(value: string | null): string {
+/**
+ * Fecha y hora legibles: "12 ago 2026, 14:35" · "12 Aug 2026, 14:35".
+ *
+ * SIEMPRE en hora de Colombia (UTC-5), nunca en la del dispositivo. Un
+ * vencimiento de reserva que se leyera distinto según dónde esté quien mira no
+ * sería un dato, sería una trampa: el hold caduca a una hora concreta en Dapa,
+ * y esa es la única que importa. La hora va en formato de 24 horas también en
+ * inglés, por el mismo motivo por el que las fechas conservan el orden
+ * día-mes-año (ver `formatDate`): se compara con la hora del reloj local del
+ * establecimiento, no con la costumbre del país de origen.
+ */
+export function formatTimestamp(
+  value: string | null,
+  locale: Locale = DEFAULT_LOCALE,
+): string {
   if (!value) return "—";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
-  // Se muestra en hora de Colombia (UTC-5).
   const bogota = new Date(date.getTime() - 5 * 60 * 60 * 1000);
   const day = bogota.getUTCDate();
-  const month = MONTHS_SHORT.es[bogota.getUTCMonth()];
+  const month = MONTHS_SHORT[locale][bogota.getUTCMonth()];
   const year = bogota.getUTCFullYear();
   const hh = String(bogota.getUTCHours()).padStart(2, "0");
   const mm = String(bogota.getUTCMinutes()).padStart(2, "0");
   return `${day} ${month} ${year}, ${hh}:${mm}`;
+}
+
+/** Atajo en español para el panel, que es monolingüe. */
+export function formatTimestampEs(value: string | null): string {
+  return formatTimestamp(value, "es");
 }
 
 /* ---------------------------------------------------------------------------

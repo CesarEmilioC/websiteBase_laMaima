@@ -20,6 +20,7 @@
 import "server-only";
 
 import type { OccupiedRange } from "./availability";
+import { occupiesCalendar } from "./booking/holds";
 import { parseDateRange } from "./dates";
 import { createAdminClient, hasServiceRoleKey } from "./supabase/admin";
 
@@ -65,9 +66,18 @@ function toStamp(value: unknown): Date {
  * `[from, to)`, sin fundir ni recortar: cada quien decide después qué hacer
  * con los tramos.
  *
- * Se incluyen las reservas en cualquier estado que no sea `cancelled`
- * (`pending` a la espera de pago, `paid` y `external` de Airbnb/Booking) y
- * todos los bloqueos manuales que crucen la ventana.
+ * QUÉ CUENTA COMO OCUPADO. Todas las reservas que no estén `cancelled`
+ * (`pending`, `confirmed`, `paid` y `external`) y todos los bloqueos manuales
+ * que crucen la ventana — CON UNA EXCEPCIÓN: un `pending` cuyo hold de 48
+ * horas ya venció no ocupa nada. Esa regla vive en `occupiesCalendar()` y la
+ * comparten este módulo, la comprobación de la Server Action pública y la del
+ * panel; si los tres no dijeran lo mismo, la diferencia se llamaría
+ * sobreventa.
+ *
+ * El filtrado del hold se hace en memoria y no en la consulta a propósito: son
+ * un puñado de filas por alojamiento, y expresar "o el estado no es pending, o
+ * expires_at es nulo, o expires_at es futuro" en PostgREST produce un `or=`
+ * ilegible que ya no se parece a la regla escrita.
  */
 export async function loadOccupancy(
   slug: string,
@@ -106,7 +116,7 @@ export async function loadOccupancy(
   // --- 2. Reservas que ocupan calendario ------------------------------------
   const { data: bookings, error: bookingsError } = await supabase
     .from("bookings")
-    .select("id, check_in, check_out, updated_at")
+    .select("id, check_in, check_out, updated_at, status, expires_at")
     .eq("accommodation_id", accommodationId)
     .neq("status", "cancelled")
     .lt("check_in", to)
@@ -132,8 +142,23 @@ export async function loadOccupancy(
   }
 
   const entries: OccupancyEntry[] = [];
+  const now = new Date();
 
   for (const row of bookings ?? []) {
+    // Un hold vencido no ocupa calendario: ni para el widget, ni para el .ics
+    // que leen Airbnb y Booking.
+    if (
+      !occupiesCalendar(
+        {
+          status: String(row.status),
+          expires_at: (row.expires_at as string | null) ?? null,
+        },
+        now,
+      )
+    ) {
+      continue;
+    }
+
     entries.push({
       id: String(row.id),
       kind: "booking",

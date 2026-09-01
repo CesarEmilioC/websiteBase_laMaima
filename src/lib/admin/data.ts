@@ -8,11 +8,13 @@
 import { cache } from "react";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
+import { isExpiringSoon, occupiesCalendar } from "@/lib/booking/holds";
 import { createClient } from "@/lib/supabase/server";
 import { parseDateRange, todayInBogota } from "./dates";
 import {
   BOOKING_SOURCES,
   BOOKING_STATUSES,
+  OCCUPYING_STATUSES,
   type AccommodationOption,
   type AdminAccommodation,
   type AdminBlockedDate,
@@ -73,7 +75,7 @@ const EXPERIENCE_COLUMNS =
   "id, slug, name, name_en, short_description, short_description_en, description, description_en, duration, duration_en, capacity, price_cop, price_note, price_note_en, gallery, visible, sort_order, created_at, updated_at";
 
 const BOOKING_COLUMNS =
-  "id, accommodation_id, guest_name, guest_email, guest_phone, check_in, check_out, guests, total_cop, status, source, payment_ref, created_at, updated_at, accommodations(name)";
+  "id, accommodation_id, guest_name, guest_email, guest_phone, check_in, check_out, guests, total_cop, status, source, payment_ref, booking_code, expires_at, notes, locale, created_at, updated_at, accommodations(name)";
 
 /**
  * Cliente autenticado del panel. Va envuelto en `cache()` para que un mismo
@@ -244,6 +246,10 @@ function mapBooking(row: RawRow): AdminBooking {
     created_at: String(row.created_at),
     updated_at: String(row.updated_at),
     accommodation_name: joinedName(row.accommodations),
+    booking_code: (row.booking_code as string | null) ?? null,
+    expires_at: (row.expires_at as string | null) ?? null,
+    notes: (row.notes as string | null) ?? null,
+    locale: (row.locale as string | null) ?? null,
   };
 }
 
@@ -301,13 +307,49 @@ export async function listUpcomingBookings(limit = 8): Promise<AdminBooking[]> {
   const { data, error } = await supabase
     .from("bookings")
     .select(BOOKING_COLUMNS)
-    .in("status", ["pending", "paid", "external"])
+    .in("status", OCCUPYING_STATUSES)
     .gte("check_out", todayInBogota())
     .order("check_in", { ascending: true })
     .limit(limit);
 
   if (error) throw new Error(`No se pudieron cargar las reservas: ${error.message}`);
-  return (data ?? []).map((row) => mapBooking(row as RawRow));
+  // Se descartan los holds vencidos: siguen en 'pending' hasta el próximo
+  // barrido, pero sus fechas ya están libres y anunciarlos como "próxima
+  // llegada" sería mentir en la primera pantalla del panel.
+  const now = new Date();
+  return (data ?? [])
+    .map((row) => mapBooking(row as RawRow))
+    .filter((booking) => occupiesCalendar(booking, now));
+}
+
+/**
+ * Reservas pendientes de confirmar, de la más urgente a la menos.
+ *
+ * Es la cola de trabajo real del panel. Ordena por vencimiento ascendente y
+ * deja al final las que no vencen (las que registra el equipo a mano): esas
+ * también hay que confirmarlas, pero no tienen reloj. Los holds ya caducados
+ * se descartan — sus fechas están libres y anunciarlos como trabajo pendiente
+ * sería mandar a alguien a confirmar una reserva que ya no existe.
+ *
+ * Cuenta lo mismo que `bookingsPending` de `getDashboardStats()`, a propósito:
+ * dos números distintos para lo mismo en la misma pantalla se leen como un
+ * error del panel.
+ */
+export async function listPendingRequests(limit = 20): Promise<AdminBooking[]> {
+  const supabase = await adminClient();
+  const { data, error } = await supabase
+    .from("bookings")
+    .select(BOOKING_COLUMNS)
+    .eq("status", "pending")
+    .order("expires_at", { ascending: true, nullsFirst: false })
+    .limit(limit);
+
+  if (error) throw new Error(`No se pudieron cargar las solicitudes: ${error.message}`);
+
+  const now = new Date();
+  return (data ?? [])
+    .map((row) => mapBooking(row as RawRow))
+    .filter((booking) => occupiesCalendar(booking, now));
 }
 
 export async function listRecentBookings(limit = 6): Promise<AdminBooking[]> {
@@ -427,7 +469,10 @@ export type DashboardStats = {
   accommodationsVisible: number;
   experiencesTotal: number;
   experiencesVisible: number;
+  /** Solicitudes en 'pending' con el hold todavía vivo. */
   bookingsPending: number;
+  /** De esas, las que vencen en menos de 12 horas: hay que atenderlas hoy. */
+  bookingsExpiringSoon: number;
   bookingsUpcoming: number;
   blocksUpcoming: number;
 };
@@ -440,14 +485,18 @@ export async function getDashboardStats(): Promise<DashboardStats> {
     await Promise.all([
       supabase.from("accommodations").select("visible"),
       supabase.from("experiences").select("visible"),
+      /* Los pendientes se cuentan trayendo las filas y no con `count`: la
+         cuenta tiene que excluir los holds vencidos, y esa condición
+         (`expires_at < now()` combinada con el estado) no se expresa como un
+         filtro de PostgREST sin duplicar la regla. Son unas pocas filas. */
       supabase
         .from("bookings")
-        .select("id", { count: "exact", head: true })
+        .select("status, expires_at")
         .eq("status", "pending"),
       supabase
         .from("bookings")
-        .select("id", { count: "exact", head: true })
-        .in("status", ["pending", "paid", "external"])
+        .select("status, expires_at")
+        .in("status", OCCUPYING_STATUSES)
         .gte("check_out", today),
       listBlockedDates({ onlyUpcoming: true }),
     ]);
@@ -455,13 +504,24 @@ export async function getDashboardStats(): Promise<DashboardStats> {
   const accRows = (accommodations.data ?? []) as { visible: boolean }[];
   const expRows = (experiences.data ?? []) as { visible: boolean }[];
 
+  const now = new Date();
+  type HoldRow = { status: string; expires_at: string | null };
+  const pendingRows = (pending.data ?? []) as HoldRow[];
+  const upcomingRows = (upcoming.data ?? []) as HoldRow[];
+
+  const livePending = pendingRows.filter((row) => occupiesCalendar(row, now));
+
   return {
     accommodationsTotal: accRows.length,
     accommodationsVisible: accRows.filter((row) => row.visible).length,
     experiencesTotal: expRows.length,
     experiencesVisible: expRows.filter((row) => row.visible).length,
-    bookingsPending: pending.count ?? 0,
-    bookingsUpcoming: upcoming.count ?? 0,
+    bookingsPending: livePending.length,
+    bookingsExpiringSoon: livePending.filter((row) =>
+      isExpiringSoon(row.status, row.expires_at, now),
+    ).length,
+    bookingsUpcoming: upcomingRows.filter((row) => occupiesCalendar(row, now))
+      .length,
     blocksUpcoming: blocks.length,
   };
 }

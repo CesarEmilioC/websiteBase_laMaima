@@ -13,6 +13,7 @@ import {
   Field,
   Input,
   Select,
+  Textarea,
   buttonClass,
 } from "@/components/admin/ui";
 import { addDays, nightsBetween, todayInBogota } from "@/lib/admin/dates";
@@ -213,7 +214,7 @@ export function BookingForm({
       <Card>
         <CardHeader
           title="Estado y cobro"
-          description="Las reservas pendientes y pagadas ocupan calendario; las canceladas lo liberan."
+          description="Pendientes, confirmadas, pagadas y de canal externo ocupan calendario; las canceladas lo liberan. Una solicitud del sitio nace pendiente y con vencimiento: confírmala desde el botón de arriba para quitarle el vencimiento y avisar al huésped."
         />
         <CardBody className="grid gap-4 sm:grid-cols-2">
           <Field label="Estado" htmlFor="status" required>
@@ -296,6 +297,24 @@ export function BookingForm({
               name="payment_ref"
               maxLength={120}
               defaultValue={booking?.payment_ref ?? ""}
+            />
+          </Field>
+
+          {/* Este campo tiene que existir aunque casi nunca se escriba aquí:
+              las solicitudes del sitio traen la nota del huésped en esta
+              columna, y un formulario que no la enviara la borraría al guardar
+              cualquier otro cambio. */}
+          <Field
+            label="Notas"
+            htmlFor="notes"
+            className="sm:col-span-2"
+            hint="Lo que escribió el huésped al solicitar, más lo que el equipo quiera anotar."
+          >
+            <Textarea
+              id="notes"
+              name="notes"
+              maxLength={2000}
+              defaultValue={booking?.notes ?? ""}
             />
           </Field>
         </CardBody>

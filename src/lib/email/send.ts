@@ -25,6 +25,7 @@ import { getContactInfo } from "../content";
 import {
   renderBookingConfirmation,
   renderBookingNotification,
+  renderBookingRequestReceived,
   type BookingEmailData,
   type RenderedEmail,
 } from "./templates";
@@ -131,11 +132,42 @@ async function deliver(
 }
 
 /**
- * Confirmación de reserva al huésped.
+ * "Recibimos tu solicitud" — al huésped, en cuanto envía el formulario.
  *
- * Se llama después de que el pago quede confirmado. Si la reserva no trae
- * correo (las que registra el equipo a mano desde el panel a veces no lo
- * tienen), no se envía nada y se dice por qué.
+ * Es el primero de los dos correos que recibe: lleva su código, el resumen y
+ * el aviso del hold de 48 horas, y NO dice que la reserva esté confirmada
+ * (todavía no lo está). La confirmación definitiva es `sendBookingConfirmation`
+ * y sale cuando el equipo pulsa "Confirmar" en el panel.
+ *
+ * Va en el idioma del huésped (`booking.locale`).
+ */
+export async function sendBookingRequestReceived(
+  booking: BookingEmailData,
+): Promise<EmailResult> {
+  const to = booking.guestEmail?.trim();
+  if (!to) {
+    console.info(
+      `[email] solicitud recibida: la reserva ${booking.id} no tiene correo del huésped.`,
+    );
+    return {
+      sent: false,
+      reason: "no-recipient",
+      message: "La reserva no tiene correo del huésped.",
+    };
+  }
+
+  const contact = await getContactInfo();
+  const email = renderBookingRequestReceived({ booking, contact });
+  return deliver(to, email, "solicitud recibida");
+}
+
+/**
+ * Confirmación definitiva de la reserva al huésped.
+ *
+ * Se llama cuando el equipo confirma desde el panel (y, en su día, cuando el
+ * webhook de la pasarela marque el pago). Si la reserva no trae correo (las que
+ * registra el equipo a mano a veces no lo tienen), no se envía nada y se dice
+ * por qué.
  */
 export async function sendBookingConfirmation(
   booking: BookingEmailData,

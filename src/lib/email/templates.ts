@@ -23,9 +23,22 @@
  * La paleta es la del sitio: azul primario #345fc6 como color de acción, azul
  * marino #101d34 para el pie, blanco cálido de fondo y grises azulados para el
  * texto (ver `COLORS` más abajo).
+ *
+ * ---------------------------------------------------------------------------
+ * QUÉ CORREO VA EN QUÉ IDIOMA
+ * ---------------------------------------------------------------------------
+ * Los DOS correos al huésped se escriben en el idioma en que él hizo la
+ * solicitud (columna `bookings.locale`). Es el único que sabemos que entiende,
+ * y el correo llega horas o días después: no hay contexto que ayude a
+ * descifrarlo, como sí lo hay en una página web con un conmutador de banderas.
+ *
+ * El aviso INTERNO se queda en español y no se traduce nunca: lo lee el equipo
+ * de La Maima, que trabaja en español. Eso sí, indica en qué idioma escribe el
+ * huésped, para que sepan en cuál responderle.
  */
-import { formatLongDateEs, nightsBetween } from "../dates";
+import { formatLongDate } from "../dates";
 import { formatCOP, formatGuests } from "../format";
+import { DEFAULT_LOCALE, localePath, type Locale } from "../i18n/config";
 import { SITE } from "../site";
 import type { ContactInfo } from "../content";
 
@@ -39,8 +52,10 @@ import type { ContactInfo } from "../content";
  * el webhook de la pasarela.
  */
 export type BookingEmailData = {
-  /** `id` de la fila: sirve de número de reserva. */
+  /** `id` de la fila. Se usa para el enlace al panel. */
   id: string;
+  /** Código legible ("LM-7F3K"). Es LA referencia de cara al huésped. */
+  bookingCode?: string | null;
   accommodationName: string;
   /** "YYYY-MM-DD" */
   checkIn: string;
@@ -51,10 +66,16 @@ export type BookingEmailData = {
   guestName: string;
   guestEmail: string | null;
   guestPhone: string | null;
+  /** Notas que escribió el huésped en el formulario. */
+  guestNotes?: string | null;
   /** Estado de la reserva, para el aviso interno. */
   status?: string;
   /** Canal de origen ('web', 'airbnb', …), para el aviso interno. */
   source?: string;
+  /** Idioma del huésped: define el idioma de SUS correos. */
+  locale?: Locale;
+  /** ISO 8601: cuándo caduca el hold de 48 h. Solo en la solicitud recibida. */
+  expiresAt?: string | null;
 };
 
 export type RenderedEmail = {
@@ -75,9 +96,9 @@ type Context = {
 /**
  * Escapa el texto que se interpola en el HTML.
  *
- * No es una precaución teórica: el nombre, el correo y el teléfono del huésped
- * los escribe una persona y viajan tal cual al aviso interno. Un `<` sin
- * escapar rompería la maqueta del correo en el mejor de los casos.
+ * No es una precaución teórica: el nombre, el correo, el teléfono y las notas
+ * del huésped los escribe una persona y viajan tal cual al aviso interno. Un
+ * `<` sin escapar rompería la maqueta del correo en el mejor de los casos.
  */
 export function escapeHtml(value: string): string {
   return value
@@ -88,9 +109,41 @@ export function escapeHtml(value: string): string {
     .replace(/'/g, "&#39;");
 }
 
-/** Número de reserva legible: los ocho primeros caracteres del UUID. */
+/**
+ * Número de reserva de respaldo: los ocho primeros caracteres del UUID.
+ *
+ * Solo se usa en las filas antiguas y en las que registra el equipo a mano sin
+ * código. Las solicitudes del sitio traen `booking_code`, que es legible y
+ * dictable por teléfono; ver `@/lib/booking/code`.
+ */
 export function bookingReference(id: string): string {
   return id.replace(/-/g, "").slice(0, 8).toUpperCase();
+}
+
+/** La referencia que se le enseña al huésped: el código si lo hay. */
+export function displayReference(booking: BookingEmailData): string {
+  return booking.bookingCode?.trim() || bookingReference(booking.id);
+}
+
+/** Elige la versión del texto según el idioma. */
+function pick(locale: Locale, es: string, en: string): string {
+  return locale === "en" ? en : es;
+}
+
+/** Hora de Colombia legible: "3 sep 2026 a las 14:35". */
+function formatDeadline(iso: string, locale: Locale): string {
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return iso;
+  const bogota = new Date(date.getTime() - 5 * 60 * 60 * 1000);
+  const day = `${bogota.getUTCFullYear()}-${String(bogota.getUTCMonth() + 1).padStart(2, "0")}-${String(bogota.getUTCDate()).padStart(2, "0")}`;
+  const hh = String(bogota.getUTCHours()).padStart(2, "0");
+  const mm = String(bogota.getUTCMinutes()).padStart(2, "0");
+  const long = formatLongDate(day, locale);
+  return pick(
+    locale,
+    `${long} a las ${hh}:${mm} (hora de Colombia)`,
+    `${long} at ${hh}:${mm} (Colombia time)`,
+  );
 }
 
 /**
@@ -146,9 +199,19 @@ function button(href: string, label: string, color = COLORS.brand): string {
             </table>`;
 }
 
+/** Aviso destacado sobre fondo ámbar (el hold de 48 horas). */
+function callout(text: string): string {
+  return `
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:${COLORS.amber};border-radius:16px;margin:0 0 24px 0;">
+              <tr>
+                <td style="padding:16px 20px;font-family:${FONT};font-size:14px;line-height:22px;color:${COLORS.amberInk};">${text}</td>
+              </tr>
+            </table>`;
+}
+
 /**
- * Armazón común: fondo gris, tarjeta blanca de 600 px, banda con el logo y
- * pie verde oscuro con los datos de contacto.
+ * Armazón común: fondo crema, tarjeta blanca de 600 px, banda con el logo y
+ * pie azul marino con los datos de contacto.
  *
  * El `preheader` es el texto que Gmail muestra junto al asunto en la bandeja.
  * Va oculto (alto cero y color transparente) para que no se vea al abrir el
@@ -160,14 +223,18 @@ function shell({
   preheader,
   body,
   contact,
+  locale,
 }: {
   title: string;
   preheader: string;
   body: string;
   contact: ContactInfo;
+  locale: Locale;
 }): string {
+  const legal = (path: string) => `${SITE.url}${localePath(locale, path)}`;
+
   return `<!doctype html>
-<html lang="es">
+<html lang="${locale === "en" ? "en" : "es"}">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -211,18 +278,24 @@ ${body}
                 <a href="${escapeHtml(SITE.url)}" style="color:#9bc7ae;text-decoration:none;">${escapeHtml(SITE.url.replace(/^https?:\/\//, ""))}</a>
               </p>
               <p style="margin:0;font-family:${FONT};font-size:12px;line-height:19px;color:rgba(245,245,247,0.42);">
-                <a href="${escapeHtml(SITE.url)}/legal/terminos" style="color:rgba(245,245,247,0.62);text-decoration:underline;">Términos</a>
+                <a href="${escapeHtml(legal("/legal/terminos"))}" style="color:rgba(245,245,247,0.62);text-decoration:underline;">${pick(locale, "Términos", "Terms")}</a>
                 &nbsp;·&nbsp;
-                <a href="${escapeHtml(SITE.url)}/legal/cancelacion" style="color:rgba(245,245,247,0.62);text-decoration:underline;">Cancelaciones</a>
+                <a href="${escapeHtml(legal("/legal/cancelacion"))}" style="color:rgba(245,245,247,0.62);text-decoration:underline;">${pick(locale, "Cancelaciones", "Cancellations")}</a>
                 &nbsp;·&nbsp;
-                <a href="${escapeHtml(SITE.url)}/legal/privacidad" style="color:rgba(245,245,247,0.62);text-decoration:underline;">Privacidad</a>
+                <a href="${escapeHtml(legal("/legal/privacidad"))}" style="color:rgba(245,245,247,0.62);text-decoration:underline;">${pick(locale, "Privacidad", "Privacy")}</a>
               </p>
             </td>
           </tr>
         </table>
 
         <p style="margin:18px 0 0 0;font-family:${FONT};font-size:12px;line-height:18px;color:${COLORS.inkMuted};max-width:600px;">
-          Recibes este correo porque hiciste una reserva en ${escapeHtml(SITE.name)}.
+          ${escapeHtml(
+            pick(
+              locale,
+              `Recibes este correo porque hiciste una solicitud de reserva en ${SITE.name}.`,
+              `You are receiving this email because you requested a booking at ${SITE.name}.`,
+            ),
+          )}
         </p>
 
       </td>
@@ -233,89 +306,165 @@ ${body}
 `;
 }
 
-/* ---------------------------------------------------------------------------
- * 1. Confirmación al huésped
- * ------------------------------------------------------------------------- */
-
-/**
- * Correo que recibe el huésped cuando su reserva queda confirmada.
- *
- * Tono de marca: cálido y concreto. Lo que la persona necesita saber está
- * arriba (qué reservó, cuándo, cuánto) y lo operativo —cómo llegar, a quién
- * escribir— justo debajo, sin obligar a abrir el sitio.
- */
-export function renderBookingConfirmation({
-  booking,
-  contact,
-}: Context): RenderedEmail {
-  const nights = nightsBetween(booking.checkIn, booking.checkOut);
-  const nightsLabel = `${nights} ${nights === 1 ? "noche" : "noches"}`;
-  const reference = bookingReference(booking.id);
-  const firstName = booking.guestName.trim().split(/\s+/)[0] || "hola";
-
-  const subject = `Reserva confirmada en La Maima · ${booking.accommodationName}, ${formatLongDateEs(booking.checkIn)}`;
-
-  const whatsappHref = `https://wa.me/${contact.whatsapp}?text=${encodeURIComponent(
-    `Hola! Tengo la reserva ${reference} en ${booking.accommodationName} y quiero preguntar algo.`,
-  )}`;
-
-  const body = `
-            <p style="margin:0 0 6px 0;font-family:${FONT};font-size:13px;line-height:20px;color:${COLORS.brand};font-weight:600;">Reserva ${escapeHtml(reference)}</p>
-            <h1 style="margin:0 0 14px 0;font-family:${FONT};font-size:27px;line-height:34px;letter-spacing:-0.6px;color:${COLORS.ink};font-weight:600;">Tu reserva está confirmada</h1>
-
-            <p style="margin:0 0 14px 0;font-family:${FONT};font-size:16px;line-height:26px;color:${COLORS.inkSoft};">
-              ${escapeHtml(firstName)}, te esperamos en <strong style="color:${COLORS.ink};">${escapeHtml(booking.accommodationName)}</strong>. Ya bloqueamos tus fechas: el bosque, los senderos y el silencio de Dapa quedan reservados para ti.
-            </p>
-
+/** Bloque de detalle común a los correos del huésped. */
+function stayTable(booking: BookingEmailData, locale: Locale): string {
+  const nights = nightsLabel(booking, locale);
+  return `
             <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:${COLORS.brandSoft};border-radius:16px;margin:0 0 24px 0;">
               <tr>
                 <td style="padding:18px 20px;">
                   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
-${detailRow("Alojamiento", escapeHtml(booking.accommodationName))}
-${detailRow("Entrada", escapeHtml(formatLongDateEs(booking.checkIn)))}
-${detailRow("Salida", escapeHtml(formatLongDateEs(booking.checkOut)))}
-${detailRow("Noches", escapeHtml(nightsLabel))}
-${detailRow("Huéspedes", escapeHtml(formatGuests(booking.guests)))}
-${detailRow("Total", `${escapeHtml(formatCOP(booking.totalCop))} COP`, true)}
+${detailRow(pick(locale, "Alojamiento", "Accommodation"), escapeHtml(booking.accommodationName))}
+${detailRow(pick(locale, "Entrada", "Check-in"), escapeHtml(formatLongDate(booking.checkIn, locale)))}
+${detailRow(pick(locale, "Salida", "Check-out"), escapeHtml(formatLongDate(booking.checkOut, locale)))}
+${detailRow(pick(locale, "Noches", "Nights"), escapeHtml(nights))}
+${detailRow(pick(locale, "Huéspedes", "Guests"), escapeHtml(formatGuests(booking.guests, locale)))}
+${detailRow(pick(locale, "Total estimado", "Estimated total"), `${escapeHtml(formatCOP(booking.totalCop))} COP`, true)}
                   </table>
                 </td>
               </tr>
-            </table>
+            </table>`;
+}
 
-            <h2 style="margin:0 0 8px 0;font-family:${FONT};font-size:17px;line-height:24px;color:${COLORS.ink};font-weight:600;">Cómo llegar</h2>
-            <p style="margin:0 0 8px 0;font-family:${FONT};font-size:15px;line-height:24px;color:${COLORS.inkSoft};">
-              ${escapeHtml(contact.addressLine)}. La subida a Dapa es de montaña: si llegas de noche, avísanos con tiempo y te guiamos.
-            </p>
-            <p style="margin:0 0 26px 0;font-family:${FONT};font-size:15px;line-height:24px;">
-              <a href="${escapeHtml(contact.maps.url)}" style="color:${COLORS.brand};font-weight:600;text-decoration:underline;">Abrir la ubicación en Google Maps</a>
+function nightsLabel(booking: BookingEmailData, locale: Locale): string {
+  const nights = nightsOf(booking);
+  return locale === "en"
+    ? `${nights} ${nights === 1 ? "night" : "nights"}`
+    : `${nights} ${nights === 1 ? "noche" : "noches"}`;
+}
+
+function nightsOf(booking: BookingEmailData): number {
+  const [sy, sm, sd] = booking.checkIn.split("-").map(Number);
+  const [ey, em, ed] = booking.checkOut.split("-").map(Number);
+  return Math.round(
+    (Date.UTC(ey, em - 1, ed) - Date.UTC(sy, sm - 1, sd)) / 86400000,
+  );
+}
+
+/* ---------------------------------------------------------------------------
+ * 1. Solicitud recibida (al huésped, al crear la reserva desde el sitio)
+ * ------------------------------------------------------------------------- */
+
+/**
+ * Correo que recibe el huésped en cuanto envía el formulario.
+ *
+ * NO dice "confirmada": la reserva todavía no lo está. Dice lo único que en
+ * ese momento es verdad y es lo que la persona necesita saber — que la
+ * solicitud llegó, cuál es su código, y que las fechas quedan apartadas 48
+ * horas mientras el equipo responde. Prometer una confirmación que aún no
+ * existe es la forma más rápida de que alguien se presente en la puerta sin
+ * reserva.
+ */
+export function renderBookingRequestReceived({
+  booking,
+  contact,
+}: Context): RenderedEmail {
+  const locale = booking.locale ?? DEFAULT_LOCALE;
+  const reference = displayReference(booking);
+  const firstName = booking.guestName.trim().split(/\s+/)[0] || "";
+
+  const subject = pick(
+    locale,
+    `Solicitud recibida ${reference} · ${booking.accommodationName}, ${formatLongDate(booking.checkIn, "es")}`,
+    `Request received ${reference} · ${booking.accommodationName}, ${formatLongDate(booking.checkIn, "en")}`,
+  );
+
+  const whatsappHref = `https://wa.me/${contact.whatsapp}?text=${encodeURIComponent(
+    pick(
+      locale,
+      `Hola! Hice la solicitud ${reference} en ${booking.accommodationName}.`,
+      `Hi! I submitted booking request ${reference} for ${booking.accommodationName}.`,
+    ),
+  )}`;
+
+  const deadline = booking.expiresAt
+    ? formatDeadline(booking.expiresAt, locale)
+    : null;
+
+  const holdText = deadline
+    ? pick(
+        locale,
+        `<strong>Tus fechas quedan reservadas hasta el ${escapeHtml(deadline)}</strong> mientras el equipo confirma la disponibilidad y te indica la forma de pago.`,
+        `<strong>Your dates are held until ${escapeHtml(deadline)}</strong> while our team confirms availability and sends you the payment details.`,
+      )
+    : pick(
+        locale,
+        "<strong>Tus fechas quedan reservadas 48 horas</strong> mientras el equipo confirma la disponibilidad y te indica la forma de pago.",
+        "<strong>Your dates are held for 48 hours</strong> while our team confirms availability and sends you the payment details.",
+      );
+
+  const notes = booking.guestNotes?.trim();
+
+  const body = `
+            <p style="margin:0 0 6px 0;font-family:${FONT};font-size:13px;line-height:20px;color:${COLORS.brand};font-weight:600;letter-spacing:0.04em;">${escapeHtml(pick(locale, "Código de tu solicitud", "Your request code"))}</p>
+            <p style="margin:0 0 16px 0;font-family:${FONT};font-size:30px;line-height:36px;letter-spacing:2px;color:${COLORS.ink};font-weight:700;">${escapeHtml(reference)}</p>
+
+            <h1 style="margin:0 0 14px 0;font-family:${FONT};font-size:26px;line-height:33px;letter-spacing:-0.6px;color:${COLORS.ink};font-weight:600;">${escapeHtml(pick(locale, "Recibimos tu solicitud", "We received your request"))}</h1>
+
+            <p style="margin:0 0 18px 0;font-family:${FONT};font-size:16px;line-height:26px;color:${COLORS.inkSoft};">
+              ${escapeHtml(
+                pick(
+                  locale,
+                  `${firstName ? `${firstName}, gracias` : "Gracias"} por elegir `,
+                  `${firstName ? `${firstName}, thank you` : "Thank you"} for choosing `,
+                ),
+              )}<strong style="color:${COLORS.ink};">${escapeHtml(booking.accommodationName)}</strong>. ${escapeHtml(
+                pick(
+                  locale,
+                  "Te escribimos por WhatsApp o por correo para confirmarte y coordinar el pago.",
+                  "We will get back to you on WhatsApp or by email to confirm and arrange payment.",
+                ),
+              )}
             </p>
 
-${button(whatsappHref, "Escribirnos por WhatsApp")}
+${callout(holdText)}
+
+${stayTable(booking, locale)}
+${
+  notes
+    ? `            <p style="margin:0 0 22px 0;font-family:${FONT};font-size:14px;line-height:22px;color:${COLORS.inkMuted};">
+              <strong style="color:${COLORS.ink};">${escapeHtml(pick(locale, "Tu nota:", "Your note:"))}</strong> ${escapeHtml(notes)}
+            </p>`
+    : ""
+}
+${button(whatsappHref, pick(locale, "Escribirnos por WhatsApp", "Message us on WhatsApp"))}
 
             <p style="margin:22px 0 0 0;font-family:${FONT};font-size:14px;line-height:22px;color:${COLORS.inkMuted};text-align:center;">
-              ¿Necesitas cambiar o cancelar? Escríbenos al ${escapeHtml(contact.phoneDisplay)} con tu número de reserva.<br>
-              Consulta la <a href="${escapeHtml(SITE.url)}/legal/cancelacion" style="color:${COLORS.brand};text-decoration:underline;">política de cancelación</a>.
+              ${escapeHtml(pick(locale, "Muy pronto podrás pagar en línea desde el sitio.", "Online payment is coming to the website very soon."))}<br>
+              ${escapeHtml(pick(locale, "Consulta la", "Read our"))} <a href="${escapeHtml(`${SITE.url}${localePath(locale, "/legal/cancelacion")}`)}" style="color:${COLORS.brand};text-decoration:underline;">${escapeHtml(pick(locale, "política de cancelación", "cancellation policy"))}</a>.
             </p>`;
 
   const text = [
-    `Reserva confirmada en ${SITE.legalName}`,
+    pick(locale, "Recibimos tu solicitud", "We received your request"),
     "",
-    `${firstName}, te esperamos en ${booking.accommodationName}. Tus fechas ya están bloqueadas.`,
+    pick(locale, `Código: ${reference}`, `Code: ${reference}`),
     "",
-    `Número de reserva: ${reference}`,
-    `Alojamiento: ${booking.accommodationName}`,
-    `Entrada: ${formatLongDateEs(booking.checkIn)}`,
-    `Salida: ${formatLongDateEs(booking.checkOut)}`,
-    `Noches: ${nightsLabel}`,
-    `Huéspedes: ${formatGuests(booking.guests)}`,
-    `Total: ${formatCOP(booking.totalCop)} COP`,
+    deadline
+      ? pick(
+          locale,
+          `Tus fechas quedan reservadas hasta el ${deadline} mientras el equipo confirma.`,
+          `Your dates are held until ${deadline} while our team confirms.`,
+        )
+      : pick(
+          locale,
+          "Tus fechas quedan reservadas 48 horas mientras el equipo confirma.",
+          "Your dates are held for 48 hours while our team confirms.",
+        ),
     "",
-    "Cómo llegar",
-    contact.addressLine,
-    contact.maps.url,
+    `${pick(locale, "Alojamiento", "Accommodation")}: ${booking.accommodationName}`,
+    `${pick(locale, "Entrada", "Check-in")}: ${formatLongDate(booking.checkIn, locale)}`,
+    `${pick(locale, "Salida", "Check-out")}: ${formatLongDate(booking.checkOut, locale)}`,
+    `${pick(locale, "Noches", "Nights")}: ${nightsLabel(booking, locale)}`,
+    `${pick(locale, "Huéspedes", "Guests")}: ${formatGuests(booking.guests, locale)}`,
+    `${pick(locale, "Total estimado", "Estimated total")}: ${formatCOP(booking.totalCop)} COP`,
+    ...(notes ? ["", `${pick(locale, "Tu nota", "Your note")}: ${notes}`] : []),
     "",
-    `¿Dudas, cambios o cancelaciones? Escríbenos por WhatsApp al ${contact.phoneDisplay} con tu número de reserva.`,
-    `Política de cancelación: ${SITE.url}/legal/cancelacion`,
+    pick(
+      locale,
+      `¿Dudas? Escríbenos por WhatsApp al ${contact.phoneDisplay} con tu código.`,
+      `Questions? Message us on WhatsApp at ${contact.phoneDisplay} with your code.`,
+    ),
+    `${pick(locale, "Política de cancelación", "Cancellation policy")}: ${SITE.url}${localePath(locale, "/legal/cancelacion")}`,
     "",
     `${SITE.legalName} · ${contact.addressLine}`,
     SITE.url,
@@ -325,39 +474,170 @@ ${button(whatsappHref, "Escribirnos por WhatsApp")}
     subject,
     html: shell({
       title: subject,
-      preheader: `${booking.accommodationName} · ${formatLongDateEs(booking.checkIn)} · ${nightsLabel}`,
+      preheader: `${reference} · ${booking.accommodationName} · ${formatLongDate(booking.checkIn, locale)}`,
       body,
       contact,
+      locale,
     }),
     text,
   };
 }
 
 /* ---------------------------------------------------------------------------
- * 2. Aviso interno al hotel
+ * 2. Confirmación definitiva al huésped
  * ------------------------------------------------------------------------- */
 
 /**
- * Correo que recibe el equipo de La Maima cuando entra una reserva.
+ * Correo que recibe el huésped cuando el equipo CONFIRMA la reserva desde el
+ * panel (o, en su día, cuando el webhook de la pasarela marque el pago).
+ *
+ * Tono de marca: cálido y concreto. Lo que la persona necesita saber está
+ * arriba (qué reservó, cuándo, cuánto) y lo operativo —cómo llegar, a quién
+ * escribir— justo debajo, sin obligar a abrir el sitio.
+ */
+export function renderBookingConfirmation({
+  booking,
+  contact,
+}: Context): RenderedEmail {
+  const locale = booking.locale ?? DEFAULT_LOCALE;
+  const reference = displayReference(booking);
+  const firstName = booking.guestName.trim().split(/\s+/)[0] || "";
+
+  const subject = pick(
+    locale,
+    `Reserva confirmada en La Maima · ${booking.accommodationName}, ${formatLongDate(booking.checkIn, "es")}`,
+    `Booking confirmed at La Maima · ${booking.accommodationName}, ${formatLongDate(booking.checkIn, "en")}`,
+  );
+
+  const whatsappHref = `https://wa.me/${contact.whatsapp}?text=${encodeURIComponent(
+    pick(
+      locale,
+      `Hola! Tengo la reserva ${reference} en ${booking.accommodationName} y quiero preguntar algo.`,
+      `Hi! I have booking ${reference} for ${booking.accommodationName} and I have a question.`,
+    ),
+  )}`;
+
+  const body = `
+            <p style="margin:0 0 6px 0;font-family:${FONT};font-size:13px;line-height:20px;color:${COLORS.brand};font-weight:600;">${escapeHtml(pick(locale, "Reserva", "Booking"))} ${escapeHtml(reference)}</p>
+            <h1 style="margin:0 0 14px 0;font-family:${FONT};font-size:27px;line-height:34px;letter-spacing:-0.6px;color:${COLORS.ink};font-weight:600;">${escapeHtml(pick(locale, "Tu reserva está confirmada", "Your booking is confirmed"))}</h1>
+
+            <p style="margin:0 0 14px 0;font-family:${FONT};font-size:16px;line-height:26px;color:${COLORS.inkSoft};">
+              ${escapeHtml(pick(locale, `${firstName ? `${firstName}, te` : "Te"} esperamos en `, `${firstName ? `${firstName}, we` : "We"} look forward to seeing you at `))}<strong style="color:${COLORS.ink};">${escapeHtml(booking.accommodationName)}</strong>. ${escapeHtml(
+                pick(
+                  locale,
+                  "Ya bloqueamos tus fechas: el bosque, los senderos y el silencio de Dapa quedan reservados para ti.",
+                  "Your dates are now blocked: the forest, the trails and the quiet of Dapa are yours.",
+                ),
+              )}
+            </p>
+
+${stayTable(booking, locale)}
+
+            <h2 style="margin:0 0 8px 0;font-family:${FONT};font-size:17px;line-height:24px;color:${COLORS.ink};font-weight:600;">${escapeHtml(pick(locale, "Cómo llegar", "Getting here"))}</h2>
+            <p style="margin:0 0 8px 0;font-family:${FONT};font-size:15px;line-height:24px;color:${COLORS.inkSoft};">
+              ${escapeHtml(contact.addressLine)}. ${escapeHtml(
+                pick(
+                  locale,
+                  "La subida a Dapa es de montaña: si llegas de noche, avísanos con tiempo y te guiamos.",
+                  "The climb to Dapa is a mountain road: if you are arriving after dark, let us know in advance and we will guide you.",
+                ),
+              )}
+            </p>
+            <p style="margin:0 0 26px 0;font-family:${FONT};font-size:15px;line-height:24px;">
+              <a href="${escapeHtml(contact.maps.url)}" style="color:${COLORS.brand};font-weight:600;text-decoration:underline;">${escapeHtml(pick(locale, "Abrir la ubicación en Google Maps", "Open the location in Google Maps"))}</a>
+            </p>
+
+${button(whatsappHref, pick(locale, "Escribirnos por WhatsApp", "Message us on WhatsApp"))}
+
+            <p style="margin:22px 0 0 0;font-family:${FONT};font-size:14px;line-height:22px;color:${COLORS.inkMuted};text-align:center;">
+              ${escapeHtml(
+                pick(
+                  locale,
+                  `¿Necesitas cambiar o cancelar? Escríbenos al ${contact.phoneDisplay} con tu número de reserva.`,
+                  `Need to change or cancel? Message us at ${contact.phoneDisplay} with your booking code.`,
+                ),
+              )}<br>
+              ${escapeHtml(pick(locale, "Consulta la", "Read our"))} <a href="${escapeHtml(`${SITE.url}${localePath(locale, "/legal/cancelacion")}`)}" style="color:${COLORS.brand};text-decoration:underline;">${escapeHtml(pick(locale, "política de cancelación", "cancellation policy"))}</a>.
+            </p>`;
+
+  const text = [
+    pick(
+      locale,
+      `Reserva confirmada en ${SITE.legalName}`,
+      `Booking confirmed at ${SITE.legalName}`,
+    ),
+    "",
+    pick(
+      locale,
+      `${firstName ? `${firstName}, te` : "Te"} esperamos en ${booking.accommodationName}. Tus fechas ya están bloqueadas.`,
+      `${firstName ? `${firstName}, we` : "We"} look forward to seeing you at ${booking.accommodationName}. Your dates are now blocked.`,
+    ),
+    "",
+    `${pick(locale, "Número de reserva", "Booking code")}: ${reference}`,
+    `${pick(locale, "Alojamiento", "Accommodation")}: ${booking.accommodationName}`,
+    `${pick(locale, "Entrada", "Check-in")}: ${formatLongDate(booking.checkIn, locale)}`,
+    `${pick(locale, "Salida", "Check-out")}: ${formatLongDate(booking.checkOut, locale)}`,
+    `${pick(locale, "Noches", "Nights")}: ${nightsLabel(booking, locale)}`,
+    `${pick(locale, "Huéspedes", "Guests")}: ${formatGuests(booking.guests, locale)}`,
+    `${pick(locale, "Total", "Total")}: ${formatCOP(booking.totalCop)} COP`,
+    "",
+    pick(locale, "Cómo llegar", "Getting here"),
+    contact.addressLine,
+    contact.maps.url,
+    "",
+    pick(
+      locale,
+      `¿Dudas, cambios o cancelaciones? Escríbenos por WhatsApp al ${contact.phoneDisplay} con tu número de reserva.`,
+      `Questions, changes or cancellations? Message us on WhatsApp at ${contact.phoneDisplay} with your booking code.`,
+    ),
+    `${pick(locale, "Política de cancelación", "Cancellation policy")}: ${SITE.url}${localePath(locale, "/legal/cancelacion")}`,
+    "",
+    `${SITE.legalName} · ${contact.addressLine}`,
+    SITE.url,
+  ].join("\n");
+
+  return {
+    subject,
+    html: shell({
+      title: subject,
+      preheader: `${booking.accommodationName} · ${formatLongDate(booking.checkIn, locale)} · ${nightsLabel(booking, locale)}`,
+      body,
+      contact,
+      locale,
+    }),
+    text,
+  };
+}
+
+/* ---------------------------------------------------------------------------
+ * 3. Aviso interno al hotel — SIEMPRE en español
+ * ------------------------------------------------------------------------- */
+
+/**
+ * Correo que recibe el equipo de La Maima cuando entra una solicitud.
  *
  * Aquí manda la operación, no el estilo: el asunto trae ya lo esencial (para
  * leerlo desde la notificación del teléfono, sin abrir nada) y el cuerpo trae
- * los datos de contacto del huésped y el enlace directo a la reserva en el
- * panel.
+ * los datos de contacto del huésped, su nota y el enlace directo a la reserva
+ * en el panel.
+ *
+ * Se queda en español pase lo que pase, e indica en qué idioma escribe el
+ * huésped para que sepan en cuál contestarle.
  */
 export function renderBookingNotification({
   booking,
   contact,
 }: Context): RenderedEmail {
-  const nights = nightsBetween(booking.checkIn, booking.checkOut);
-  const nightsLabel = `${nights} ${nights === 1 ? "noche" : "noches"}`;
-  const reference = bookingReference(booking.id);
+  const reference = displayReference(booking);
+  const nights = nightsOf(booking);
+  const nightsText = `${nights} ${nights === 1 ? "noche" : "noches"}`;
 
-  const subject = `Nueva reserva · ${booking.accommodationName} · ${formatLongDateEs(booking.checkIn)} → ${formatLongDateEs(booking.checkOut)}`;
+  const subject = `Nueva solicitud ${reference} · ${booking.accommodationName} · ${formatLongDate(booking.checkIn, "es")} → ${formatLongDate(booking.checkOut, "es")}`;
 
   const panelUrl = `${SITE.url}/admin/reservas/${booking.id}`;
   const guestPhone = booking.guestPhone?.trim() || null;
   const guestEmail = booking.guestEmail?.trim() || null;
+  const notes = booking.guestNotes?.trim();
 
   const contactRows = [
     detailRow("Huésped", escapeHtml(booking.guestName)),
@@ -372,23 +652,38 @@ export function renderBookingNotification({
       guestPhone
         ? `<a href="https://wa.me/${escapeHtml(guestPhone.replace(/\D/g, ""))}" style="color:${COLORS.brand};text-decoration:none;">${escapeHtml(guestPhone)}</a>`
         : "—",
-      true,
     ),
+    detailRow(
+      "Idioma del huésped",
+      booking.locale === "en" ? "Inglés — responder en inglés" : "Español",
+      !notes,
+    ),
+    ...(notes ? [detailRow("Nota", escapeHtml(notes), true)] : []),
   ].join("");
 
-  const body = `
-            <p style="margin:0 0 6px 0;font-family:${FONT};font-size:13px;line-height:20px;color:${COLORS.brand};font-weight:600;">Aviso interno · Reserva ${escapeHtml(reference)}</p>
-            <h1 style="margin:0 0 18px 0;font-family:${FONT};font-size:25px;line-height:32px;letter-spacing:-0.5px;color:${COLORS.ink};font-weight:600;">Nueva reserva en ${escapeHtml(booking.accommodationName)}</h1>
+  const deadline = booking.expiresAt
+    ? formatDeadline(booking.expiresAt, "es")
+    : null;
 
+  const body = `
+            <p style="margin:0 0 6px 0;font-family:${FONT};font-size:13px;line-height:20px;color:${COLORS.brand};font-weight:600;">Aviso interno · ${escapeHtml(reference)}</p>
+            <h1 style="margin:0 0 18px 0;font-family:${FONT};font-size:25px;line-height:32px;letter-spacing:-0.5px;color:${COLORS.ink};font-weight:600;">Nueva solicitud en ${escapeHtml(booking.accommodationName)}</h1>
+${
+  deadline
+    ? callout(
+        `Las fechas quedan apartadas hasta el <strong>${escapeHtml(deadline)}</strong>. Si nadie confirma antes, el hold caduca y las fechas se liberan solas.`,
+      )
+    : ""
+}
             <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:${COLORS.brandSoft};border-radius:16px;margin:0 0 16px 0;">
               <tr>
                 <td style="padding:18px 20px;">
                   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
 ${detailRow("Alojamiento", escapeHtml(booking.accommodationName))}
-${detailRow("Entrada", escapeHtml(formatLongDateEs(booking.checkIn)))}
-${detailRow("Salida", escapeHtml(formatLongDateEs(booking.checkOut)))}
-${detailRow("Noches", escapeHtml(nightsLabel))}
-${detailRow("Huéspedes", escapeHtml(formatGuests(booking.guests)))}
+${detailRow("Entrada", escapeHtml(formatLongDate(booking.checkIn, "es")))}
+${detailRow("Salida", escapeHtml(formatLongDate(booking.checkOut, "es")))}
+${detailRow("Noches", escapeHtml(nightsText))}
+${detailRow("Huéspedes", escapeHtml(formatGuests(booking.guests, "es")))}
 ${detailRow("Total", `${escapeHtml(formatCOP(booking.totalCop))} COP`)}
 ${detailRow("Estado", escapeHtml(booking.status ?? "pending"))}
 ${detailRow("Origen", escapeHtml(booking.source ?? "web"), true)}
@@ -408,28 +703,31 @@ ${contactRows}
               </tr>
             </table>
 
-${button(panelUrl, "Abrir en el panel")}
+${button(panelUrl, "Confirmar en el panel")}
 
             <p style="margin:22px 0 0 0;font-family:${FONT};font-size:13px;line-height:21px;color:${COLORS.inkMuted};text-align:center;">
-              Confirma la reserva en el panel para que las fechas queden bloqueadas también en Airbnb y Booking.
+              Al confirmarla, las fechas dejan de tener vencimiento y se bloquean también en Airbnb y Booking.
             </p>`;
 
   const text = [
-    `Nueva reserva en ${booking.accommodationName}`,
+    `Nueva solicitud en ${booking.accommodationName}`,
     "",
-    `Referencia: ${reference}`,
-    `Entrada: ${formatLongDateEs(booking.checkIn)}`,
-    `Salida: ${formatLongDateEs(booking.checkOut)}`,
-    `Noches: ${nightsLabel}`,
-    `Huéspedes: ${formatGuests(booking.guests)}`,
+    `Código: ${reference}`,
+    `Entrada: ${formatLongDate(booking.checkIn, "es")}`,
+    `Salida: ${formatLongDate(booking.checkOut, "es")}`,
+    `Noches: ${nightsText}`,
+    `Huéspedes: ${formatGuests(booking.guests, "es")}`,
     `Total: ${formatCOP(booking.totalCop)} COP`,
     `Estado: ${booking.status ?? "pending"}`,
     `Origen: ${booking.source ?? "web"}`,
+    ...(deadline ? [`El hold vence el ${deadline}.`] : []),
     "",
     "Contacto del huésped",
     `Nombre: ${booking.guestName}`,
     `Correo: ${guestEmail ?? "—"}`,
     `Teléfono: ${guestPhone ?? "—"}`,
+    `Idioma: ${booking.locale === "en" ? "Inglés — responder en inglés" : "Español"}`,
+    ...(notes ? [`Nota: ${notes}`] : []),
     "",
     `Abrir en el panel: ${panelUrl}`,
     "",
@@ -440,9 +738,12 @@ ${button(panelUrl, "Abrir en el panel")}
     subject,
     html: shell({
       title: subject,
-      preheader: `${booking.guestName} · ${formatGuests(booking.guests)} · ${formatCOP(booking.totalCop)} COP`,
+      preheader: `${booking.guestName} · ${formatGuests(booking.guests, "es")} · ${formatCOP(booking.totalCop)} COP`,
       body,
       contact,
+      // El aviso interno se lee en español siempre, aunque el huésped haya
+      // navegado en inglés.
+      locale: "es",
     }),
     text,
   };

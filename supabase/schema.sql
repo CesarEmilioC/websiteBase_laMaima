@@ -351,10 +351,11 @@ create index if not exists idx_experiences_visible
 
 
 -- =============================================================================
--- 3. bookings — reservas (web propia + registro manual de Airbnb/Booking)
+-- 3. bookings — reservas (solicitudes del sitio + registro manual)
 -- =============================================================================
--- NOTA: esta tabla se usará en la Fase 3 (motor de reservas + Wompi). Se crea
--- desde ya para dejar fija la restricción anti-solape.
+-- Migraciones aplicadas encima del esquema inicial:
+--   · `booking_engine_holds_and_codes`  (2026-09-01)
+--   · `release_expired_holds_function`  (2026-09-01)
 create table if not exists public.bookings (
   id               uuid primary key default gen_random_uuid(),
 
@@ -371,12 +372,15 @@ create table if not exists public.bookings (
 
   total_cop        integer not null check (total_cop >= 0),
 
-  -- pending: creada, esperando pago (Wompi)
-  -- paid: pago confirmado, fechas bloqueadas en firme
-  -- cancelled: cancelada (no bloquea fechas)
-  -- external: registrada manualmente desde Airbnb/Booking/otro canal
+  -- pending  : solicitud recibida. Si viene del sitio, con hold de 48 h
+  --            (expires_at); si la registra el equipo, sin vencimiento.
+  -- confirmed: el equipo la dio por buena. Ocupa fechas SIN vencimiento.
+  -- paid     : pago confirmado (fase Wompi).
+  -- cancelled: cancelada (no bloquea fechas).
+  -- external : registrada manualmente desde Airbnb/Booking/otro canal.
   status           text not null default 'pending'
-                     check (status in ('pending', 'paid', 'cancelled', 'external')),
+                     check (status in ('pending', 'confirmed', 'paid',
+                                       'cancelled', 'external')),
 
   source           text not null default 'web'
                      check (source in ('web', 'airbnb', 'booking', 'manual')),
@@ -384,10 +388,30 @@ create table if not exists public.bookings (
   -- referencia de la transacción en Wompi o del canal externo
   payment_ref      text,
 
+  /* --- Motor de reservas (migración `booking_engine_holds_and_codes`) -----
+     booking_code: código legible y DICTABLE por teléfono, tipo "LM-7F3K". Lo
+       genera el flujo público (ver src/lib/booking/code.ts) con un alfabeto sin
+       caracteres confundibles. Único, pero nulo en las filas que registra el
+       equipo a mano: varios NULL no chocan entre sí en un índice único.
+     expires_at: vencimiento del HOLD de 48 horas. NULL = no vence (confirmed,
+       paid, manual, external). REGLA: un `pending` con expires_at < now() NO
+       ocupa calendario. Como la restricción EXCLUDE de más abajo no puede leer
+       now() —su predicado tiene que ser inmutable—, toda creación de reserva
+       llama antes a release_expired_holds(). Ver src/lib/booking/holds.ts.
+     notes: lo que escribe el huésped en el formulario, más las anotaciones del
+       sistema (p. ej. "Hold vencido: …").
+     locale: idioma en que el huésped hizo la solicitud. Decide el idioma de SUS
+       correos; el aviso interno siempre va en español. */
+  booking_code     text,
+  expires_at       timestamptz,
+  notes            text,
+  locale           text,
+
   created_at       timestamptz not null default now(),
   updated_at       timestamptz not null default now(),
 
-  constraint bookings_checkout_after_checkin check (check_out > check_in)
+  constraint bookings_checkout_after_checkin check (check_out > check_in),
+  constraint bookings_locale_check check (locale is null or locale in ('es', 'en'))
 );
 
 drop trigger if exists set_updated_at_bookings on public.bookings;
@@ -395,33 +419,88 @@ create trigger set_updated_at_bookings
   before update on public.bookings
   for each row execute function public.set_updated_at();
 
+-- Único, admitiendo varios NULL.
+create unique index if not exists bookings_booking_code_key
+  on public.bookings (booking_code);
+
 -- Restricción anti-solape: para un mismo alojamiento no pueden coexistir dos
--- reservas activas (pending o paid) con rangos de fechas que se crucen.
--- Rango medio-abierto [check_in, check_out) para que el día de salida de un
--- huésped pueda ser el día de entrada del siguiente.
+-- reservas activas (pending, confirmed o paid) con rangos de fechas que se
+-- crucen. Rango medio-abierto [check_in, check_out) para que el día de salida
+-- de un huésped pueda ser el día de entrada del siguiente.
+--
 -- Las "cancelled" y "external" quedan fuera: la primera ya no ocupa calendario
 -- y la segunda se refleja en blocked_dates (importado por iCal).
-do $$
-begin
-  if not exists (
-    select 1 from pg_constraint where conname = 'bookings_no_overlap'
-  ) then
-    alter table public.bookings
-      add constraint bookings_no_overlap
-      exclude using gist (
-        accommodation_id with =,
-        daterange(check_in, check_out, '[)') with &&
-      )
-      where (status in ('pending', 'paid'));
-  end if;
-end
-$$;
+--
+-- ESTA ES LA ÚLTIMA LÍNEA DE DEFENSA contra la carrera entre dos solicitudes
+-- simultáneas: la Server Action re-comprueba disponibilidad antes de insertar,
+-- pero entre esa comprobación y el INSERT cabe otra transacción. El perdedor
+-- recibe un 23P01, que el código traduce a "esas fechas se acaban de ocupar".
+alter table public.bookings drop constraint if exists bookings_no_overlap;
+alter table public.bookings
+  add constraint bookings_no_overlap
+  exclude using gist (
+    accommodation_id with =,
+    daterange(check_in, check_out, '[)') with &&
+  )
+  where (status in ('pending', 'confirmed', 'paid'));
 
 create index if not exists idx_bookings_accommodation_dates
   on public.bookings (accommodation_id, check_in, check_out);
 
 create index if not exists idx_bookings_status
   on public.bookings (status);
+
+-- Para el barrido de holds vencidos: parcial, porque solo los pending vencen.
+create index if not exists idx_bookings_pending_expiry
+  on public.bookings (accommodation_id, expires_at)
+  where status = 'pending';
+
+
+-- -----------------------------------------------------------------------------
+-- release_expired_holds(): cancela los holds vencidos de un alojamiento.
+-- -----------------------------------------------------------------------------
+-- Se llama SIEMPRE antes de crear o reactivar una reserva (flujo público y
+-- panel), por el motivo explicado arriba: la restricción EXCLUDE no puede leer
+-- now(), así que para ella un hold vencido sigue ocupando sitio.
+--
+-- Va en una sola sentencia UPDATE para que sea atómico: entre un SELECT y un
+-- UPDATE hechos por separado cabría otra transacción.
+--
+-- security INVOKER a propósito: el flujo público la llama con la clave de
+-- servicio (que se salta RLS) y el panel con el JWT del administrador (que
+-- tiene política total sobre bookings). Nadie más necesita ejecutarla.
+create or replace function public.release_expired_holds(
+  p_note              text,
+  p_accommodation_id  uuid default null
+)
+returns integer
+language plpgsql
+security invoker
+set search_path = ''
+as $$
+declare
+  released integer;
+begin
+  update public.bookings
+     set status = 'cancelled',
+         notes  = case
+                    when notes is null or btrim(notes) = '' then p_note
+                    else notes || chr(10) || p_note
+                  end
+   where status = 'pending'
+     and expires_at is not null
+     and expires_at <= now()
+     and (p_accommodation_id is null or accommodation_id = p_accommodation_id);
+
+  get diagnostics released = row_count;
+  return released;
+end;
+$$;
+
+revoke all on function public.release_expired_holds(text, uuid) from public;
+revoke all on function public.release_expired_holds(text, uuid) from anon;
+grant execute on function public.release_expired_holds(text, uuid) to authenticated;
+grant execute on function public.release_expired_holds(text, uuid) to service_role;
 
 
 -- =============================================================================
@@ -499,8 +578,11 @@ create index if not exists idx_ical_feeds_accommodation
 --     lectura total y escritura solo para "authenticated" (panel admin).
 --   - site_content: lectura pública; escritura solo "authenticated".
 --   - bookings / blocked_dates / ical_feeds: sin políticas para "anon", así que
---     RLS deniega por defecto. El flujo público de reserva (Fase 3) insertará
---     desde el servidor con SUPABASE_SERVICE_ROLE_KEY tras validar el pago.
+--     RLS deniega por defecto. El flujo público de reserva NO habla con la base
+--     desde el navegador: pasa por una Server Action que usa
+--     SUPABASE_SERVICE_ROLE_KEY y no devuelve jamás un dato personal (la
+--     comprobación de disponibilidad devuelve un booleano). Ver
+--     src/lib/booking/actions.ts y src/lib/booking/db.ts.
 
 --   - rate_tiers / min_stay_rules / holidays / rate_plans: lectura pública
 --     (son precios y reglas de catálogo, sin nada sensible); escritura solo

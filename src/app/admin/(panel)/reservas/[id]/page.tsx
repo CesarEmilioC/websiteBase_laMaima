@@ -2,10 +2,15 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
 import { BookingForm } from "../booking-form";
-import { changeBookingStatusAction, deleteBookingAction } from "../actions";
+import {
+  changeBookingStatusAction,
+  confirmBookingAction,
+  deleteBookingAction,
+} from "../actions";
 import { Flash } from "@/components/admin/flash";
 import { SubmitButton } from "@/components/admin/submit-button";
 import {
+  Banner,
   Card,
   CardBody,
   CardHeader,
@@ -26,6 +31,7 @@ import {
   BOOKING_STATUSES,
 } from "@/lib/admin/types";
 import { isUuid } from "@/lib/admin/validation";
+import { formatHoldCountdownEs, isHoldExpired } from "@/lib/booking/holds";
 import { formatCOP } from "@/lib/format";
 
 export const metadata: Metadata = { title: "Detalle de reserva" };
@@ -51,9 +57,21 @@ export default async function BookingDetailPage({
   if (!booking) notFound();
 
   const nights = nightsBetween(booking.check_in, booking.check_out);
+  /* "Confirmar" tiene su propio botón y su propia acción (quita el
+     vencimiento y manda el correo al huésped), así que no se repite como un
+     cambio de estado más en la lista de abajo. */
   const otherStatuses = BOOKING_STATUSES.filter(
-    (value) => value !== booking.status,
+    (value) => value !== booking.status && value !== "confirmed",
   );
+
+  const expired = isHoldExpired(booking.status, booking.expires_at);
+  const countdown =
+    booking.status === "pending"
+      ? formatHoldCountdownEs(booking.expires_at)
+      : null;
+  const isWebRequest = booking.source === "web";
+  const canConfirm =
+    booking.status === "pending" || booking.status === "cancelled";
 
   return (
     <>
@@ -66,11 +84,28 @@ export default async function BookingDetailPage({
           booking.check_out,
         )} · ${nights} ${nights === 1 ? "noche" : "noches"}`}
         action={
-          <Pill tone={statusTone(booking.status)}>
-            {BOOKING_STATUS_LABEL[booking.status]}
-          </Pill>
+          <div className="flex flex-wrap items-center gap-2">
+            {isWebRequest && booking.booking_code && (
+              <Pill tone="blue">Solicitud web · {booking.booking_code}</Pill>
+            )}
+            <Pill tone={statusTone(booking.status)}>
+              {BOOKING_STATUS_LABEL[booking.status]}
+            </Pill>
+          </div>
         }
       />
+
+      {/* Estado del hold, arriba del todo: es lo primero que hay que saber al
+          abrir una solicitud del sitio. */}
+      {countdown && (
+        <div className="mb-5">
+          <Banner tone={expired ? "error" : "info"}>
+            {expired
+              ? `El hold de 48 horas venció (${countdown.toLowerCase()}). Las fechas están libres: al confirmar se vuelve a comprobar que nadie las haya tomado.`
+              : `Las fechas están apartadas por el hold de 48 horas. ${countdown} (${formatTimestampEs(booking.expires_at)}).`}
+          </Banner>
+        </div>
+      )}
 
       <div className="mb-5 grid gap-5 lg:grid-cols-3">
         <Card className="lg:col-span-2">
@@ -90,9 +125,28 @@ export default async function BookingDetailPage({
               />
               <Detail label="Total" value={formatCOP(booking.total_cop)} />
               <Detail label="Origen" value={BOOKING_SOURCE_LABEL[booking.source]} />
+              <Detail label="Código" value={booking.booking_code ?? "—"} />
               <Detail label="Referencia" value={booking.payment_ref ?? "—"} />
               <Detail label="Correo" value={booking.guest_email ?? "—"} />
               <Detail label="Teléfono" value={booking.guest_phone ?? "—"} />
+              <Detail
+                label="Idioma del huésped"
+                value={
+                  booking.locale === "en"
+                    ? "Inglés — responder en inglés"
+                    : booking.locale === "es"
+                      ? "Español"
+                      : "—"
+                }
+              />
+              <Detail
+                label="Vencimiento del hold"
+                value={
+                  booking.expires_at
+                    ? formatTimestampEs(booking.expires_at)
+                    : "Sin vencimiento"
+                }
+              />
               <Detail
                 label="Creada"
                 value={formatTimestampEs(booking.created_at)}
@@ -102,15 +156,39 @@ export default async function BookingDetailPage({
                 value={formatTimestampEs(booking.updated_at)}
               />
             </dl>
+
+            {booking.notes && (
+              <div className="mt-5 rounded-card bg-ink/[0.03] px-4 py-3.5">
+                <p className="text-[0.75rem] font-semibold uppercase tracking-wide text-ink-muted">
+                  Notas
+                </p>
+                <p className="mt-1 whitespace-pre-line text-[0.9375rem] leading-relaxed text-ink">
+                  {booking.notes}
+                </p>
+              </div>
+            )}
           </CardBody>
         </Card>
 
         <Card>
           <CardHeader
-            title="Cambiar estado"
-            description="Cancelar libera las fechas; volver a activarla vuelve a comprobar la disponibilidad."
+            title="Acciones"
+            description="Confirmar bloquea las fechas sin vencimiento y avisa al huésped. Cancelar las libera."
           />
           <CardBody className="space-y-2.5">
+            {canConfirm && (
+              <form action={confirmBookingAction}>
+                <input type="hidden" name="id" value={booking.id} />
+                <SubmitButton
+                  size="sm"
+                  className="w-full"
+                  pendingLabel="Confirmando…"
+                >
+                  Confirmar reserva
+                </SubmitButton>
+              </form>
+            )}
+
             {otherStatuses.map((value) => (
               <form key={value} action={changeBookingStatusAction}>
                 <input type="hidden" name="id" value={booking.id} />
