@@ -30,6 +30,7 @@
  */
 import { cache } from "react";
 import { createPublicClient } from "./supabase/public";
+import { fillCountTokensDeep, STAY_COUNT_TOKEN } from "./counts";
 import { addDays, todayInBogota } from "./dates";
 import { DEFAULT_LOCALE, type Locale } from "./i18n/config";
 import type {
@@ -216,12 +217,32 @@ export type NotFoundContent = {
 // los textos por defecto antes que romper el despliegue. Los listados sí se
 // devuelven vacíos (una tarjeta inventada sería peor que ninguna).
 
+/**
+ * NINGÚN TEXTO DE RESPALDO DICE CUÁNTAS CASAS HAY.
+ *
+ * Estos son los textos que se publican si Supabase no responde durante un
+ * build, y los que sembró la migración inicial. Decían "seis" / "six" y se
+ * quedaban viejos en cuanto el cliente ocultaba una cabaña desde el panel.
+ *
+ * Se resolvió campo a campo, no con una regla única:
+ *
+ *   · `hero.subtitle` y el párrafo de `about` — REESCRITOS SIN NÚMERO. Uno
+ *     abre la frase (un numeral ahí se lee como una etiqueta) y el otro es
+ *     prosa larga; en los dos el número no aportaba nada que no diga el
+ *     zigzag de la portada, que se ve tres pantallas más abajo.
+ *   · `about.stats` — LLEVA EL TOKEN `{{alojamientos}}`. Esa tira ya es una
+ *     fila de cifras ("30 años", "3 tipos de bosque"): es el único sitio de la
+ *     portada donde un numeral es lo natural, y ahora sale de la base.
+ *
+ * Los dos textos los edita el cliente en `/admin/contenido`; si vuelve a
+ * escribir el número a mano, puede usar el token en cualquiera de ellos.
+ */
 const FALLBACK_HERO: Record<Locale, HomeHero> = {
   es: {
     eyebrow: "Reserva natural y hotel campestre",
     title: "La naturaleza a tu alcance",
     subtitle:
-      "Seis casas y cabañas en medio de 30 años de bosque rehabilitado, a menos de una hora de Cali.",
+      "Casas y cabañas independientes en medio de 30 años de bosque rehabilitado, a menos de una hora de Cali.",
     cta_label: "Ver alojamientos",
     cta_href: "/alojamientos",
     image: media("sitio/hero.jpg"),
@@ -232,7 +253,7 @@ const FALLBACK_HERO: Record<Locale, HomeHero> = {
     eyebrow: "Nature reserve and country hotel",
     title: "Nature within your reach",
     subtitle:
-      "Six houses and cabins set in 30 years of restored forest, less than an hour from Cali.",
+      "Independent houses and cabins set in 30 years of restored forest, less than an hour from Cali.",
     cta_label: "See our stays",
     cta_href: "/alojamientos",
     image: media("sitio/hero.jpg"),
@@ -247,14 +268,14 @@ const FALLBACK_ABOUT: Record<Locale, HomeAbout> = {
     title: "Treinta años devolviéndole el bosque a la montaña",
     paragraphs: [
       "La Maima nació como un proyecto familiar de rehabilitación en las montañas de Dapa. Tres décadas después, la reserva combina bosque primario, secundario y terciario en la misma ladera.",
-      "Sobre ese bosque construimos seis casas y cabañas independientes, cada una con cocineta y baño privado.",
+      "Sobre ese bosque construimos casas y cabañas independientes, cada una con cocineta y baño privado.",
     ],
     image: media("sitio/sobre-la-reserva.jpg"),
     image_alt: "Jardines de La Maima con vista abierta al Valle del Cauca",
     gallery: [],
     stats: [
       { value: "30", label: "años de rehabilitación" },
-      { value: "6", label: "casas y cabañas" },
+      { value: STAY_COUNT_TOKEN, label: "casas y cabañas" },
       { value: "3", label: "tipos de bosque" },
     ],
   },
@@ -263,14 +284,14 @@ const FALLBACK_ABOUT: Record<Locale, HomeAbout> = {
     title: "Thirty years giving the forest back to the mountain",
     paragraphs: [
       "La Maima began as a family restoration project in the mountains of Dapa. Three decades later, primary, secondary and tertiary forest grow side by side on the same hillside.",
-      "On top of that forest we built six independent houses and cabins, each with its own kitchenette and private bathroom.",
+      "On top of that forest we built independent houses and cabins, each with its own kitchenette and private bathroom.",
     ],
     image: media("sitio/sobre-la-reserva.jpg"),
     image_alt: "The gardens at La Maima looking out over the Cauca Valley",
     gallery: [],
     stats: [
       { value: "30", label: "years of restoration" },
-      { value: "6", label: "houses and cabins" },
+      { value: STAY_COUNT_TOKEN, label: "houses and cabins" },
       { value: "3", label: "types of forest" },
     ],
   },
@@ -656,6 +677,35 @@ export const getRateConfig = cache(
   },
 );
 
+/* ---------------------------------------------------------------------------
+ * El conteo, en un solo sitio
+ * -------------------------------------------------------------------------
+ * El sitio dice cuántas casas hay en catorce lugares —titulares, botones,
+ * descripciones de buscador, el pie, el JSON-LD—. Todos leen de aquí, y aquí
+ * se lee de la base: si mañana el cliente oculta o publica una cabaña desde el
+ * panel, los catorce cambian solos y ninguno se queda mintiendo.
+ * ------------------------------------------------------------------------ */
+
+/** Cuántos alojamientos VISIBLES hay ahora mismo. */
+export const getVisibleStayCount = cache(async (): Promise<number> => {
+  const accommodations = await getAccommodations();
+  return accommodations.length;
+});
+
+/**
+ * Los nombres de los alojamientos visibles, en el orden en que se publican.
+ *
+ * Los usa la descripción de `/alojamientos`: nombrarlos es lo que la hace útil
+ * en el buscador ("Casa Maima, Mirador…"), y hasta ahora esa lista estaba
+ * escrita a mano, con Casa Uba incluida.
+ */
+export const getStayNames = cache(
+  async (locale: Locale = DEFAULT_LOCALE): Promise<string[]> => {
+    const accommodations = await getAccommodations(locale);
+    return accommodations.map((item) => item.name);
+  },
+);
+
 export const getAccommodationBySlug = cache(
   async (
     slug: string,
@@ -782,29 +832,49 @@ function mergeContent(
   return result;
 }
 
+/**
+ * Portada: titular, subtítulo y llamada a la acción.
+ *
+ * Antes de devolverlo se sustituye el token `{{alojamientos}}` por el número
+ * REAL de alojamientos visibles, en TODAS las cadenas de la fila (ver
+ * `fillCountTokensDeep`). Es lo que permite que la administradora escriba el
+ * texto que quiera y el sitio ponga la cifra: si escribe "seis" a mano, se
+ * queda vieja; si escribe el token, no.
+ */
 export const getHomeHero = cache(
   async (locale: Locale = DEFAULT_LOCALE): Promise<HomeHero> => {
     const fallback = FALLBACK_HERO[locale];
-    const value = await getSiteContent("home_hero", locale);
-    if (!value) return fallback;
-    return { ...fallback, ...(value as Partial<HomeHero>) };
+    const [value, stays] = await Promise.all([
+      getSiteContent("home_hero", locale),
+      getVisibleStayCount(),
+    ]);
+    const hero = value ? { ...fallback, ...(value as Partial<HomeHero>) } : fallback;
+    return fillCountTokensDeep(hero, stays);
   },
 );
 
+/** Igual que `getHomeHero()`: el token vale en párrafos, titular y cifras. */
 export const getHomeAbout = cache(
   async (locale: Locale = DEFAULT_LOCALE): Promise<HomeAbout> => {
     const fallback = FALLBACK_ABOUT[locale];
-    const value = await getSiteContent("home_about", locale);
-    if (!value) return fallback;
+    const [value, stays] = await Promise.all([
+      getSiteContent("home_about", locale),
+      getVisibleStayCount(),
+    ]);
+    if (!value) return fillCountTokensDeep(fallback, stays);
+
     const merged = { ...fallback, ...(value as Partial<HomeAbout>) };
-    return {
-      ...merged,
-      paragraphs: toStringList(merged.paragraphs).length
-        ? toStringList(merged.paragraphs)
-        : fallback.paragraphs,
-      gallery: toGallery(merged.gallery),
-      stats: Array.isArray(merged.stats) ? merged.stats : fallback.stats,
-    };
+    return fillCountTokensDeep(
+      {
+        ...merged,
+        paragraphs: toStringList(merged.paragraphs).length
+          ? toStringList(merged.paragraphs)
+          : fallback.paragraphs,
+        gallery: toGallery(merged.gallery),
+        stats: Array.isArray(merged.stats) ? merged.stats : fallback.stats,
+      },
+      stays,
+    );
   },
 );
 

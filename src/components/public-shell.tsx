@@ -14,7 +14,7 @@ import { dict } from "@/lib/i18n";
 import { HTML_LANG, localePath, type Locale } from "@/lib/i18n/config";
 import { lowestRate } from "@/lib/pricing";
 import { lodgingId, websiteId } from "@/lib/seo";
-import { absoluteUrl, SITE } from "@/lib/site";
+import { absoluteUrl, SITE, siteDescription } from "@/lib/site";
 
 /**
  * Armazón de las rutas públicas: isla de navegación, contenido y pie, más el
@@ -46,7 +46,9 @@ export async function PublicShell({
   const t = dict(locale);
   const english = locale === "en";
   const homeUrl = absoluteUrl(localePath(locale, "/"));
-  const description = english ? SITE.descriptionEn : SITE.description;
+  /* La descripción del negocio cuenta las casas publicadas AHORA, no las que
+     había cuando se escribió la frase. Ver `siteDescription()`. */
+  const description = siteDescription(accommodations.length, locale);
 
   /* -------------------------------------------------------------------------
    * Rango de tarifas REAL
@@ -120,12 +122,21 @@ export async function PublicShell({
     checkoutTime: SITE.stay.checkOut,
     petsAllowed: SITE.stay.petsAllowed,
     smokingAllowed: SITE.stay.smokingAllowed,
-    numberOfRooms: {
-      "@type": "QuantitativeValue",
-      value: accommodations.length || SITE.stay.units,
-      unitText: english ? "houses and cabins" : "casas y cabañas",
-    },
-    /* Capacidad total publicada: la suma de las seis fichas. */
+    /* Cuántas unidades publica el hotel: SIEMPRE el conteo real de fichas
+       visibles. Antes caía a un `SITE.stay.units = 6` escrito a mano cuando la
+       consulta venía vacía, es decir, justo cuando el dato era desconocido:
+       publicar "seis" en ese caso era inventarse la cifra. Si no hay nada que
+       contar, la propiedad no se emite. */
+    ...(accommodations.length
+      ? {
+          numberOfRooms: {
+            "@type": "QuantitativeValue",
+            value: accommodations.length,
+            unitText: english ? "houses and cabins" : "casas y cabañas",
+          },
+        }
+      : {}),
+    /* Capacidad total publicada: la suma de las fichas visibles. */
     ...(accommodations.length
       ? {
           maximumAttendeeCapacity: accommodations.reduce(
@@ -160,9 +171,11 @@ export async function PublicShell({
       name,
       value: true,
     })),
-    /* Las seis fichas, enlazadas por `@id` al nodo `Accommodation` que publica
-       cada una de ellas. Es lo que le dice al buscador que las páginas de
-       alojamiento pertenecen a este hotel y no son productos sueltos. */
+    /* Cada ficha VISIBLE, enlazada por `@id` al nodo `Accommodation` que
+       publica ella misma. Es lo que le dice al buscador que las páginas de
+       alojamiento pertenecen a este hotel y no son productos sueltos. Un
+       alojamiento oculto desaparece de aquí igual que del sitio: la lista sale
+       de `getAccommodations()`, que filtra por `visible = true`. */
     ...(accommodations.length
       ? {
           containsPlace: accommodations.map((item) => {

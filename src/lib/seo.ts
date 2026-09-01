@@ -148,7 +148,7 @@ export const DESCRIPTION_LIMIT = 160;
  * Compone una descripción a partir del texto del cliente más la cola de
  * contexto MÁS LARGA que quepa dentro del límite.
  *
- * Las descripciones de las seis fichas salen de `short_description`, que la
+ * Las descripciones de las fichas salen de `short_description`, que la
  * administradora edita desde el panel y mide entre 90 y 125 caracteres: sobra
  * sitio para añadir dónde está el alojamiento y desde cuánto sale, que es
  * justo lo que decide el clic. Pero ese texto puede crecer mañana, así que la

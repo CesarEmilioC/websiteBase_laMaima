@@ -86,6 +86,18 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       "weekly",
       0.9,
     ),
+    /* La página de reservas. Prioridad alta —es la que responde a "reservar
+       la maima", que es la búsqueda con más intención del sitio— y sin
+       variantes: las direcciones con `?cabana=` son la misma página con una
+       casa preseleccionada y todas declaran su canónica aquí, así que
+       listarlas sería pedirle a Google que indexe seis veces lo mismo.
+       Su fecha es la de los alojamientos: cambia cuando cambian ellos. */
+    ...entries(
+      "/reservar",
+      modified.accommodationsLatest ?? fallback,
+      "weekly",
+      0.9,
+    ),
     ...entries(
       "/experiencias",
       modified.experiences ?? fallback,

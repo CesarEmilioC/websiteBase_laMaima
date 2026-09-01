@@ -28,11 +28,12 @@ import {
   getHomeHero,
   getInstagramGallery,
   getOgImage,
+  getVisibleStayCount,
 } from "@/lib/content";
 import { dict } from "@/lib/i18n";
 import { localePath, type Locale } from "@/lib/i18n/config";
 import { pageMetadata } from "@/lib/seo";
-import { SITE } from "@/lib/site";
+import { SITE, siteDescription } from "@/lib/site";
 import { generalMessage, whatsappUrl } from "@/lib/whatsapp";
 
 /**
@@ -46,7 +47,10 @@ import { generalMessage, whatsappUrl } from "@/lib/whatsapp";
  */
 
 export async function homeMetadata(locale: Locale): Promise<Metadata> {
-  const ogImage = await getOgImage(locale);
+  const [ogImage, stays] = await Promise.all([
+    getOgImage(locale),
+    getVisibleStayCount(),
+  ]);
   const english = locale === "en";
 
   return pageMetadata({
@@ -56,7 +60,9 @@ export async function homeMetadata(locale: Locale): Promise<Metadata> {
       ? `${SITE.name} — Country hotel and nature reserve in Dapa, Colombia`
       : `${SITE.name} — Hotel campestre y reserva natural en Dapa, Yumbo`,
     absoluteTitle: true,
-    description: english ? SITE.descriptionEn : SITE.description,
+    /* La descripción del buscador dice cuántas casas hay, y ese número sale
+       de la base: ver `siteDescription()`. */
+    description: siteDescription(stays, locale),
     path: "/",
     image: { url: ogImage.url, alt: ogImage.alt },
     socialTitle: `${SITE.name} — ${english ? SITE.taglineEn : SITE.tagline}`,
@@ -104,6 +110,12 @@ export async function HomePage({ locale }: { locale: Locale }) {
   const whatsappHref = whatsappUrl(generalMessage(locale), contact.whatsapp);
   const accommodationsHref = localePath(locale, "/alojamientos");
   const experiencesHref = localePath(locale, "/experiencias");
+  /* Reservar sin casa elegida: se llega al selector. Los botones POR CASA
+     (los del zigzag) sí llevan su slug. */
+  const bookHref = localePath(locale, "/reservar");
+  /* Cuántas casas se publican AHORA. Alimenta el titular de la sección y su
+     botón: con Casa Uba oculta, los dos dicen "cinco" solos. */
+  const stays = accommodations.length;
   /* El CTA de la portada lo edita el panel y guarda la ruta canónica en
      español; se traduce al árbol que toque como cualquier otra. */
   const heroCta = localePath(locale, hero.cta_href);
@@ -253,7 +265,7 @@ export async function HomePage({ locale }: { locale: Locale }) {
               id="alojamientos-title"
               className="tracking-editorial mt-4 text-[2.125rem] leading-[1.12] text-ink sm:text-[2.625rem] lg:text-[3rem]"
             >
-              {t.home.accommodations.title}{" "}
+              {t.home.accommodations.title(stays)}{" "}
               <span className="text-brand-700">
                 {t.home.accommodations.titleAccent}
               </span>
@@ -286,7 +298,7 @@ export async function HomePage({ locale }: { locale: Locale }) {
               className="inline-flex items-center gap-2 rounded-full bg-white px-7 py-4 text-[1.0625rem] font-semibold text-brand-700 shadow-card ring-1 ring-inset ring-brand-600/15 transition-[background-color,box-shadow,color,transform] duration-200 ease-ios hover:bg-brand-600 hover:text-white hover:shadow-lift active:scale-[0.98]"
             >
               <CalendarIcon className="h-[1.05rem] w-[1.05rem]" />
-              {t.home.accommodations.cta}
+              {t.home.accommodations.cta(stays)}
             </Link>
           </div>
         </div>
@@ -351,8 +363,10 @@ export async function HomePage({ locale }: { locale: Locale }) {
             </div>
 
             <div className="mt-12 flex flex-col gap-3 sm:flex-row sm:items-center">
+              {/* "Reservar tu estadía": intención pura de reserva, así que va
+                  al motor y no al catálogo. */}
               <Link
-                href={accommodationsHref}
+                href={bookHref}
                 className="inline-flex items-center justify-center gap-2 rounded-full bg-white px-7 py-4 text-[1.0625rem] font-semibold text-brand-700 shadow-pill transition-[background-color,transform] duration-200 ease-ios hover:bg-brand-50 active:scale-[0.98]"
               >
                 <CalendarIcon className="h-[1.05rem] w-[1.05rem]" />
@@ -494,8 +508,11 @@ export async function HomePage({ locale }: { locale: Locale }) {
                   {t.home.contact.noteBody}
                 </p>
                 <div className="mt-5 flex flex-col gap-3 sm:mt-0 sm:shrink-0">
+                  {/* La nota dice "Elige tus fechas en línea" y el botón dice
+                      "Ver disponibilidad": los dos prometen un calendario, así
+                      que llevan al calendario. */}
                   <Link
-                    href={accommodationsHref}
+                    href={bookHref}
                     className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-full bg-brand-600 px-6 py-3.5 text-[0.9375rem] font-semibold text-white shadow-pill transition-[background-color,transform] duration-200 ease-ios hover:bg-brand-700 active:scale-[0.98]"
                   >
                     <CalendarIcon className="h-[1.05rem] w-[1.05rem]" />

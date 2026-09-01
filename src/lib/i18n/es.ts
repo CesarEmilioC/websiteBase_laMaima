@@ -17,7 +17,21 @@
  * reciben el idioma como parámetro: son texto CALCULADO, y partirlo en trozos
  * para meterlo en un diccionario produce frases que solo funcionan en un
  * idioma.
+ *
+ * CUÁNTAS CASAS HAY: NUNCA UN NÚMERO ESCRITO A MANO
+ * ------------------------------------------------
+ * Seis entradas de este diccionario decían "seis" —el titular de la portada,
+ * su botón, la descripción y el título del listado, el enlace de "otros
+ * alojamientos" y el texto del pie— porque cuando se escribieron había seis
+ * casas. Todas son ahora FUNCIONES de `count`, y ese `count` sale del número
+ * de alojamientos VISIBLES en la base (`getVisibleStayCount()`). Ocultar una
+ * cabaña desde el panel las corrige las seis a la vez, sin tocar código.
+ *
+ * El número va EN LETRA (`numberWord`, de `../counts`) porque es prosa; con
+ * rama de singular propia, porque en español el artículo concuerda con el
+ * sustantivo y eso no se resuelve con una plantilla.
  */
+import { numberWord, numberWordCapitalized } from "../counts";
 
 export const es = {
   /* --- Conmutador de idioma ---------------------------------------------- */
@@ -84,12 +98,19 @@ export const es = {
   home: {
     accommodations: {
       eyebrow: "Dónde dormir",
-      title: "Seis casas y cabañas, cada una con su",
+      /** `count` = alojamientos visibles. Ver la nota de cabecera. */
+      title: (count: number) =>
+        count === 1
+          ? "Una casa con su"
+          : `${numberWordCapitalized(count, "es")} casas y cabañas, cada una con su`,
       titleAccent: "pedazo de montaña",
       lead: "Todas independientes, con cocineta equipada y baño privado. Elige la que mejor se acomode a tu grupo y calcula tu estadía con fechas reales.",
       empty:
         "Estamos actualizando la información de nuestros alojamientos. Escríbenos por WhatsApp y te contamos la disponibilidad.",
-      cta: "Ver los seis y reservar",
+      cta: (count: number) =>
+        count === 1
+          ? "Ver el alojamiento y reservar"
+          : `Ver los ${numberWord(count, "es")} y reservar`,
       /* Nombre accesible del enlace que envuelve la FOTO de cada fila del
          zigzag. El titular de al lado ya enlaza a la misma ficha con el nombre
          de la casa como texto, así que sin una etiqueta propia un lector de
@@ -139,14 +160,61 @@ export const es = {
     heroEyebrow: "Casas y cabañas en Dapa",
     heroTitle: "Dormir dentro de",
     heroTitleAccent: "la reserva",
-    heroDescription:
-      "Seis alojamientos independientes repartidos por la ladera. Cada uno con su entrada, su terraza y su vista. Todos con cocineta equipada y baño privado.",
+    heroDescription: (count: number) =>
+      count === 1
+        ? "Un alojamiento independiente en la ladera, con su entrada, su terraza y su vista. Con cocineta equipada y baño privado."
+        : `${numberWordCapitalized(count, "es")} alojamientos independientes repartidos por la ladera. Cada uno con su entrada, su terraza y su vista. Todos con cocineta equipada y baño privado.`,
     sectionEyebrow: "Dónde dormir",
-    sectionTitle: "Seis casas y cabañas",
+    sectionTitle: (count: number) =>
+      count === 1
+        ? "Una casa en la reserva"
+        : `${numberWordCapitalized(count, "es")} casas y cabañas`,
     sectionLead:
       "Cada alojamiento tiene su propia tarifa según el número de huéspedes, y las noches de lunes a jueves cuestan menos. Entra a la ficha para ver la tabla completa y calcular tu estadía con fechas reales.",
     emptyHelp:
       "Mientras tanto, escríbenos por WhatsApp y te contamos qué alojamientos tenemos disponibles.",
+  },
+
+  /* --- Página de reservas (/reservar) -------------------------------------- */
+  /**
+   * El motor de reservas vive dentro de la ficha de cada casa, y hasta ahora
+   * no había forma de llegar a él sin elegir antes un alojamiento: el botón
+   * "Reservar" del menú llevaba al listado y desde ahí había que entrar a una
+   * ficha y bajar. Esta página es ese primer paso, hecho explícito.
+   */
+  bookingHub: {
+    metaTitle: "Reservar",
+    metaDescription: (count: number) =>
+      count === 1
+        ? "Reserva en línea en La Maima, reserva natural en Dapa (Yumbo): disponibilidad real, tarifa con tus fechas y solicitud registrada al instante."
+        : `Reserva en línea en La Maima, en Dapa (Yumbo): elige entre ${numberWord(count, "es")} casas y cabañas, mira la disponibilidad real y arma tu estadía.`,
+    socialDescription:
+      "Elige alojamiento, mira la disponibilidad real y arma tu estadía en La Maima, reserva natural en las montañas de Dapa.",
+    heroEyebrow: "Reservas en línea",
+    heroTitle: "Elige tus fechas",
+    heroTitleAccent: "en la reserva",
+    heroDescription:
+      "El calendario muestra la disponibilidad real, incluidas las reservas que llegan por Airbnb y Booking. Arma tu estadía y envíanos la solicitud: confirmamos fechas y forma de pago el mismo día.",
+    /* Paso 1: elegir la casa. */
+    chooseEyebrow: "Paso 1",
+    chooseTitle: (count: number) =>
+      count === 1
+        ? "Nuestro alojamiento"
+        : `Elige entre ${numberWord(count, "es")} casas y cabañas`,
+    chooseLead:
+      "Cada una tiene su propio calendario y su propia tarifa según cuántos vengan. Elige la tuya y el calendario aparece aquí mismo.",
+    chooseCta: "Elegir fechas",
+    /** Nombre accesible de la tarjeta entera del selector. */
+    chooseAria: (name: string) => `Elegir fechas en ${name}`,
+    /* Con alojamiento ya elegido. */
+    selectedEyebrow: "Estás reservando",
+    change: "Cambiar de alojamiento",
+    switcherLabel: "Alojamientos disponibles",
+    switchTo: (name: string) => `Reservar ${name} en su lugar`,
+    seeDetailsAria: (name: string) => `Ver la ficha completa de ${name}`,
+    /** Cuando la dirección trae un alojamiento que ya no se publica. */
+    unknown:
+      "Ese alojamiento no está disponible en este momento. Elige uno de la lista.",
   },
 
   /* --- Ficha de alojamiento ------------------------------------------------ */
@@ -166,7 +234,9 @@ export const es = {
     bookingLead:
       "El calendario muestra la disponibilidad real, incluidas las reservas que llegan por Airbnb y Booking. Arma tu estadía y envíanos la solicitud: confirmamos fechas y forma de pago el mismo día.",
     others: "Otros alojamientos",
-    othersCta: "Ver los seis",
+    /** Lleva al listado completo, así que `count` es el TOTAL visible. */
+    othersCta: (count: number) =>
+      count === 1 ? "Ver los alojamientos" : `Ver los ${numberWord(count, "es")}`,
     specialPlans: "Planes especiales",
     specialPlansNote:
       "Si eliges fechas dentro de un plan, el calendario aplica su precio automáticamente.",
@@ -390,8 +460,16 @@ export const es = {
 
   /* --- Pie de página ------------------------------------------------------- */
   footer: {
-    blurb:
-      "Reserva natural y hotel campestre en las montañas de Dapa. Treinta años de bosque en rehabilitación, seis casas y cabañas independientes y el Valle del Cauca a los pies.",
+    blurb: (count: number) => {
+      if (count <= 0) {
+        return "Reserva natural y hotel campestre en las montañas de Dapa. Treinta años de bosque en rehabilitación y el Valle del Cauca a los pies.";
+      }
+      const units =
+        count === 1
+          ? "una casa independiente"
+          : `${numberWord(count, "es")} casas y cabañas independientes`;
+      return `Reserva natural y hotel campestre en las montañas de Dapa. Treinta años de bosque en rehabilitación, ${units} y el Valle del Cauca a los pies.`;
+    },
     navHeading: "Navegación",
     contactHeading: "Contacto",
     nav: "Pie de página",

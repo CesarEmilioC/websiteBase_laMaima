@@ -239,7 +239,7 @@ insert into public.site_content (key, value) values
   '{
     "eyebrow": "Reserva natural y hotel campestre",
     "title": "La naturaleza a tu alcance",
-    "subtitle": "Seis casas y cabañas en medio de 30 años de bosque rehabilitado, a 20 minutos de Cali. La combinación perfecta entre lujo y naturaleza.",
+    "subtitle": "Casas y cabañas independientes en medio de 30 años de bosque rehabilitado, a 20 minutos de Cali. La combinación perfecta entre lujo y naturaleza.",
     "cta_label": "Ver alojamientos",
     "cta_href": "/alojamientos",
     "image": "https://mauolzwhergekdvigmaf.supabase.co/storage/v1/object/public/gallery/sitio/hero.jpg",
@@ -253,14 +253,14 @@ insert into public.site_content (key, value) values
     "title": "Treinta años devolviéndole el bosque a la montaña",
     "paragraphs": [
       "La Maima nació como un proyecto familiar de rehabilitación en las montañas de Dapa. Tres décadas después, lo que era potrero es hoy una reserva con bosque primario, secundario y terciario conviviendo en la misma ladera, y con la fauna del bosque andino de regreso: tucanes, pavas, colibríes y guatines.",
-      "Sobre ese bosque construimos seis casas y cabañas independientes, cada una con cocineta y baño privado. Nada de pasillos ni recepciones: cada alojamiento tiene su propia entrada, su terraza y su pedazo de montaña.",
+      "Sobre ese bosque construimos casas y cabañas independientes, cada una con cocineta y baño privado. Nada de pasillos ni recepciones: cada alojamiento tiene su propia entrada, su terraza y su pedazo de montaña.",
       "Estamos en el Km 12 de la Vía a Dapa, en Yumbo, a menos de una hora de Cali por carretera pavimentada. Suficientemente cerca para venir un fin de semana; suficientemente lejos para no oír la ciudad."
     ],
     "image": "https://mauolzwhergekdvigmaf.supabase.co/storage/v1/object/public/gallery/sitio/sobre-la-reserva.jpg",
     "image_alt": "Jardines de La Maima con vista abierta al Valle del Cauca",
     "stats": [
       { "value": "30", "label": "años de rehabilitación" },
-      { "value": "6", "label": "casas y cabañas" },
+      { "value": "{{alojamientos}}", "label": "casas y cabañas" },
       { "value": "3", "label": "tipos de bosque" }
     ]
   }'::jsonb
@@ -441,7 +441,7 @@ update public.min_stay_rules set label_en = 'High season, 23 Dec – 7 Jan 2027/
 update public.site_content set value_en = jsonb_build_object(
   'eyebrow',   'Nature reserve and country hotel',
   'title',     'Nature within your reach',
-  'subtitle',  'Six houses and cabins set in 30 years of restored forest, 20 minutes from Cali. The perfect balance of comfort and wilderness.',
+  'subtitle',  'Independent houses and cabins set in 30 years of restored forest, 20 minutes from Cali. The perfect balance of comfort and wilderness.',
   'cta_label', 'See our stays',
   'image_alt', 'A blue-roofed cabin at La Maima facing the native forest hillside in the mountains of Dapa'
 ) where key = 'home_hero';
@@ -451,12 +451,12 @@ update public.site_content set value_en = jsonb_build_object(
   'title',   'Thirty years giving the forest back to the mountain',
   'paragraphs', jsonb_build_array(
     'La Maima began as a family restoration project in the mountains of Dapa. Three decades later, what used to be pasture is a reserve where primary, secondary and tertiary forest grow side by side on the same hillside, with the wildlife of the Andean forest back home: toucans, guans, hummingbirds and agoutis.',
-    'On top of that forest we built six independent houses and cabins, each with its own kitchenette and private bathroom. No corridors, no reception desk: every house has its own entrance, its own terrace and its own piece of mountain.',
+    'On top of that forest we built independent houses and cabins, each with its own kitchenette and private bathroom. No corridors, no reception desk: every house has its own entrance, its own terrace and its own piece of mountain.',
     'We are at kilometre 12 of the Dapa road, in Yumbo, less than an hour from Cali on paved road. Close enough to come for a weekend; far enough not to hear the city.'
   ),
   'stats', jsonb_build_array(
     jsonb_build_object('value', '30', 'label', 'years of restoration'),
-    jsonb_build_object('value', '6',  'label', 'houses and cabins'),
+    jsonb_build_object('value', '{{alojamientos}}', 'label', 'houses and cabins'),
     jsonb_build_object('value', '3',  'label', 'types of forest')
   ),
   'image_alt', 'The Cauca Valley seen from La Maima, with the forest of the reserve in the foreground',

@@ -4,10 +4,11 @@ import { AccommodationCard } from "@/components/accommodation-card";
 import { JsonLd } from "@/components/json-ld";
 import { PageHero } from "@/components/page-hero";
 import { WhatsAppButton } from "@/components/whatsapp-button";
-import { getAccommodations, getListingHeroes } from "@/lib/content";
+import { listNamesWithin, numberWordCapitalized } from "@/lib/counts";
+import { getAccommodations, getListingHeroes, getStayNames } from "@/lib/content";
 import { dict } from "@/lib/i18n";
 import { localePath, type Locale } from "@/lib/i18n/config";
-import { breadcrumbList, pageMetadata } from "@/lib/seo";
+import { breadcrumbList, DESCRIPTION_LIMIT, pageMetadata } from "@/lib/seo";
 import { generalMessage } from "@/lib/whatsapp";
 
 /** Migas visibles y marcado estructurado salen de esta misma lista. */
@@ -25,27 +26,103 @@ function crumbs(locale: Locale) {
  * que los metadatos —que también la usan como imagen social— pasan a
  * `generateMetadata()` para poder leerla antes de responder.
  */
+/**
+ * Descripción de buscador del listado.
+ *
+ * ---------------------------------------------------------------------------
+ * ERA EL TEXTO MÁS DESACTUALIZABLE DEL SITIO
+ * ---------------------------------------------------------------------------
+ * Decía, literalmente: "Seis casas y cabañas independientes en Dapa (Yumbo):
+ * Casa Maima, Mirador, Casa Loma, Casa Uba, Dos Casitas y Tres Casitas". Un
+ * número Y una lista de nombres, los dos a mano. El día que el cliente ocultó
+ * Casa Uba desde el panel, esa frase pasó a anunciar en Google una casa que la
+ * página ya no muestra —y a contar una de más—, sin que nada avisara.
+ *
+ * Ahora el número sale del conteo real y los nombres, de la base, en el mismo
+ * orden en que se publican. La lista se recorta a lo que quepa dentro del
+ * límite de Google cerrando con "y más" (`listNamesWithin`), porque el número
+ * de casas puede crecer y una descripción cortada a mitad de un nombre propio
+ * es peor que una lista honesta e incompleta.
+ */
+function listingDescription(
+  stays: number,
+  names: string[],
+  locale: Locale,
+): string {
+  const english = locale === "en";
+
+  if (stays === 0) {
+    return english
+      ? "Independent houses and cabins in Dapa (Yumbo, Colombia), inside a nature reserve. Kitchenette and private bathroom in every one."
+      : "Casas y cabañas independientes en Dapa (Yumbo), dentro de una reserva natural. Todas con cocineta y baño privado.";
+  }
+
+  const head = english
+    ? stays === 1
+      ? "One independent house in Dapa (Yumbo, Colombia)"
+      : `${numberWordCapitalized(stays, "en")} independent houses and cabins in Dapa (Yumbo, Colombia)`
+    : stays === 1
+      ? "Una casa independiente en Dapa (Yumbo)"
+      : `${numberWordCapitalized(stays, "es")} casas y cabañas independientes en Dapa (Yumbo)`;
+
+  const tail = english
+    ? "Kitchenette and private bathroom."
+    : "Con cocineta y baño privado.";
+
+  /* Lo que queda para los nombres, descontando el encabezado, el cierre y los
+     dos signos de puntuación que los separan. */
+  const room = DESCRIPTION_LIMIT - head.length - tail.length - 3;
+  const list = listNamesWithin(names, locale, Math.max(room, 0));
+
+  return list ? `${head}: ${list}. ${tail}` : `${head}. ${tail}`;
+}
+
 export async function accommodationsMetadata(
   locale: Locale,
 ): Promise<Metadata> {
-  const { alojamientos: hero } = await getListingHeroes(locale);
+  const [{ alojamientos: hero }, names] = await Promise.all([
+    getListingHeroes(locale),
+    getStayNames(locale),
+  ]);
   const english = locale === "en";
+  const stays = names.length;
 
   return pageMetadata({
     title: english
       ? "Stays: houses and cabins in Dapa"
       : "Alojamientos: casas y cabañas en Dapa",
-    description: english
-      ? "Six independent houses and cabins in Dapa (Yumbo, Colombia): Casa Maima, Mirador, Casa Loma, Casa Uba, Dos Casitas and Tres Casitas. Kitchenette and private bathroom."
-      : "Seis casas y cabañas independientes en Dapa (Yumbo): Casa Maima, Mirador, Casa Loma, Casa Uba, Dos Casitas y Tres Casitas. Con cocineta y baño privado.",
+    description: listingDescription(stays, names, locale),
     path: "/alojamientos",
     image: { url: hero.image, alt: hero.image_alt },
     socialTitle: english ? "Stays · La Maima" : "Alojamientos · La Maima",
-    socialDescription: english
-      ? "Six independent houses and cabins in the forest of Dapa, all with a kitchenette and a private bathroom."
-      : "Seis casas y cabañas independientes entre el bosque de Dapa, todas con cocineta y baño privado.",
+    /* En redes no hay listado de nombres: el espacio útil es la mitad y ahí
+       manda la promesa, no el inventario. */
+    socialDescription: listingSocialDescription(stays, locale),
     locale,
   });
+}
+
+/** La misma frase, sin nombres, para la tarjeta de WhatsApp y de X. */
+function listingSocialDescription(stays: number, locale: Locale): string {
+  const english = locale === "en";
+
+  if (english) {
+    const units =
+      stays === 0
+        ? "Independent houses and cabins"
+        : stays === 1
+          ? "One independent house"
+          : `${numberWordCapitalized(stays, "en")} independent houses and cabins`;
+    return `${units} in the forest of Dapa, all with a kitchenette and a private bathroom.`;
+  }
+
+  const units =
+    stays === 0
+      ? "Casas y cabañas independientes"
+      : stays === 1
+        ? "Una casa independiente"
+        : `${numberWordCapitalized(stays, "es")} casas y cabañas independientes`;
+  return `${units} entre el bosque de Dapa, todas con cocineta y baño privado.`;
 }
 
 export async function AccommodationsPage({ locale }: { locale: Locale }) {
@@ -67,7 +144,7 @@ export async function AccommodationsPage({ locale }: { locale: Locale }) {
         eyebrow={t.accommodations.heroEyebrow}
         title={t.accommodations.heroTitle}
         titleAccent={t.accommodations.heroTitleAccent}
-        description={t.accommodations.heroDescription}
+        description={t.accommodations.heroDescription(accommodations.length)}
         image={hero.image}
         imageAlt={hero.image_alt}
         breadcrumbs={list.map((crumb) => ({
@@ -92,15 +169,15 @@ export async function AccommodationsPage({ locale }: { locale: Locale }) {
                   {t.accommodations.sectionEyebrow}
                 </p>
                 <h2 className="tracking-editorial mt-4 text-[2rem] leading-[1.1] text-ink sm:text-[2.5rem]">
-                  {t.accommodations.sectionTitle}
+                  {t.accommodations.sectionTitle(accommodations.length)}
                 </h2>
                 <p className="mt-5 text-[1.0625rem] leading-relaxed text-ink-muted">
                   {t.accommodations.sectionLead}
                 </p>
               </div>
 
-              {/* Rejilla alineada: sin escalonados en diagonal. Las seis fichas
-                  son equivalentes y la retícula lo dice. */}
+              {/* Rejilla alineada: sin escalonados en diagonal. Las fichas son
+                  equivalentes entre sí y la retícula lo dice. */}
               <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:mt-14 lg:grid-cols-3 lg:gap-7">
                 {accommodations.map((accommodation) => (
                   <div key={accommodation.id} data-reveal>

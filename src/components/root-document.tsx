@@ -2,10 +2,10 @@ import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 
 import "@/app/globals.css";
-import { getOgImage } from "@/lib/content";
+import { getOgImage, getVisibleStayCount } from "@/lib/content";
 import { DEFAULT_LOCALE, HTML_LANG, type Locale } from "@/lib/i18n/config";
 import { languageAlternates } from "@/lib/seo";
-import { SITE } from "@/lib/site";
+import { SITE, siteDescription } from "@/lib/site";
 
 /**
  * Documento HTML del sitio.
@@ -84,10 +84,16 @@ export const VIEWPORT: Viewport = {
  * `getOgImage()`) y necesita leerse en cada request.
  */
 export async function rootMetadata(locale: Locale): Promise<Metadata> {
-  const ogImage = await getOgImage(locale);
+  const [ogImage, stays] = await Promise.all([
+    getOgImage(locale),
+    getVisibleStayCount(),
+  ]);
   const english = locale === "en";
 
-  const description = english ? SITE.descriptionEn : SITE.description;
+  /* Esta descripción es la RED DE SEGURIDAD del sitio: la hereda cualquier
+     página que no declare la suya. Dice cuántas casas hay, y por eso el número
+     sale de la base y no de una constante. Ver `siteDescription()`. */
+  const description = siteDescription(stays, locale);
   const tagline = english ? SITE.taglineEn : SITE.tagline;
 
   return {

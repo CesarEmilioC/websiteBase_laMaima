@@ -2,7 +2,7 @@
  * Freno básico a las solicitudes de reserva.
  *
  * Explícitamente **sin servicios externos** (nada de Turnstile, reCAPTCHA ni
- * Upstash): esto es un formulario de reserva de un hotel de seis cabañas, no
+ * Upstash): esto es un formulario de reserva de un hotel de media docena de cabañas, no
  * un registro de cuentas. Lo que hay que evitar es el rellenador automático que
  * mete cincuenta solicitudes en un minuto y deja el calendario bloqueado; para
  * eso bastan dos cosas baratas.

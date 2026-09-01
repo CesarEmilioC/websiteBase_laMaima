@@ -102,7 +102,11 @@ export function SiteHeader({
   const t = dict(locale);
   const links = navLinks(locale);
   const home = localePath(locale, "/");
-  const bookHref = localePath(locale, "/alojamientos");
+  /* El botón "Reservar" del nav (y el "Reservar en línea" del menú) llevan a
+     la PÁGINA DE RESERVAS, no al listado. Antes decían "Reservar" y
+     aterrizaban en un catálogo: había que entrar a una ficha y bajar hasta el
+     calendario. Ahora el primer toque abre el motor. */
+  const bookHref = localePath(locale, "/reservar");
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 12);
@@ -240,12 +244,11 @@ export function SiteHeader({
                   opción de mayor contraste y la que mejor lee como acción
                   primaria. SE VE EN TODOS LOS TAMAÑOS (ver la nota de arriba).
 
-                  Lleva al LISTADO DE ALOJAMIENTOS, que es donde vive el motor de
-                  reservas (calendario real + cálculo de la estadía), no a
-                  WhatsApp: reservar es la experiencia central del sitio y el
-                  chat sigue a un toque en el botón flotante, que el cliente pidió
-                  mantener en todos los tamaños. Al ser un `next/link`, además,
-                  Next precarga la ruta en cuanto el botón entra en pantalla.
+                  Lleva a `/reservar`, que es donde vive el motor: selector de
+                  casa y calendario en la misma pantalla. No a WhatsApp —el chat
+                  sigue a un toque en el botón flotante, que el cliente pidió
+                  mantener en todos los tamaños— y ya no al listado, que
+                  respondía a "qué hay" y no a "quiero reservar".
 
                   `h-11` = 44 px, el mismo alto que el hamburguesa de al lado:
                   los dos objetivos táctiles quedan alineados y ninguno baja del

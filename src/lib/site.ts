@@ -7,6 +7,7 @@
  * botón de WhatsApp y el JSON-LD deben renderizar SIEMPRE, incluso si esa
  * fila no existe todavía, viene incompleta o la consulta a Supabase falla.
  */
+import { numberWord } from "./counts";
 import { dict } from "./i18n";
 import { localePath, type Locale } from "./i18n/config";
 
@@ -14,21 +15,6 @@ export const SITE = {
   name: "La Maima",
   legalName: "La Maima — Hotel Campestre",
   tagline: "La naturaleza a tu alcance",
-  /**
-   * Descripción canónica del sitio: la de la portada, la del `og:description`
-   * y la del JSON-LD. Mide 152 caracteres —Google recorta a partir de unos
-   * 160— y empieza por las dos cosas que se buscan ("hotel campestre",
-   * "Dapa"), porque la primera línea es la que sobrevive en móvil.
-   */
-  description:
-    "Hotel campestre y reserva natural en el Km 12 vía a Dapa, Yumbo: seis casas y cabañas entre 30 años de bosque rehabilitado, a menos de una hora de Cali.",
-
-  /**
-   * La misma descripción en inglés, con la misma disciplina: por debajo de 160
-   * caracteres y empezando por lo que se busca ("country hotel", "Dapa").
-   */
-  descriptionEn:
-    "Country hotel and nature reserve on the Dapa road, Yumbo: six houses and cabins in 30 years of restored forest, less than an hour from Cali, Colombia.",
 
   /** Titular de la portada en inglés (el español lo edita el panel). */
   taglineEn: "Nature within your reach",
@@ -68,8 +54,6 @@ export const SITE = {
     checkOut: "13:00",
     petsAllowed: true,
     smokingAllowed: false,
-    /** Total de casas y cabañas publicadas. */
-    units: 6,
   },
 
   maps: {
@@ -87,6 +71,48 @@ export const SITE = {
     facebookHandle: "@lamaimahotel",
   },
 } as const;
+
+/**
+ * Descripción canónica del sitio: la de la portada, la del `og:description` y
+ * la del JSON-LD del negocio.
+ *
+ * ES UNA FUNCIÓN, y no una constante, POR UNA PALABRA. La frase decía "seis
+ * casas y cabañas": el día que el cliente ocultara una cabaña desde el panel,
+ * ese "seis" seguiría publicándose en la etiqueta `<meta name="description">`
+ * de todo el sitio, en la tarjeta de WhatsApp y en los datos estructurados que
+ * lee Google, y nadie se enteraría. Ahora la cifra la pone quien la llama, con
+ * el conteo real (`getVisibleStayCount()`).
+ *
+ * Se escribe EN LETRA porque es prosa, y con rama de singular porque en
+ * español el artículo concuerda ("una casa", no "uno casas"). Con cero
+ * alojamientos publicados la frase se cierra sin la cláusula, en vez de
+ * anunciar "cero casas".
+ *
+ * Las tres variantes miden entre 140 y 155 caracteres, por debajo de los ~160
+ * que recorta Google, y empiezan por lo que se busca ("hotel campestre",
+ * "Dapa"): la primera línea es la que sobrevive en móvil.
+ */
+export function siteDescription(stays: number, locale: Locale): string {
+  if (locale === "en") {
+    const head = "Country hotel and nature reserve on the Dapa road, Yumbo:";
+    if (stays <= 0) {
+      return "Country hotel and nature reserve on the Dapa road, Yumbo, in 30 years of restored forest, less than an hour from Cali, Colombia.";
+    }
+    const units =
+      stays === 1
+        ? "one house"
+        : `${numberWord(stays, "en")} houses and cabins`;
+    return `${head} ${units} in 30 years of restored forest, less than an hour from Cali, Colombia.`;
+  }
+
+  const head = "Hotel campestre y reserva natural en el Km 12 vía a Dapa, Yumbo:";
+  if (stays <= 0) {
+    return "Hotel campestre y reserva natural en el Km 12 vía a Dapa, Yumbo, entre 30 años de bosque rehabilitado, a menos de una hora de Cali.";
+  }
+  const units =
+    stays === 1 ? "una casa" : `${numberWord(stays, "es")} casas y cabañas`;
+  return `${head} ${units} entre 30 años de bosque rehabilitado, a menos de una hora de Cali.`;
+}
 
 /* ---------------------------------------------------------------------------
  * Navegación y documentos legales

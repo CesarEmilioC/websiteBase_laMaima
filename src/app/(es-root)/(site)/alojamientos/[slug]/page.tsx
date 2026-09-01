@@ -10,7 +10,7 @@ export const revalidate = 3600;
 
 type Props = { params: Promise<{ slug: string }> };
 
-/** Prerenderiza las seis fichas en el build. */
+/** Prerenderiza en el build una ficha por alojamiento visible. */
 export const generateStaticParams = accommodationParams;
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {

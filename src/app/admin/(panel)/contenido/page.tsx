@@ -167,7 +167,12 @@ export default async function SiteContentPage() {
                   />
                 </Field>
 
-                <Field label="Subtítulo" htmlFor="hero_subtitle" className="sm:col-span-2">
+                <Field
+                  label="Subtítulo"
+                  htmlFor="hero_subtitle"
+                  className="sm:col-span-2"
+                  hint="Si quieres nombrar cuántos alojamientos hay, escribe {{alojamientos}} en lugar del número: la página pone el número real de alojamientos visibles y nunca se queda viejo cuando ocultes o publiques uno."
+                >
                   <Textarea
                     id="hero_subtitle"
                     name="subtitle"
@@ -307,7 +312,7 @@ export default async function SiteContentPage() {
                 <Field
                   label="Párrafos"
                   htmlFor="about_paragraphs"
-                  hint="Deja una línea en blanco entre un párrafo y el siguiente."
+                  hint="Deja una línea en blanco entre un párrafo y el siguiente. Para nombrar cuántos alojamientos hay, escribe {{alojamientos}} en lugar del número."
                   className="sm:col-span-2"
                 >
                   <Textarea
@@ -352,8 +357,20 @@ export default async function SiteContentPage() {
                 </Field>
 
                 <div className="sm:col-span-2">
-                  <p className="mb-2 text-[0.8125rem] font-semibold text-ink">
+                  <p className="text-[0.8125rem] font-semibold text-ink">
                     Cifras destacadas
+                  </p>
+                  {/* La cifra de alojamientos venía escrita a mano ("6") y se
+                      quedaba vieja en cuanto se ocultaba una cabaña. El token
+                      la calcula: se explica aquí, junto al campo. */}
+                  <p className="mb-3 mt-1 text-[0.8125rem] leading-relaxed text-ink-muted">
+                    En “Número” puedes escribir{" "}
+                    <code className="rounded bg-ink/[0.06] px-1 py-0.5 font-mono text-[0.75rem]">
+                      {"{{alojamientos}}"}
+                    </code>{" "}
+                    y la página mostrará cuántos alojamientos visibles hay en
+                    ese momento, sin que tengas que corregirlo al ocultar o
+                    publicar una cabaña.
                   </p>
                   <div className="grid gap-3 sm:grid-cols-3">
                     {[0, 1, 2].map((index) => (

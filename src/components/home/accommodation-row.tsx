@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 
 import { ArrowRightIcon, UsersIcon } from "../icons";
+import { bookingPath } from "@/lib/booking/select";
 import { coverImage, type Accommodation } from "@/lib/content";
 import { formatCOP, formatGuests } from "@/lib/format";
 import { dict } from "@/lib/i18n";
@@ -22,17 +23,17 @@ type Props = {
  * elbosquehotelboutique.com, que el cliente puso como referencia explícita:
  * filas alternadas de foto y texto, en vez de una parrilla.
  *
- * LO QUE HACE QUE FUNCIONE CON SEIS CABAÑAS (y no canse):
+ * LO QUE HACE QUE FUNCIONE CON MEDIA DOCENA DE CABAÑAS (y no canse):
  *
  *  - La foto tiene ALTURA FIJA en escritorio (268 px), no proporción. Con
- *    `aspect-[16/10]` una foto a media página mediría 350 px y las seis filas
- *    sumarían más de dos mil píxeles de scroll; con altura fija, la fila entera
- *    mide poco más de 300 px y las seis se recorren de un tirón.
+ *    `aspect-[16/10]` una foto a media página mediría 350 px y media docena de
+ *    filas sumarían más de dos mil píxeles de scroll; con altura fija, la fila
+ *    entera mide poco más de 300 px y la sección se recorre de un tirón.
  *  - El texto es corto por contrato: nombre, una descripción de tres líneas
  *    como mucho, la tarifa "Desde" y los botones. Nada de listas de servicios,
  *    que es lo que engorda este patrón en otros sitios.
  *  - Las filas se separan con un filete de un píxel y aire simétrico, no con
- *    tarjetas: seis tarjetas con sombra, una debajo de otra, se leen como un
+ *    tarjetas: una pila de tarjetas con sombra, una debajo de otra, se lee como un
  *    listado administrativo. Un filete se lee como una revista.
  *
  * En móvil la alternancia desaparece —siempre foto arriba y texto debajo—
@@ -51,6 +52,11 @@ export function AccommodationRow({ accommodation, locale, index }: Props) {
   // edita un precio desde el panel.
   const from = lowestRate(accommodation.tiers, accommodation.price_per_night_cop);
   const href = localePath(locale, `/alojamientos/${accommodation.slug}`);
+  /* "Reservar" ya no baja al ancla `#reservar` de la ficha: va a la página de
+     reservas con ESTA casa preseleccionada. Es un paso menos —no hay que
+     cargar la ficha entera, con su galería, para llegar al calendario— y la
+     dirección resultante se puede compartir tal cual por WhatsApp. */
+  const bookHref = localePath(locale, bookingPath(accommodation.slug));
 
   // Las filas pares llevan la foto a la izquierda; las impares, a la derecha.
   const photoRight = index % 2 === 1;
@@ -70,9 +76,10 @@ export function AccommodationRow({ accommodation, locale, index }: Props) {
           nada: había que apuntar al titular o a "Ver detalles".
 
           Se enlaza SOLO la foto, no la fila entera. Dentro del bloque de texto
-          ya hay dos enlaces con destinos distintos ("Reservar" va al ancla del
-          widget, "Ver detalles" a la ficha) y anidarlos dentro de otro enlace
-          es HTML inválido además de una trampa para el teclado.
+          ya hay dos enlaces con destinos distintos ("Reservar" va a la página
+          de reservas con esta casa elegida, "Ver detalles" a la ficha) y
+          anidarlos dentro de otro enlace es HTML inválido además de una trampa
+          para el teclado.
 
           El `aria-label` es obligatorio: sin él, el nombre accesible saldría
           del texto alternativo de la fotografía, que describe la imagen y no
@@ -93,7 +100,7 @@ export function AccommodationRow({ accommodation, locale, index }: Props) {
              LCP (lo es la portada), así que todas van diferidas. */
           sizes="(min-width: 1024px) 640px, 100vw"
           quality={68}
-          /* Ninguna de las seis es el LCP: prioridad baja explícita para que
+          /* Ninguna de estas fotos es el LCP: prioridad baja explícita para que
              no compitan con la fotografía de portada. */
           fetchPriority="low"
           /* Acercamiento MUY leve al pasar el ratón: lo justo para que la foto
@@ -122,7 +129,7 @@ export function AccommodationRow({ accommodation, locale, index }: Props) {
         </h3>
 
         {accommodation.short_description && (
-          /* Tres líneas como tope: con seis filas seguidas, una descripción de
+          /* Tres líneas como tope: con varias filas seguidas, una descripción de
              cinco líneas en una y de dos en otra descuadra el ritmo vertical
              de toda la sección. */
           <p className="mt-2.5 line-clamp-3 text-[0.9375rem] leading-relaxed text-ink-muted">
@@ -142,7 +149,7 @@ export function AccommodationRow({ accommodation, locale, index }: Props) {
 
         <div className="mt-5 flex flex-wrap items-center gap-2.5">
           <Link
-            href={`${href}#reservar`}
+            href={bookHref}
             className="inline-flex items-center justify-center gap-2 rounded-full bg-brand-600 px-5 py-2.5 text-[0.9375rem] font-semibold text-white shadow-pill transition-[background-color,transform] duration-200 ease-ios hover:bg-brand-700 active:scale-[0.98]"
           >
             {t.nav.book}

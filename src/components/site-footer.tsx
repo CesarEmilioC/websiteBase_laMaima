@@ -2,7 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 
 import { FacebookIcon, InstagramIcon, MapPinIcon, PhoneIcon } from "./icons";
-import { getContactInfo } from "@/lib/content";
+import { getContactInfo, getVisibleStayCount } from "@/lib/content";
 import { dict } from "@/lib/i18n";
 import type { Locale } from "@/lib/i18n/config";
 import { legalLinks, navLinks, SITE } from "@/lib/site";
@@ -17,7 +17,10 @@ import { legalLinks, navLinks, SITE } from "@/lib/site";
  */
 export async function SiteFooter({ locale }: { locale: Locale }) {
   const year = new Date().getFullYear();
-  const contact = await getContactInfo();
+  const [contact, stays] = await Promise.all([
+    getContactInfo(),
+    getVisibleStayCount(),
+  ]);
   const t = dict(locale);
 
   return (
@@ -37,7 +40,9 @@ export async function SiteFooter({ locale }: { locale: Locale }) {
               className="h-20 w-auto sm:h-24"
             />
             <p className="mt-7 max-w-sm text-[0.9375rem] leading-relaxed text-sand-soft/60">
-              {t.footer.blurb}
+              {/* Cuenta las casas publicadas: es el mismo número que dice el
+                  titular de la portada y el JSON-LD, y sale de la base. */}
+              {t.footer.blurb(stays)}
             </p>
 
             <div className="mt-7 flex items-center gap-3">

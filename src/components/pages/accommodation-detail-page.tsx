@@ -33,7 +33,7 @@ import {
 import { absoluteUrl, SITE } from "@/lib/site";
 import { accommodationMessage } from "@/lib/whatsapp";
 
-/** Prerenderiza las seis páginas de detalle en el build. */
+/** Prerenderiza en el build una página por alojamiento VISIBLE. */
 export async function accommodationParams() {
   const accommodations = await getAccommodations();
   return accommodations.map((accommodation) => ({ slug: accommodation.slug }));
@@ -505,7 +505,9 @@ export async function AccommodationDetailPage({
                 href={listHref}
                 className="inline-flex shrink-0 items-center gap-2 rounded-full bg-white px-5 py-2.5 text-[0.9375rem] font-semibold text-brand-700 shadow-card transition-[background-color,color,transform] duration-200 ease-ios hover:bg-brand-600 hover:text-white active:scale-[0.98]"
               >
-                {t.detail.othersCta}
+                {/* Lleva al listado completo, así que cuenta TODOS los
+                    visibles (no solo los tres que se ven en esta fila). */}
+                {t.detail.othersCta(all.length)}
                 <ArrowRightIcon className="h-[1.05rem] w-[1.05rem]" />
               </Link>
             </div>

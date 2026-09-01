@@ -6,6 +6,7 @@
  * Local terms that have no real equivalent keep their Spanish name with a short
  * gloss the first time they appear (see the seeded database content).
  */
+import { numberWord, numberWordCapitalized } from "../counts";
 import type { Dictionary } from "./es";
 
 export const en: Dictionary = {
@@ -68,12 +69,18 @@ export const en: Dictionary = {
   home: {
     accommodations: {
       eyebrow: "Where to sleep",
-      title: "Six houses and cabins, each with its own",
+      title: (count: number) =>
+        count === 1
+          ? "One house with its own"
+          : `${numberWordCapitalized(count, "en")} houses and cabins, each with its own`,
       titleAccent: "piece of mountain",
       lead: "All of them stand alone, with a fitted kitchenette and a private bathroom. Pick the one that suits your group and price your stay on real dates.",
       empty:
         "We are updating our accommodation details. Send us a WhatsApp message and we will tell you what is available.",
-      cta: "See all six and book",
+      cta: (count: number) =>
+        count === 1
+          ? "See the house and book"
+          : `See all ${numberWord(count, "en")} and book`,
       photoAria: (name: string) => `View ${name}`,
     },
     about: {
@@ -117,14 +124,51 @@ export const en: Dictionary = {
     heroEyebrow: "Houses and cabins in Dapa",
     heroTitle: "Sleep inside",
     heroTitleAccent: "the reserve",
-    heroDescription:
-      "Six independent houses spread across the hillside. Each with its own entrance, its own terrace and its own view. All with a fitted kitchenette and a private bathroom.",
+    heroDescription: (count: number) =>
+      count === 1
+        ? "One independent house on the hillside, with its own entrance, its own terrace and its own view. With a fitted kitchenette and a private bathroom."
+        : `${numberWordCapitalized(count, "en")} independent houses spread across the hillside. Each with its own entrance, its own terrace and its own view. All with a fitted kitchenette and a private bathroom.`,
     sectionEyebrow: "Where to sleep",
-    sectionTitle: "Six houses and cabins",
+    sectionTitle: (count: number) =>
+      count === 1
+        ? "One house in the reserve"
+        : `${numberWordCapitalized(count, "en")} houses and cabins`,
     sectionLead:
       "Every house has its own rate depending on how many of you are coming, and Monday to Thursday nights cost less. Open a house to see the full table and price your stay on real dates.",
     emptyHelp:
       "In the meantime, send us a WhatsApp message and we will tell you which houses are available.",
+  },
+
+  /* --- Booking page (/en/reservar) ------------------------------------------- */
+  bookingHub: {
+    metaTitle: "Book",
+    metaDescription: (count: number) =>
+      count === 1
+        ? "Book online at La Maima, a nature reserve in Dapa (Yumbo, Colombia): real availability, a live quote for your dates and your request on record."
+        : `Book online at La Maima, in Dapa (Yumbo, Colombia): choose between ${numberWord(count, "en")} houses and cabins, see real availability and price your stay.`,
+    socialDescription:
+      "Pick a house, see real availability and price your stay at La Maima, a nature reserve in the mountains of Dapa.",
+    heroEyebrow: "Book online",
+    heroTitle: "Choose your dates",
+    heroTitleAccent: "in the reserve",
+    heroDescription:
+      "The calendar shows real availability, including bookings that come in through Airbnb and Booking.com. Build your stay and send us the request: we confirm dates and payment the same day.",
+    chooseEyebrow: "Step 1",
+    chooseTitle: (count: number) =>
+      count === 1
+        ? "Our house"
+        : `Choose between ${numberWord(count, "en")} houses and cabins`,
+    chooseLead:
+      "Each one has its own calendar and its own rate depending on how many of you are coming. Pick yours and the calendar opens right here.",
+    chooseCta: "Choose dates",
+    chooseAria: (name: string) => `Choose dates at ${name}`,
+    selectedEyebrow: "You are booking",
+    change: "Change house",
+    switcherLabel: "Available houses",
+    switchTo: (name: string) => `Book ${name} instead`,
+    seeDetailsAria: (name: string) => `See the full page for ${name}`,
+    unknown:
+      "That house is not available right now. Please pick one from the list.",
   },
 
   /* --- Accommodation detail -------------------------------------------------- */
@@ -149,7 +193,8 @@ export const en: Dictionary = {
     bookingLead:
       "The calendar shows real availability, including bookings that come in through Airbnb and Booking.com. Build your stay and send us the request: we confirm dates and payment the same day.",
     others: "Other houses",
-    othersCta: "See all six",
+    othersCta: (count: number) =>
+      count === 1 ? "See our stays" : `See all ${numberWord(count, "en")}`,
     specialPlans: "Special packages",
     specialPlansNote:
       "If you pick dates inside a package, the calendar applies its price automatically.",
@@ -359,8 +404,16 @@ export const en: Dictionary = {
 
   /* --- Footer -------------------------------------------------------------------- */
   footer: {
-    blurb:
-      "A nature reserve and country hotel in the mountains of Dapa. Thirty years of forest under restoration, six independent houses and the Cauca Valley at your feet.",
+    blurb: (count: number) => {
+      if (count <= 0) {
+        return "A nature reserve and country hotel in the mountains of Dapa. Thirty years of forest under restoration, with the Cauca Valley at your feet.";
+      }
+      const units =
+        count === 1
+          ? "one independent house"
+          : `${numberWord(count, "en")} independent houses`;
+      return `A nature reserve and country hotel in the mountains of Dapa. Thirty years of forest under restoration, ${units} and the Cauca Valley at your feet.`;
+    },
     navHeading: "Navigation",
     contactHeading: "Contact",
     nav: "Footer",

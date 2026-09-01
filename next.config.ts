@@ -29,12 +29,24 @@ const wixRedirects = [
   // Listado de alojamientos (Wix lo tenía en singular).
   { source: "/alojamiento", destination: "/alojamientos" },
   { source: "/alojamiento/:slug", destination: "/alojamientos" },
-  // Reservas: en el sitio nuevo se reserva desde la ficha de cada casa, así
-  // que el destino natural es el listado.
-  { source: "/reservar", destination: "/alojamientos" },
-  { source: "/book-online", destination: "/alojamientos" },
-  { source: "/booking-calendar", destination: "/alojamientos" },
-  { source: "/booking-calendar/:path*", destination: "/alojamientos" },
+  // Reservas.
+  // ---------------------------------------------------------------------
+  // OJO: `/reservar` YA NO SE REDIRIGE. Aquí había una 301 a `/alojamientos`
+  // heredada de cuando el motor solo vivía dentro de cada ficha; ahora
+  // `/reservar` es una página real del sitio (selector de casa + calendario) y
+  // una redirección se la comería antes de que Next llegara a renderizarla.
+  // Las redirecciones de `next.config` ganan SIEMPRE a las rutas del App
+  // Router, así que esto no habría fallado con un error visible: la página
+  // nueva simplemente no existiría.
+  //
+  // Es, además, el destino que la dirección del Wix quería decir: quien
+  // guardó `lamaima.com/reservar` en favoritos buscaba reservar, no un
+  // catálogo. Lo mismo vale para `/book-online`, que era su versión en inglés.
+  { source: "/book-online", destination: "/reservar" },
+  // El calendario del Wix era una pantalla de disponibilidad: su equivalente
+  // es el motor, no el listado.
+  { source: "/booking-calendar", destination: "/reservar" },
+  { source: "/booking-calendar/:path*", destination: "/reservar" },
   // Tarifas: hoy cada ficha publica su propia tabla por ocupación.
   { source: "/plans-pricing", destination: "/alojamientos" },
   // Contacto y "nosotros": secciones de la portada.

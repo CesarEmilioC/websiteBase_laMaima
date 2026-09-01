@@ -10,7 +10,7 @@ export const revalidate = 3600;
 
 type Props = { params: Promise<{ slug: string }> };
 
-/** Los mismos seis slugs que el árbol español: el espejo es exacto. */
+/** Los mismos slugs que el árbol español: el espejo es exacto. */
 export const generateStaticParams = accommodationParams;
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {

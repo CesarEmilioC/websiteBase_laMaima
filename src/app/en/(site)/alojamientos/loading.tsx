@@ -5,8 +5,8 @@ import {
 } from "@/components/skeletons";
 
 /**
- * Silueta del listado: banda fotográfica, encabezado de sección y seis
- * tarjetas en tres columnas. El fondo, el ritmo vertical y el margen superior
+ * Silueta del listado: banda fotográfica, encabezado de sección y una rejilla
+ * de tarjetas en tres columnas. El fondo, el ritmo vertical y el margen superior
  * de la rejilla son los mismos que los de `alojamientos/page.tsx`.
  */
 export default function Loading() {
