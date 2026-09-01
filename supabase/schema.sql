@@ -1,8 +1,10 @@
 -- =============================================================================
 -- La Maima — Esquema de base de datos (Postgres / Supabase)
 -- =============================================================================
--- APLICADO al proyecto Supabase "La Maima" (ref mauolzwhergekdvigmaf) como
--- migración `initial_schema` (Fase 1, 2026-08-06).
+-- APLICADO al proyecto Supabase "La Maima" de ORYON (ref ausqyfdglyxapeszkrck).
+-- Nació como migración `initial_schema` (Fase 1, 2026-08-06) en el proyecto de
+-- desarrollo anterior; el 2026-09-01 se recreó entero en el proyecto de ORYON
+-- con `supabase/migracion-oryon.sql` (esquema + datos + storage + admin).
 --
 -- Este archivo es el reflejo del esquema real. Cualquier cambio posterior debe
 -- hacerse como una migración incremental nueva (no editando este archivo a
@@ -126,7 +128,7 @@ create table if not exists public.accommodations (
   -- peor que la original sin traducir.
   amenities_en        jsonb not null default '[]'::jsonb,
 
-  -- [{ "url": "https://mauolzwhergekdvigmaf.supabase.co/storage/v1/object/public/gallery/alojamientos/casa-maima/1.jpg", "alt": "..." }, ...]
+  -- [{ "url": "https://ausqyfdglyxapeszkrck.supabase.co/storage/v1/object/public/gallery/alojamientos/casa-maima/1.jpg", "alt": "..." }, ...]
   gallery             jsonb not null default '[]'::jsonb,
 
   -- si es false no se muestra en el sitio público (borrador / fuera de servicio)

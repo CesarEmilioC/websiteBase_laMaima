@@ -166,8 +166,11 @@ admin y `client.ts` para componentes de navegador que consulten en vivo.
 ## Base de datos (Supabase)
 
 `supabase/schema.sql` es el reflejo del esquema **ya aplicado** al proyecto
-"La Maima" (ref `mauolzwhergekdvigmaf`, región `ca-central-1`) como la
-migración `initial_schema`. Tablas: `accommodations`, `experiences`,
+"La Maima" de ORYON (ref `ausqyfdglyxapeszkrck`). Nació como la migración
+`initial_schema` en el proyecto de desarrollo anterior y el 2026-09-01 se
+recreó entero en el proyecto de ORYON con `supabase/migracion-oryon.sql`
+(esquema + bucket + datos + usuario administrador, en un solo archivo para
+pegar en el SQL Editor). Tablas: `accommodations`, `experiences`,
 `bookings` (con restricción `EXCLUDE ... USING gist` que impide el solape de
 fechas por alojamiento, apoyada en `btree_gist`), `blocked_dates`,
 `site_content` e `ical_feeds`, más RLS en las seis.
@@ -269,6 +272,49 @@ mientras se escribe), las mitigaciones recomendadas son:
 - Como alternativa más robusta a largo plazo, mover el repo fuera de
   OneDrive (ej. `C:\dev\MAIMA`) y dejar OneDrive solo para los documentos
   de `docs/` e `Insumos/`.
+
+## Image Optimization: cómo mantener bajo el consumo
+
+Vercel factura el optimizador de imágenes por **imagen transformada**, y cuenta
+como una transformación cada combinación distinta de **archivo × ancho ×
+calidad × formato**. No se cobra por visita: una vez generada, la variante se
+sirve de caché. Por eso lo que dispara la factura no es el tráfico sino el
+número de variantes distintas que el sitio es capaz de pedir.
+
+Lo que ya está hecho en `next.config.ts` para acotarlo:
+
+| Ajuste | Valor | Por qué |
+| --- | --- | --- |
+| `deviceSizes` | `[390, 640, 768, 1080, 1280, 1920]` | 6 anchos en vez de los 8 por defecto, y sin los extremos (2048, 3840) que nadie pide. |
+| `imageSizes` | `[64, 128, 256, 384]` | 4 en vez de 8. Cubre desde el `sizes` más pequeño del sitio (36 px) hasta el mayor de tamaño fijo (384 px). |
+| `qualities` | `[68, 75, 90]` | Next 15.5 obliga a declararlas: cualquier `quality` fuera de la lista se rechaza, así que nadie puede inventar variantes nuevas por URL. |
+| `minimumCacheTTL` | `2678400` (31 días) | Las URLs de las fotos son inmutables en la práctica (ver abajo), así que una caché larga no arriesga nada y evita re-transformar lo mismo cada pocos días. |
+| `formats` | `["image/avif", "image/webp"]` | Se quedan los dos: AVIF pesa bastante menos y WebP es el respaldo. |
+
+**Por qué la caché larga es segura aquí:** el panel no sobrescribe una foto, sube
+un archivo nuevo con otra ruta y guarda la dirección nueva en la base. Cambiar
+una imagen desde el panel produce una URL distinta, que es una entrada de caché
+distinta. Nunca hay que "purgar" nada.
+
+Reglas al tocar imágenes en el código:
+
+- **No añadir valores de `quality`** fuera de `[68, 75, 90]`. Cada valor nuevo
+  multiplica el recuento por todos los anchos. Hoy: `68` para todo lo que queda
+  bajo el pliegue, `75` (el defecto, sin escribirlo) para el LCP de cada página,
+  `90` solo para el visor de galería a pantalla completa.
+- **Los precargados deben pedir la MISMA `quality`** que la imagen que van a
+  mostrar. Si no coinciden, el navegador descarga dos variantes y desperdicia el
+  precargado además de sumar una transformación.
+- **`sizes` realista y lo más ajustado posible.** Un `sizes="100vw"` en una
+  imagen que nunca pasa de media columna recorre toda la escalera de
+  `deviceSizes` sin necesidad. Para tamaños fijos, escribirlos en píxeles
+  (`sizes="140px"`).
+- **Antes de añadir un ancho** a `deviceSizes` o `imageSizes`: comprobar que
+  algún `sizes` del sitio lo pide de verdad.
+
+Para auditar el consumo: Vercel → proyecto → Usage → *Image Optimization*. Si
+sube sin que haya fotos nuevas, casi siempre es una `quality` o un `sizes`
+nuevos que ampliaron el espacio de variantes.
 
 ## SEO al publicar
 

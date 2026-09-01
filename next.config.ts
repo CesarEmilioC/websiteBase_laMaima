@@ -7,7 +7,7 @@ import type { NextConfig } from "next";
  */
 const supabaseHostname = new URL(
   process.env.NEXT_PUBLIC_SUPABASE_URL ??
-    "https://mauolzwhergekdvigmaf.supabase.co",
+    "https://ausqyfdglyxapeszkrck.supabase.co",
 ).hostname;
 
 /**
@@ -73,6 +73,58 @@ const nextConfig: NextConfig = {
 
   images: {
     formats: ["image/avif", "image/webp"],
+
+    /**
+     * ---------------------------------------------------------------------
+     * PRESUPUESTO DE TRANSFORMACIONES
+     * ---------------------------------------------------------------------
+     * Vercel factura el optimizador por *imagen transformada*, y una "imagen
+     * transformada" es cada combinación distinta de (archivo × ancho ×
+     * calidad × formato) que alguien llegue a pedir. Con las listas por
+     * defecto de Next —8 deviceSizes y 8 imageSizes— una sola fotografía
+     * puede generar decenas de variantes, y este sitio sirve 76 fotos.
+     *
+     * Las dos listas de abajo recortan el espacio de variantes a los anchos
+     * que el diseño realmente usa. La regla al tocarlas: un ancho solo entra
+     * si algún `sizes` del sitio lo pide de verdad; sobra cualquiera que
+     * únicamente exista "por si acaso".
+     */
+
+    /**
+     * Anchos para las imágenes que ocupan un porcentaje del viewport
+     * (`sizes` con `vw`, típicamente `100vw`). Seis escalones cubren el
+     * parque real de pantallas sin escalones intermedios que solo duplican
+     * el recuento:
+     *   390  — iPhone y la mayoría de móviles (es el ancho con el que se
+     *          verifica el sitio en móvil).
+     *   640  — móviles grandes y tablets en vertical.
+     *   768  — tablets.
+     *   1080 — portátiles.
+     *   1280 — el ancho de referencia del diseño de escritorio.
+     *   1920 — pantallas grandes y Retina de portátil.
+     * Fuera quedan 750, 828, 1200, 2048 y 3840: sus pantallas reciben el
+     * escalón inmediatamente superior, que se ve igual y ya está en caché.
+     */
+    deviceSizes: [390, 640, 768, 1080, 1280, 1920],
+
+    /**
+     * Anchos para las imágenes de tamaño fijo (`sizes` en píxeles): los
+     * logotipos del encabezado y el pie, las miniaturas del selector de
+     * casa y las tarjetas. El `sizes` más pequeño del sitio es de 36 px y el
+     * mayor de esta familia es de 384 px, así que cuatro escalones bastan.
+     */
+    imageSizes: [64, 128, 256, 384],
+
+    /**
+     * 31 días. Las fotos del sitio NO se editan en caliente: el panel no
+     * sobrescribe un archivo, sube uno nuevo con otra ruta y guarda la
+     * dirección nueva en la base. Es decir, una URL de imagen es inmutable
+     * en la práctica, así que una caché corta no protege de nada y sí
+     * obliga a re-transformar lo mismo cada pocos días. Alargarla es la
+     * palanca que más baja el recuento mensual.
+     */
+    minimumCacheTTL: 2678400,
+
     /**
      * Calidades permitidas por el optimizador. Next exige declararlas desde la
      * 15.5: cualquier `quality` que no esté en esta lista se rechaza (para que
