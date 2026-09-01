@@ -706,6 +706,67 @@ end
 $$;
 
 -- =============================================================================
+-- 8. Grants explícitos de tabla
+-- =============================================================================
+-- HALLAZGO (migración a ORYON, 2026-09-01): en el proyecto de César, aplicar
+-- solo lo de arriba (tablas + RLS) bastaba — Supabase concede por defecto
+-- arwdDxtm (select/insert/update/delete/truncate/references/trigger) a
+-- anon/authenticated/service_role sobre cualquier tabla nueva de public.
+--
+-- El proyecto de ORYON (ausqyfdglyxapeszkrck) NO tiene ese default: el rol
+-- "postgres" (el que ejecuta las migraciones, vía SQL Editor o el pooler)
+-- tiene un ALTER DEFAULT PRIVILEGES en public que solo concede
+-- REFERENCES/TRIGGER/TRUNCATE/MAINTAIN — sin select/insert/update/delete. Sin
+-- el GRANT explícito de abajo, RLS queda escrita pero inalcanzable: Postgres
+-- comprueba el GRANT de tabla ANTES de evaluar las políticas, y eso aplica
+-- incluso a service_role (rolbypassrls salta RLS, no el GRANT) — por eso
+-- fallaban también /api/availability y las Server Actions de reservas.
+--
+-- REGLA para el futuro: toda tabla nueva en el proyecto de ORYON necesita su
+-- propio GRANT justo después del CREATE TABLE — no asumir el default de
+-- Supabase. El ALTER DEFAULT PRIVILEGES de más abajo reduce el riesgo para
+-- tablas creadas desde ahora por el rol postgres, pero no reemplaza esa
+-- disciplina (por ejemplo, no cubre tablas creadas por otro rol o desde el
+-- Table Editor de otro flujo).
+
+grant usage on schema public to anon, authenticated, service_role;
+
+-- Catálogo público (accommodations/experiences filtran visible=true en su
+-- policy; las otras 5 son precios/reglas/textos sin nada sensible).
+grant select on
+  public.accommodations,
+  public.experiences,
+  public.rate_tiers,
+  public.min_stay_rules,
+  public.holidays,
+  public.rate_plans,
+  public.site_content
+  to anon, authenticated, service_role;
+
+-- CRUD completo para el panel admin (authenticated) y las rutas de servidor
+-- con SUPABASE_SERVICE_ROLE_KEY: las 10 tablas de public.
+grant select, insert, update, delete on
+  public.accommodations,
+  public.experiences,
+  public.rate_tiers,
+  public.min_stay_rules,
+  public.holidays,
+  public.rate_plans,
+  public.site_content,
+  public.bookings,
+  public.blocked_dates,
+  public.ical_feeds
+  to authenticated, service_role;
+
+-- Para que las próximas tablas nazcan con los grants correctos en este
+-- proyecto (aditivo: suma privilegios al default restrictivo, no lo
+-- reemplaza). anon solo recibe select — nunca debe poder escribir.
+alter default privileges for role postgres in schema public
+  grant select, insert, update, delete on tables to authenticated, service_role;
+alter default privileges for role postgres in schema public
+  grant select on tables to anon;
+
+-- =============================================================================
 -- Pendiente para fases siguientes:
 --   - Distinguir roles de admin ("owner" vs "staff") si el cliente lo pide.
 --   - Validación cruzada bookings <-> blocked_dates al confirmar una reserva.

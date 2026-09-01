@@ -895,3 +895,78 @@ from (
       ) s)
 ) chk
 order by chk.etiqueta;
+
+
+-- =============================================================================
+-- F. GRANTS EXPLÍCITOS DE TABLA — completan la migración (2026-09-01)
+-- =============================================================================
+-- HALLAZGO: tras aplicar A-E, la BD quedó con los datos correctos pero la API
+-- REST (PostgREST) devolvía "permission denied for table X" (42501) para
+-- anon, authenticated E INCLUSO service_role en las 10 tablas de public.
+--
+-- CAUSA: este proyecto (ORYON, ausqyfdglyxapeszkrck) tiene, para el rol
+-- "postgres" (el que ejecuta este script vía el pooler), un
+-- ALTER DEFAULT PRIVILEGES en el esquema public que solo concede
+-- REFERENCES/TRIGGER/TRUNCATE/MAINTAIN a anon/authenticated/service_role en
+-- las tablas que ese rol cree — NO select/insert/update/delete. El proyecto
+-- personal anterior de César tenía los defaults estándar de Supabase
+-- (arwdDxtm para los tres roles), por eso allí nunca hizo falta este bloque.
+--
+-- Las políticas RLS de la sección 7 (arriba) están bien escritas, pero RLS es
+-- una segunda capa: Postgres primero comprueba el GRANT de tabla y solo si
+-- pasa evalúa las políticas. service_role tiene rolbypassrls=true (salta
+-- RLS), pero eso NO lo exime de necesitar el GRANT — por eso también fallaba
+-- en /api/availability, las Server Actions de reservas y el panel admin.
+--
+-- REGLA para el futuro: toda migración nueva que cree una tabla en ESTE
+-- proyecto debe traer su propio GRANT explícito justo después del
+-- CREATE TABLE. El ALTER DEFAULT PRIVILEGES de más abajo evita que se repita
+-- el bloqueo total en tablas creadas desde ahora por el rol postgres, pero no
+-- reemplaza la disciplina de ser explícito en cada migración.
+
+-- USAGE sobre el esquema (defensivo). Ya estaba concedido en ORYON al
+-- momento de este hallazgo — sin esto ni el SELECT de tabla funciona — pero
+-- se deja explícito por si un hardening futuro lo retira.
+grant usage on schema public to anon, authenticated, service_role;
+
+-- Catálogo público: estas 7 tablas tienen policy "for select to anon,
+-- authenticated" (accommodations/experiences filtran visible=true; las 5
+-- restantes son precios/reglas/textos sin nada sensible). service_role
+-- también necesita el SELECT explícito (bypassa RLS, no el GRANT).
+grant select on
+  public.accommodations,
+  public.experiences,
+  public.rate_tiers,
+  public.min_stay_rules,
+  public.holidays,
+  public.rate_plans,
+  public.site_content
+  to anon, authenticated, service_role;
+
+-- CRUD completo para el panel admin (rol "authenticated" tras login) y para
+-- las rutas de servidor con SUPABASE_SERVICE_ROLE_KEY (disponibilidad,
+-- Server Actions de reservas, futuro cron de iCal y webhook de pagos):
+-- las 10 tablas de public, ninguna se salta el GRANT aunque su policy sea
+-- "for all to authenticated" o RLS no aplique por service_role.
+grant select, insert, update, delete on
+  public.accommodations,
+  public.experiences,
+  public.rate_tiers,
+  public.min_stay_rules,
+  public.holidays,
+  public.rate_plans,
+  public.site_content,
+  public.bookings,
+  public.blocked_dates,
+  public.ical_feeds
+  to authenticated, service_role;
+
+-- Para que las PRÓXIMAS tablas que se creen en este proyecto (rol postgres,
+-- vía SQL Editor o el pooler) nazcan con los grants correctos y esto no se
+-- repita: sumamos select/insert/update/delete al default privilege
+-- restrictivo que ya existía (ALTER DEFAULT PRIVILEGES es aditivo, no lo
+-- reemplaza). anon solo recibe select — nunca debe poder escribir.
+alter default privileges for role postgres in schema public
+  grant select, insert, update, delete on tables to authenticated, service_role;
+alter default privileges for role postgres in schema public
+  grant select on tables to anon;
